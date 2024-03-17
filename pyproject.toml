@@ -24,7 +24,12 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "networkx==3.0.0",
+  "jax",
+  "jaxlib",
+  "numpy",
+]
 
 [project.urls]
 Documentation = "https://github.com/KaiHabermann/decayangle#readme"

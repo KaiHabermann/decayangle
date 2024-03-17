@@ -1,5 +1,6 @@
 from jax import numpy as jnp
 import numpy as np
+from jax import jit
 
 def boost_matrix_2_2_x(xi):
     r""" 
@@ -189,6 +190,7 @@ def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  p
         raise ValueError("The matrix is not a rotation matrix")
 
 
+@jit
 def spatial_components(vector):
     """Return spatial components of the input Lorentz vector
 
@@ -198,6 +200,7 @@ def spatial_components(vector):
     """
     return vector[..., 0:3]
 
+@jit
 def time_component(vector):
     """Return time component of the input Lorentz vector
 
@@ -207,6 +210,7 @@ def time_component(vector):
     """
     return vector[..., 3]
 
+@jit
 def x_component(vector):
     """Return spatial X component of the input Lorentz or 3-vector
 
@@ -216,6 +220,7 @@ def x_component(vector):
     """
     return vector[..., 0]
 
+@jit
 def y_component(vector):
     """Return spatial Y component of the input Lorentz or 3-vector
 
@@ -225,6 +230,7 @@ def y_component(vector):
     """
     return vector[..., 1]
 
+@jit
 def z_component(vector):
     """Return spatial Z component of the input Lorentz or 3-vector
 
@@ -234,6 +240,7 @@ def z_component(vector):
     """
     return vector[..., 2]
 
+@jit
 def pt(vector):
     """Return transverse (X-Y) component of the input Lorentz or 3-vector
 
@@ -243,6 +250,7 @@ def pt(vector):
     """
     return jnp.sqrt(x_component(vector) ** 2 + y_component(vector) ** 2)
 
+@jit
 def eta(vector):
     """Return pseudorapidity component of the input Lorentz or 3-vector
 
@@ -252,6 +260,7 @@ def eta(vector):
     """
     return -jnp.log(pt(vector) / 2.0 / z_component(vector))
 
+@jit
 def vector(x, y, z):
     """
     Make a 3-vector from components. Components are stacked along the last index.
@@ -263,6 +272,7 @@ def vector(x, y, z):
     """
     return jnp.stack([x, y, z], axis=-1)
 
+@jit
 def mass_squared(vector):
     """
     Calculate squared invariant mass scalar for Lorentz 4-momentum vector
@@ -273,6 +283,7 @@ def mass_squared(vector):
     """
     return jnp.sum(vector * vector * metric_tensor(), -1)
 
+@jit
 def metric_tensor():
     """
     Constant metric tensor for Lorentz space
@@ -281,6 +292,7 @@ def metric_tensor():
     """
     return jnp.array([-1.0, -1.0, -1.0, 1.0], dtype=jnp.float64)
 
+@jit
 def lorentz_vector(space, time):
     """
     Make a Lorentz vector from spatial and time components
@@ -292,6 +304,7 @@ def lorentz_vector(space, time):
     """
     return jnp.concatenate([space, jnp.stack([time], axis=-1)], axis=-1)
 
+@jit
 def mass(vector):
     """
     Calculate mass scalar for Lorentz 4-momentum vector
@@ -302,8 +315,7 @@ def mass(vector):
     """
     return jnp.sqrt(mass_squared(vector))
 
-
-
+@jit
 def gamma(momentum):
     r"""calculate gamma factor
 
@@ -312,6 +324,7 @@ def gamma(momentum):
     """
     return time_component(momentum) / mass(momentum)
 
+@jit
 def beta(momentum):	
     r"""calculate beta factor
 
@@ -320,6 +333,7 @@ def beta(momentum):
     """
     return p(momentum) / time_component(momentum)
 
+@jit
 def rapidity(momentum):
     r"""calculate rapidity
 
@@ -329,6 +343,7 @@ def rapidity(momentum):
     b = beta(momentum)
     return 0.5 * jnp.log((b + 1) / (1 - b))
 
+@jit
 def norm(vec):
     """
     Calculate norm of 3-vector
@@ -339,6 +354,7 @@ def norm(vec):
     """
     return jnp.sqrt(jnp.sum(vec * vec, -1))
 
+@jit
 def p(vector):
     """
     Calculate absolute value of the 4-momentum
@@ -349,6 +365,7 @@ def p(vector):
     """
     return norm(spatial_components(vector))
 
+@jit
 def scalar_product(vec1, vec2):
     """
     Calculate scalar product of two 3-vectors
@@ -360,6 +377,7 @@ def scalar_product(vec1, vec2):
     """
     return jnp.sum(vec1 * vec2, -1)
 
+@jit
 def scalar(x):
     """
     Create a scalar (array with only one component in last index) which can be used
@@ -371,6 +389,7 @@ def scalar(x):
     """
     return jnp.stack([x], axis=-1)
 
+@jit
 def lorentz_boost(vector, boostvector):
     """
     Perform Lorentz boost of the 4-vector vector using boost vector boostvector.
@@ -406,5 +425,5 @@ def boost_to_rest(vector, boostvector):
     :returns: 4-vector boosed to boostvector rest frame
 
     """
-    boost = -spatial_components(boostvector) / time_component(boostvector)
+    boost = -spatial_components(boostvector) / scalar(time_component(boostvector))
     return lorentz_boost(vector, boost)

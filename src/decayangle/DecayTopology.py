@@ -122,15 +122,23 @@ class Tree:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
     
-    def boost(self, target: 'Node', momenta: dict):
+    def boost(self, target: 'Node', momenta: dict, inverse:bool = False):
         boost_tree, node_dict = self.__build_boost_tree(momenta)
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
         trafo = self.root.boost(node_dict[path[0]], momenta)
         momenta = self.root.transform(trafo, momenta)
+        trafos = [trafo]
         for i in range(1, len(path)):
             boost = node_dict[path[i-1]].boost(node_dict[path[i]], momenta) 
             momenta = node_dict[path[i-1]].transform(boost, momenta)
             trafo = boost @ trafo
+            trafos.append(boost)
+        if inverse:
+            # this is more precise then the naive inverse
+            inverse_trafo = trafos[0].inverse()
+            for trafo in trafos[1:]:
+                inverse_trafo = inverse_trafo @ trafo.inverse()
+            return inverse_trafo
         return trafo
     
     def __getattr__(self, name):

@@ -18,9 +18,10 @@ class LorentzTrafo:
         if isinstance(other, LorentzTrafo):
             return LorentzTrafo(M2=self.M2 @ other.M2, M4=self.M4 @ other.M4)
     
-    def decode(self):
+    def decode(self, two_pi_aware=True):
         params = decode_4_4(self.M4)
-        params = adjust_for_2pi_rotation(self.M2, *params)
+        if two_pi_aware:
+            params = adjust_for_2pi_rotation(self.M2, *params)
         return params
     
     def __repr__(self):

@@ -1,4 +1,3 @@
-import numpy as np
 from jax import jit, vmap
 from jax import numpy as jnp
 from functools import cached_property
