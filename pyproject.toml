@@ -27,9 +27,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Documentation = "https://github.com/unknown/decayangle#readme"
-Issues = "https://github.com/unknown/decayangle/issues"
-Source = "https://github.com/unknown/decayangle"
+Documentation = "https://github.com/KaiHabermann/decayangle#readme"
+Issues = "https://github.com/KaiHabermann/decayangle/issues"
+Source = "https://github.com/KaiHabermann/decayangle"
 
 [tool.hatch.version]
 path = "src/decayangle/__about__.py"
