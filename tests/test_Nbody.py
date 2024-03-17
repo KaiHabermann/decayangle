@@ -49,11 +49,11 @@ tree2 = tg.trees[1]
 # exit(0)
 
 frame1 = tree.boost(Node(4), momenta)
-frame2 = tree2.boost(Node(4), momenta, inverse=True)
+frame2 = tree2.boost(Node(4), momenta)
 
-difference = frame1 @ frame2
-print(tree2.boost(Node(4), momenta, inverse=True).M4 - frame2.inverse().M4)
+difference = frame1 @ frame2.inverse()
 assert jnp.allclose(tree2.boost(Node(4), momenta, inverse=True).M4, frame2.inverse().M4)
+print(difference.decode(False))
 
 # print(difference)
 # print(difference.decode(False))
