@@ -154,12 +154,12 @@ def decode_4_4(matrix):
 
     V = matrix @ V0
     w = time_component(V)
-    p = p(V)
+    abs_mom = p(V)
     gamma = w / m
     xi = jnp.arccosh(gamma)
 
     psi = jnp.arctan2(y_component(V), x_component(V))
-    theta = jnp.arccos(z_component(V) / p)
+    theta = jnp.arccos(z_component(V) / abs_mom)
 
     M_rf = boost_matrix_4_4_z(-xi) @ rotation_matrix_4_4_y(-theta) @ rotation_matrix_4_4_z(-psi) @ matrix
     phi_rf, theta_rf, psi_rf = decode_rotation_4x4(M_rf[:3, :3])
@@ -304,29 +304,29 @@ def mass(vector):
 
 
 
-def gamma(p):
+def gamma(momentum):
     r"""calculate gamma factor
 
     Args:
         p (jax.numpy.ndarray): momentum 4-vector
     """
-    return time_component(p) / mass(p)
+    return time_component(momentum) / mass(momentum)
 
-def beta(p):	
+def beta(momentum):	
     r"""calculate beta factor
 
     Args:
         p (jax.numpy.ndarray): momentum 4-vector
     """
-    return p(p) / time_component(p)
+    return p(momentum) / time_component(momentum)
 
-def rapidity(p):
+def rapidity(momentum):
     r"""calculate rapidity
 
     Args:
         p (jax.numpy.ndarray): momentum 4-vector
     """
-    b = beta(p)
+    b = beta(momentum)
     return 0.5 * jnp.log((b + 1) / (1 - b))
 
 def norm(vec):

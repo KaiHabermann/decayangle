@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "decayangle"
-dynamic = ["version"]
-description = ''
+description = 'A tool for wigner rotations in n-body decays'
+version = '0.1.0'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -31,51 +31,3 @@ Documentation = "https://github.com/KaiHabermann/decayangle#readme"
 Issues = "https://github.com/KaiHabermann/decayangle/issues"
 Source = "https://github.com/KaiHabermann/decayangle"
 
-[tool.hatch.version]
-path = "src/decayangle/__about__.py"
-
-[tool.hatch.envs.default]
-dependencies = [
-  "coverage[toml]>=6.5",
-  "pytest",
-]
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report",
-]
-cov = [
-  "test-cov",
-  "cov-report",
-]
-
-[[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
-[tool.hatch.envs.types]
-dependencies = [
-  "mypy>=1.0.0",
-]
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/decayangle tests}"
-
-[tool.coverage.run]
-source_pkgs = ["decayangle", "tests"]
-branch = true
-parallel = true
-omit = [
-  "src/decayangle/__about__.py",
-]
-
-[tool.coverage.paths]
-decayangle = ["src/decayangle", "*/decayangle/src/decayangle"]
-tests = ["tests", "*/decayangle/tests"]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]

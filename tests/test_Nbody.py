@@ -1,4 +1,4 @@
-from DecayAngle.DecayTopology import generateTreeDefinitions, Node, TopologyGroup
+from decayangle.DecayTopology import generateTreeDefinitions, Node, TopologyGroup
 from jax import numpy as jnp
 from AmplitudeCrafter.Nbody.Decay import NBodyDecay
 

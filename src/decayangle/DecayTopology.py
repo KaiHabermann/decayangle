@@ -3,8 +3,8 @@ import numpy as np
 from jax import numpy as jnp
 from typing import List, Tuple, Optional, Union, Any
 from functools import cached_property
-from DecayAngle.lorentz import LorentzTrafo
-from DecayAngle import kinematics as akm
+from decayangle.lorentz import LorentzTrafo
+from decayangle import kinematics as akm
 import networkx as nx
 
 

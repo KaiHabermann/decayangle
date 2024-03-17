@@ -1,4 +1,4 @@
-from DecayAngle.kinematics import *
+from decayangle.kinematics import *
 from jax import numpy as jnp
 import jax
 import numpy as np
@@ -43,18 +43,11 @@ def test_kinematics():
         ) 
     )
 
-
-    print(
-        rotation_matrix_2_2_y(1.2) ,"\n" ,-rotation_matrix_2_2_y(1.2 + 2*jnp.pi)
-    )
     assert ( jnp.allclose(
         rotation_matrix_2_2_y(1.2) , -rotation_matrix_2_2_y(1.2 + 2*jnp.pi)
     )
     )
 
-    print(
-        rotation_matrix_2_2_z(1.2) ,"\n" ,-rotation_matrix_2_2_z(1.2 + 2*jnp.pi)
-    )
     assert ( jnp.allclose(
         rotation_matrix_2_2_z(1.2) , -rotation_matrix_2_2_z(1.2 + 2*jnp.pi)
     )

@@ -1,4 +1,4 @@
-from DecayAngle.kinematics import *
+from decayangle.kinematics import *
 
 class LorentzTrafo:
     def __init__(self, *args, **kwargs):

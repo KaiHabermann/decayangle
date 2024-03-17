@@ -2,7 +2,7 @@ import numpy as np
 from jax import jit, vmap
 from jax import numpy as jnp
 from functools import cached_property
-from DecayAngle.DecayTopology import TopologyGroup, Topology
+from decayangle.DecayTopology import TopologyGroup, Topology
 
 
 class NBodyDecay:

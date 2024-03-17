@@ -1,5 +1,5 @@
-from DecayAngle.kinematics import *
-from DecayAngle.lorentz import LorentzTrafo
+from decayangle.kinematics import *
+from decayangle.lorentz import LorentzTrafo
 from jax import numpy as jnp
 import jax
 import numpy as np
