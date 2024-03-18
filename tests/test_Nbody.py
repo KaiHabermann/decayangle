@@ -51,11 +51,10 @@ frame2 = tree2.boost(Node(4), momenta)
 
 difference = frame1 @ tree2.boost(Node(4), momenta, inverse=True)
 assert jnp.allclose(tree2.boost(Node(4), momenta, inverse=True).M4, frame2.inverse().M4)
-print(difference.decode())
+difference.decode()
+frame1.decode()
+frame2.decode()
 
-print(frame1.decode())
-print(frame2.decode())
-
-for v1, v2 in zip(frame1.decode(), frame2.decode()):
-    print(v1 - v2)
+for v1, v2, v3 in zip(frame1.decode(), frame2.decode(), difference.decode()):
+    print(v1 - v2, v3)
 
