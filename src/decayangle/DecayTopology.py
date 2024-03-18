@@ -6,6 +6,7 @@ from functools import cached_property
 from decayangle.lorentz import LorentzTrafo
 from decayangle import kinematics as akm
 import networkx as nx
+from decayangle.config import config
 
 
 class Node:
@@ -68,11 +69,11 @@ class Node:
             The momenta dictionary will define the initial configuration.
             It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
         """
-        if not jnp.allclose(akm.gamma(self.momentum(momenta)), jnp.ones_like(self.momentum(momenta))):
+        if not config.backend.allclose(akm.gamma(self.momentum(momenta)), config.backend.ones_like(self.momentum(momenta))):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future.")
-        zero = jnp.zeros_like(akm.time_component(self.momentum(momenta)))
-        one = jnp.ones_like(zero)
+        zero = config.backend.zeros_like(akm.time_component(self.momentum(momenta)))
+        one = config.backend.ones_like(zero)
         if self.value == target.value:
             return LorentzTrafo(zero ,zero, zero, zero, zero, zero)
         
@@ -84,15 +85,15 @@ class Node:
         rotation = LorentzTrafo(zero, zero, zero, theta_rf, zero, psi_rf)
         rotated_momenta = self.transform(rotation, momenta)
         # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert jnp.allclose(akm.y_component(target.momentum(rotated_momenta)), jnp.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
-        assert jnp.allclose(akm.x_component(target.momentum(rotated_momenta)), jnp.zeros_like(akm.x_component(target.momentum(rotated_momenta))))
+        assert config.backend.allclose(akm.y_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
+        assert config.backend.allclose(akm.x_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.x_component(target.momentum(rotated_momenta))))
 
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
         # assert the boost worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert jnp.allclose(akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one)
+        assert config.backend.allclose(akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one)
 
         return boost @ rotation
 

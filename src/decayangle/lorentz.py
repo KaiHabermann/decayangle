@@ -1,4 +1,6 @@
 from decayangle.kinematics import *
+from decayangle.config import config
+
 
 class LorentzTrafo:
     def __init__(self, *args, **kwargs):
@@ -22,8 +24,8 @@ class LorentzTrafo:
         """
         Set very small values to zero. This helps with numerical stability.
         """
-        self.M4 = jnp.where(jnp.abs(self.M4) < 1e-14, 0, self.M4)
-        self.M2 = jnp.where(jnp.abs(self.M2) < 1e-14, 0 + 0j, self.M2)
+        self.M4 = config.backend.where(config.backend.abs(self.M4) < 1e-14, 0, self.M4)
+        self.M2 = config.backend.where(config.backend.abs(self.M2) < 1e-14, 0 + 0j, self.M2)
 
     def decode(self, two_pi_aware=True):
         self.__floor()
@@ -36,7 +38,7 @@ class LorentzTrafo:
         return f"LorentzTrafo" + "\n SU(2): \n" + f"{self.M2}" + "\n O(3): \n" + f"{self.M4}"
     
     def inverse(self):
-        return LorentzTrafo(M2=jnp.linalg.inv(self.M2), M4=jnp.linalg.inv(self.M4))
+        return LorentzTrafo(M2=config.backend.linalg.inv(self.M2), M4=config.backend.linalg.inv(self.M4))
 
     # TODO: think about whether this is a good idea
     # def __getattr__(self, name):
