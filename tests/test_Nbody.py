@@ -37,8 +37,7 @@ def test_topology():
     tg = TopologyGroup(0,[1,2,3,4,5])
     assert len(tg.trees) == 105
 
-
-    decay = NBodyDecay(0,1,2,3,4, 5)
+    decay = NBodyDecay(0,1,2,3,4,5)
 
     momenta = {   1: config.backend.array([0, 0, -0.9, 1]),
                 2: config.backend.array([0, 0.15, 0.4,1]),
@@ -68,6 +67,7 @@ def test_topology():
             frame1 = base_tree.boost(node, momenta)
             frame2 = tree.boost(node, momenta)
             difference = frame1 @ tree.boost(node, momenta, inverse=True)
+            base_tree.relative_wigner_angles(tree, node, momenta)
             # we cant really assert things here, but if it runs through we at least know, that we can do the operations
             result = difference.decode()
             assert config.backend.isfinite(config.backend.array(result)).all()

@@ -39,6 +39,14 @@ class LorentzTrafo:
     
     def inverse(self):
         return LorentzTrafo(M2=config.backend.linalg.inv(self.M2), M4=config.backend.linalg.inv(self.M4))
+    
+    def wigner_angles(self):
+        theta, phi, xi, theta_rf, phi_rf, xi_rf = self.decode(two_pi_aware=True)
+
+        # the first three angles are to orient the coordinate system before the boost
+        # we expect to have no net boost here, so they are meaningless
+        # only theta and phi should differentiate the two frames
+        return theta, phi
 
     # TODO: think about whether this is a good idea
     # def __getattr__(self, name):

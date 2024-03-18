@@ -121,7 +121,7 @@ class Tree:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
     
-    def boost(self, target: 'Node', momenta: dict, inverse:bool = False):
+    def boost(self, target: 'Node', momenta: dict, inverse:bool = False) -> LorentzTrafo:
         boost_tree, node_dict = self.__build_boost_tree(momenta)
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
         trafo = self.root.boost(node_dict[path[0]], momenta)
@@ -139,6 +139,19 @@ class Tree:
                 inverse_trafo = inverse_trafo @ trafo.inverse()
             return inverse_trafo
         return trafo
+    
+    def relative_wigner_angles(self, other:'Tree', target: 'Node', momenta: dict) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
+        # invert self, since this final state is seen as the reference
+        boost1_inv = self.boost(target, momenta, inverse=True) 
+        boost2 = other.boost(target, momenta)
+        _, _, xi1, theta1, phi1, _ = self.boost(target, momenta).decode(two_pi_aware=True)
+        _, _, xi2, theta2, phi2, _ = boost2.decode(two_pi_aware=True)
+        def replace_pi(x):
+            return config.backend.where(config.backend.isclose(x, config.backend.pi), 0., x)
+        assert config.backend.allclose(replace_pi(xi1), replace_pi(xi2))
+        assert config.backend.allclose(replace_pi(phi1), replace_pi(phi2))
+        assert config.backend.allclose(replace_pi(theta1), replace_pi(theta2))
+        return (boost2 @ boost1_inv).wigner_angles()
     
     def __getattr__(self, name):
         return getattr(self.root, name)
@@ -255,19 +268,13 @@ class TopologyGroup:
     @cached_property
     def topologies(self):
         return [Topology(tree) for tree in self.trees]
-
-    @cached_property
-    def nodes(self):
-        nodes = self.nodes.copy()
-        nodes.update({(i, None):node for i,node in self.node_numbers.items()})
-        return nodes
     
     def filter(self, *contained_nodes: Node):
         """
         Filter the topologies based on the number of contained steps.
 
         Args:
-            contained_nodes (tuple): nodes which should be contained in the trees
+            contained_nodes (tuple[Node]): nodes which should be contained in the trees
         """
         trees = self.trees
         for contained_node in contained_nodes:
