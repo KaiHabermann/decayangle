@@ -18,4 +18,4 @@ pip install decayangle
 
 ## License
 
-`decayangle` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`decayangle` is distributed under the terms of the [Apache2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
