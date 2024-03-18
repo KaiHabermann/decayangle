@@ -9,23 +9,28 @@ def test_kinematics():
     p = jnp.array([-400., 0, 0])
     P = jnp.array([*p, (m**2 + jnp.sum(p**2))**0.5])
 
-    assert ( jnp.sum(
-        abs(
-            boost_matrix_2_2_x(-rapidity(P)) @ boost_matrix_2_2_x(rapidity(P))
-            )
-        ) < 2 + 1e-3
-    )
-    assert ( jnp.sum(
-        abs(
-        boost_matrix_2_2_y(-rapidity(P)) @ boost_matrix_2_2_y(rapidity(P))
+
+    for matrix in [rotation_matrix_2_2_x, rotation_matrix_2_2_y, rotation_matrix_2_2_z]:
+        print(matrix(1.5) @ jnp.conj(matrix(1.5).T))
+        assert (
+                
+                jnp.allclose(matrix(1.5) @ jnp.conj(matrix(1.5).T), jnp.eye(2))
         )
-        ) < 2 + 1e-10
+
+    assert ( jnp.allclose(
+            boost_matrix_2_2_x(-rapidity(P)) @ boost_matrix_2_2_x(rapidity(P)),
+            jnp.eye(2)
+        ) 
     )
-    assert ( jnp.sum(
-        abs(
-        boost_matrix_2_2_z(-rapidity(P)) @ boost_matrix_2_2_z(rapidity(P))
-        )
-        ) < 2 + 1e-10
+    assert ( jnp.allclose(
+        boost_matrix_2_2_y(-rapidity(P)) @ boost_matrix_2_2_y(rapidity(P)),
+            jnp.eye(2)
+        ) 
+    )
+    assert ( jnp.allclose(
+        boost_matrix_2_2_z(-rapidity(P)) @ boost_matrix_2_2_z(rapidity(P)),
+            jnp.eye(2)
+        ) 
     )
     assert ( jnp.allclose(
         rotation_matrix_2_2_x(-1.2) @ rotation_matrix_2_2_x(1.2),

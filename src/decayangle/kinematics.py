@@ -8,8 +8,11 @@ def boost_matrix_2_2_x(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    return (jnp.array([[jnp.cosh(xi/2), -jnp.sinh(xi/2)], 
-                        [-jnp.sinh(xi/2), jnp.cosh(xi/2)]]) )
+    sigma_x = jnp.array([[0, 1],
+                        [1, 0]])
+    I = jnp.array([[1, 0],
+                [0, 1]])
+    return jnp.cosh(xi/2)*I + jnp.sinh(xi/2)*sigma_x
 
 def boost_matrix_2_2_y(xi):
     r"""
@@ -17,8 +20,11 @@ def boost_matrix_2_2_y(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    return (jnp.array([[jnp.cosh(xi/2), 1j*jnp.sinh(xi/2)],
-                     [1j*jnp.sinh(xi/2), jnp.cosh(xi/2)]]))
+    sigma_y = jnp.array([[0, -1j],
+                        [1j, 0]])
+    I = jnp.array([[1, 0],
+                [0, 1]])
+    return jnp.cosh(xi/2)*I  + jnp.sinh(xi/2)*sigma_y
 
 def boost_matrix_2_2_z(xi):
     r"""
@@ -28,8 +34,9 @@ def boost_matrix_2_2_z(xi):
     """
     sigma_z = jnp.array([[1, 0],
                         [0, -1]])
-    return (jnp.cosh(xi/2)*jnp.array([[1, 0],
-                                    [0, 1]]) + jnp.sinh(xi/2) * sigma_z)
+    I = jnp.array([[1, 0],
+                [0, 1]])
+    return (jnp.cosh(xi/2)*I + jnp.sinh(xi/2) * sigma_z)
 
 def rotate_to_z_axis(v):
     """Given a vector, rotate it to the z-axis
