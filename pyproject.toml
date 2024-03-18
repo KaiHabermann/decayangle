@@ -37,6 +37,12 @@ Documentation = "https://github.com/KaiHabermann/decayangle#readme"
 Issues = "https://github.com/KaiHabermann/decayangle/issues"
 Source = "https://github.com/KaiHabermann/decayangle"
 
+[tool.coverage.run]
+branch = true
+relative_files = true
+omit = [
+    'tests/*',
+]
 
 [tool.hatch.envs.test]
 dependencies = [
@@ -46,8 +52,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.test.scripts]
-cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=pkg --cov=tests'
+cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov --cov=tests'
 
 [[tool.hatch.envs.test.matrix]]
-python = ["38", "39", "310"]
+python = ["38"]
 version = ["0.1.0"]
