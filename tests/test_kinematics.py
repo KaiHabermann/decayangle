@@ -2,10 +2,11 @@ from decayangle.kinematics import rotation_matrix_2_2_x, rotation_matrix_2_2_y, 
 from jax import numpy as jnp
 import jax
 import numpy as np
-from decayangle.config import config
-
-
 jax.config.update("jax_enable_x64", True)
+from decayangle.config import config
+import pytest
+
+
 def test_kinematics():
     m = 139.57018 # MeV
     p = config.backend.array([-400., 0, 0])
