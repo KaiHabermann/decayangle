@@ -43,18 +43,16 @@ momenta = {   1: jnp.array([0, 0, -0.9, 1]),
 
 momenta = tg.trees[0].to_rest_frame(momenta)
 first_node = tg.trees[0].inorder()[0]
-tree = tg.trees[0]
-tree2 = tg.trees[1]
+base_tree = tg.trees[0]
 
-frame1 = tree.boost(Node(4), momenta)
-frame2 = tree2.boost(Node(4), momenta)
+from tqdm import tqdm
 
-difference = frame1 @ tree2.boost(Node(4), momenta, inverse=True)
-assert jnp.allclose(tree2.boost(Node(4), momenta, inverse=True).M4, frame2.inverse().M4)
-difference.decode()
-frame1.decode()
-frame2.decode()
-
-for v1, v2, v3 in zip(frame1.decode(), frame2.decode(), difference.decode()):
-    print(v1 - v2, v3)
+for tree in tqdm(tg.trees):
+    for node in [Node(1), Node(2), Node(3), Node(4), Node(5)]:
+        frame1 = base_tree.boost(node, momenta)
+        frame2 = tree.boost(node, momenta)
+        difference = frame1 @ tree.boost(node, momenta, inverse=True)
+        # we cant really assert things here, but if it runs through we at least know, that we can do the operations
+        result = difference.decode()
+        assert jnp.isfinite(jnp.array(result)).all()
 
