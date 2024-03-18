@@ -60,4 +60,15 @@ def test_topology():
             # we cant really assert things here, but if it runs through we at least know, that we can do the operations
             result = difference.decode()
             assert config.backend.isfinite(config.backend.array(result)).all()
+    
+    # you can filter for topologies, where specific nodes are in the tree
+    # this is useful for cases, where resonances are only present in some of the possible isobars
+    for tree in tqdm(tg.filter(Node((1,2)), Node((1,2,3)))):
+        for node in [Node(1), Node(2), Node(3), Node(4), Node(5)]:
+            frame1 = base_tree.boost(node, momenta)
+            frame2 = tree.boost(node, momenta)
+            difference = frame1 @ tree.boost(node, momenta, inverse=True)
+            # we cant really assert things here, but if it runs through we at least know, that we can do the operations
+            result = difference.decode()
+            assert config.backend.isfinite(config.backend.array(result)).all()
 

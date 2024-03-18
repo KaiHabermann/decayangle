@@ -88,7 +88,6 @@ class Node:
         assert config.backend.allclose(akm.y_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
         assert config.backend.allclose(akm.x_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.x_component(target.momentum(rotated_momenta))))
 
-
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
