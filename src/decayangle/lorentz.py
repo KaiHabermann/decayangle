@@ -18,7 +18,15 @@ class LorentzTrafo:
         if isinstance(other, LorentzTrafo):
             return LorentzTrafo(M2=self.M2 @ other.M2, M4=self.M4 @ other.M4)
     
+    def __floor(self):
+        """
+        Set very small values to zero. This helps with numerical stability.
+        """
+        self.M4 = jnp.where(jnp.abs(self.M4) < 1e-14, 0, self.M4)
+        self.M2 = jnp.where(jnp.abs(self.M2) < 1e-14, 0 + 0j, self.M2)
+
     def decode(self, two_pi_aware=True):
+        self.__floor()
         params = decode_4_4(self.M4)
         if two_pi_aware:
             params = adjust_for_2pi_rotation(self.M2, *params)

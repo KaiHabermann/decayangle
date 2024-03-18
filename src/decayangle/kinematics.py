@@ -140,9 +140,35 @@ def rotation_matrix_4_4_z(theta):
     ])
 
 def build_2_2(psi, theta, xi, theta_rf, phi_rf, psi_rf):
+    r"""Build a 2x2 matrix from the 6 kinematic parameters
+
+    Args:
+        psi (float): the rotation angle around the z-axis
+        theta (float): the rotation angle around the y-axis
+        xi (float): the rapidity of the boost
+        theta_rf (float): the rotation angle around the y-axis in the rest frame
+        phi_rf (float): the rotation angle around the z-axis in the rest frame
+        psi_rf (float): the rotation angle around the z-axis in the rest frame
+
+    Returns:
+        jax.numpy.ndarray: the 2x2 matrix
+    """
     return (rotation_matrix_2_2_z(psi) @ rotation_matrix_2_2_y(theta) @ boost_matrix_2_2_z(xi) @ rotation_matrix_2_2_z(phi_rf) @ rotation_matrix_2_2_y(theta_rf) @ rotation_matrix_2_2_z(psi_rf))
 
 def build_4_4(psi, theta, xi, theta_rf, phi_rf, psi_rf):
+    r"""Build a 4x4 matrix from the 6 kinematic parameters
+
+    Args:
+        psi (float): the rotation angle around the z-axis
+        theta (float): the rotation angle around the y-axis
+        xi (float): the rapidity of the boost
+        theta_rf (float): the rotation angle around the y-axis in the rest frame
+        phi_rf (float): the rotation angle around the z-axis in the rest frame
+        psi_rf (float): the rotation angle around the z-axis in the rest frame
+
+    Returns:
+        jax.numpy.ndarray: the 4x4 matrix
+    """
     return (rotation_matrix_4_4_z(psi) @ rotation_matrix_4_4_y(theta) @ boost_matrix_4_4_z(xi) @ rotation_matrix_4_4_z(phi_rf) @ rotation_matrix_4_4_y(theta_rf) @ rotation_matrix_4_4_z(psi_rf))
 
 
@@ -158,6 +184,12 @@ def decode_rotation_4x4(R):
     return phi, theta, psi
 
 def decode_4_4(matrix):
+    r"""decode a 4x4 matrix into the 6 kinematic parameters
+
+    Args:
+        matrix (jax.numpy.ndarray): the 4x4 matrix
+    """
+
     m = 1.0
     V0 = jnp.array([0, 0, 0, m])
 
@@ -165,6 +197,13 @@ def decode_4_4(matrix):
     w = time_component(V)
     abs_mom = p(V)
     gamma = w / m
+    if gamma < 1:
+        # gamma can be smaller than 1 due to numerical errors
+        # for large deviations we will raise an exception
+        if abs(gamma - 1) < 1e-10:
+            gamma = 1.0
+        else:
+            raise ValueError(f"gamma is {gamma}, which is less than 1. This is not a valid Lorentz transformation")
     xi = jnp.arccosh(gamma)
 
     psi = jnp.arctan2(y_component(V), x_component(V))
@@ -197,7 +236,9 @@ def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  p
     elif np.allclose(M_original_2x2, -new_2x2):
         return psi, theta, xi, theta_rf, phi_rf,  psi_rf + 2*np.pi
     else:
-        raise ValueError("The matrix is not a rotation matrix")
+        raise ValueError(f"The 2x2 matrix does not match the reconstruced parameters!"
+                         f"This can happen due to numerical errors." 
+                         f"The original matrix is {M_original_2x2} and the reconstructed matrix is {new_2x2}")
 
 
 @jit

@@ -67,7 +67,6 @@ class Node:
         """ Get the boost from this node to a target node
             The momenta dictionary will define the initial configuration.
             It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
-        
         """
         if not jnp.allclose(akm.gamma(self.momentum(momenta)), jnp.ones_like(self.momentum(momenta))):
             gamma = akm.gamma(self.momentum(momenta))

@@ -45,27 +45,17 @@ momenta = tg.trees[0].to_rest_frame(momenta)
 first_node = tg.trees[0].inorder()[0]
 tree = tg.trees[0]
 tree2 = tg.trees[1]
-# print(first_node.value ,first_node.momentum(momenta))
-# exit(0)
 
 frame1 = tree.boost(Node(4), momenta)
 frame2 = tree2.boost(Node(4), momenta)
 
-difference = frame1 @ frame2.inverse()
+difference = frame1 @ tree2.boost(Node(4), momenta, inverse=True)
 assert jnp.allclose(tree2.boost(Node(4), momenta, inverse=True).M4, frame2.inverse().M4)
-print(difference.decode(False))
+print(difference.decode())
 
 print(frame1.decode())
 print(frame2.decode())
 
-# print(difference)
-# print(difference.decode(False))
-# print(difference.decode())
+for v1, v2 in zip(frame1.decode(), frame2.decode()):
+    print(v1 - v2)
 
-
-# print(tree.boost(Node(4), momenta))
-# print(first_node.boost(first_node, momenta)
-exit(0)
-for node in tg.filter(Node((2,1,3)), Node((1,2))) :
-    # print(node.print_tree())
-    print(node)    
