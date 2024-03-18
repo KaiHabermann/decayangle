@@ -8,8 +8,8 @@ def boost_matrix_2_2_x(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    return jnp.array([[jnp.cosh(xi/2), jnp.sinh(xi/2)], 
-                        [jnp.sinh(xi/2), jnp.cosh(xi/2)]])
+    return (jnp.array([[jnp.cosh(xi/2), -jnp.sinh(xi/2)], 
+                        [-jnp.sinh(xi/2), jnp.cosh(xi/2)]]) )
 
 def boost_matrix_2_2_y(xi):
     r"""
@@ -17,8 +17,8 @@ def boost_matrix_2_2_y(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    return jnp.array([[jnp.cosh(xi/2), -1j*jnp.sinh(xi/2)],
-                     [1j*jnp.sinh(xi/2), jnp.cosh(xi/2)]])
+    return (jnp.array([[jnp.cosh(xi/2), 1j*jnp.sinh(xi/2)],
+                     [1j*jnp.sinh(xi/2), jnp.cosh(xi/2)]]))
 
 def boost_matrix_2_2_z(xi):
     r"""
@@ -26,9 +26,10 @@ def boost_matrix_2_2_z(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    return jnp.cosh(xi/2)*jnp.array([[1, 0],
-                                    [0, 1]]) + jnp.sinh(xi/2)*jnp.array([[0, 1],
-                                                                        [1, 0]])
+    sigma_z = jnp.array([[1, 0],
+                        [0, -1]])
+    return (jnp.cosh(xi/2)*jnp.array([[1, 0],
+                                    [0, 1]]) + jnp.sinh(xi/2) * sigma_z)
 
 def rotate_to_z_axis(v):
     """Given a vector, rotate it to the z-axis
@@ -57,7 +58,7 @@ def rotation_matrix_2_2_x(theta):
                    [0, 1]])
     sgma_x = jnp.array([[0, 1],
                         [1, 0]])
-    return jnp.cos(theta/2) * I - 1j*jnp.sin(theta/2)*sgma_x
+    return (jnp.cos(theta/2) * I - 1j*jnp.sin(theta/2)*sgma_x)
 
 def rotation_matrix_2_2_y(theta):
     """Build a 2x2 rotation matrix around the y-axis
@@ -70,9 +71,9 @@ def rotation_matrix_2_2_y(theta):
     """
     I = jnp.array([[1, 0],
                      [0, 1]])
-    sgma_y = jnp.array([[0, -1],
-                        [1, 0]])
-    return jnp.cos(theta/2)*I - jnp.sin(theta/2)*sgma_y
+    sgma_y = jnp.array([[0, -1j],
+                        [1j, 0]])
+    return (jnp.cos(theta/2)*I - 1j*jnp.sin(theta/2)*sgma_y)
 
 def rotation_matrix_2_2_z(theta):
     """Build a 2x2 rotation matrix around the z-axis
@@ -87,7 +88,7 @@ def rotation_matrix_2_2_z(theta):
                    [0, 1]])
     sgma_z = jnp.array([[1,  0], 
                         [0, -1]])
-    return jnp.cos(theta/2)*I - 1j*jnp.sin(theta/2)*sgma_z
+    return (jnp.cos(theta/2)*I - 1j*jnp.sin(theta/2)*sgma_z)
 
 def boost_matrix_4_4_z(xi):
     r"""Build a 4x4 boost matrix in the z-direction
@@ -160,7 +161,9 @@ def decode_4_4(matrix):
     xi = jnp.arccosh(gamma)
 
     psi = jnp.arctan2(y_component(V), x_component(V))
-    theta = jnp.arccos(z_component(V) / abs_mom)
+
+    cosine_input = jnp.where(abs(abs_mom) <= 1e-19, 0, z_component(V) / abs_mom)
+    theta = jnp.arccos(cosine_input)
 
     M_rf = boost_matrix_4_4_z(-xi) @ rotation_matrix_4_4_y(-theta) @ rotation_matrix_4_4_z(-psi) @ matrix
     phi_rf, theta_rf, psi_rf = decode_rotation_4x4(M_rf[:3, :3])

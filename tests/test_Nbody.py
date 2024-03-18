@@ -38,7 +38,7 @@ decay = NBodyDecay(0,1,2,3,4, 5)
 momenta = {   1: jnp.array([0, 0, -0.9, 1]),
               2: jnp.array([0, 0.15, 0.4,1]),
               3: jnp.array([ 0, 0.3, 0.3,1]),
-              4: jnp.array([ 0, 0.2, 0.4,1]),
+              4: jnp.array([ 0, 0.35, 0.4,1]),
               5: jnp.array([ 0, 0.1, 0.8,1])}
 
 momenta = tg.trees[0].to_rest_frame(momenta)
@@ -53,7 +53,7 @@ frame2 = tree2.boost(Node(4), momenta)
 
 difference = frame1 @ frame2.inverse()
 assert jnp.allclose(tree2.boost(Node(4), momenta, inverse=True).M4, frame2.inverse().M4)
-print(difference.decode(False))
+print(difference.decode())
 
 # print(difference)
 # print(difference.decode(False))
