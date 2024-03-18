@@ -72,3 +72,11 @@ def test_topology():
             result = difference.decode()
             assert config.backend.isfinite(config.backend.array(result)).all()
 
+            _, _, xi1, theta1, phi1, _ = base_tree.boost(node, momenta).decode(two_pi_aware=True)
+            _, _, xi2, theta2, phi2, _ = tree.boost(node, momenta).decode(two_pi_aware=True)
+            def replace_pi(x):
+                return config.backend.where(config.backend.isclose(x, config.backend.pi), 0., x)
+            assert config.backend.allclose(replace_pi(xi1), replace_pi(xi2))
+            assert config.backend.allclose(replace_pi(phi1), replace_pi(phi2))
+            assert config.backend.allclose(replace_pi(theta1), replace_pi(theta2))
+
