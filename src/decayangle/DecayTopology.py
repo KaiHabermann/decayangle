@@ -1,7 +1,7 @@
 
 import numpy as np
 from jax import numpy as jnp
-from typing import List, Tuple, Optional, Union, Any
+from typing import List, Tuple, Optional, Union, Any, Dict
 from functools import cached_property
 from decayangle.lorentz import LorentzTrafo
 from decayangle import kinematics as akm
@@ -26,6 +26,10 @@ class Node:
             return str(self.value)
         return f"( {self.value} -> " + f"{', '.join([str(d) for d in self.daughters])} )"
     
+    @property
+    def final_state(self):
+        return len(self.daughters) == 0
+    
     def __str__(self):
         return self.__repr__()
     
@@ -34,7 +38,16 @@ class Node:
             d.print_tree()
         print(f"\n {self.value}" )
 
-    def contains(self, contained_node:'Node'):
+    def contains(self, contained_node:'Node') -> bool:
+        """Check if a node is contained in the tree
+
+        Args:
+            contained_node (Node): the node to check for
+
+        Returns:
+            bool: True if the node is contained in the tree, False otherwise
+        """
+
         if self.value == contained_node.value:
             return True
         for d in self.daughters:
@@ -43,11 +56,16 @@ class Node:
         return False
     
     def inorder(self):
+        """Get the nodes in the tree in inorder
+
+        Returns:
+            list: the nodes in the tree in inorder
+        """
         if len(self.daughters) == 0:
             return [self]
         return [self] + [node for d in self.daughters for node in d.inorder()]
     
-    def momentum(self, momenta:dict):
+    def momentum(self, momenta:Dict[str, Union[jnp.ndarray, np.array]]) -> Union[jnp.ndarray, np.array]:
         """Get a particles momentum
 
         Args:
@@ -61,7 +79,16 @@ class Node:
             return momenta[self.value]
         return sum([d.momentum(momenta) for d in self.daughters])
     
-    def transform(self, trafo:LorentzTrafo, momenta:dict):
+    def transform(self, trafo:LorentzTrafo, momenta:dict) -> dict:
+        """Transform the momenta of the final state particles
+
+        Args:
+            trafo (LorentzTrafo): transformation to apply
+            momenta (dict): the momenta of the final state particles
+
+        Returns:
+            dict: the transformed momenta
+        """
         return {k: trafo.M4 @ v for k,v in momenta.items()}
 
     def boost(self, target: 'Node', momenta: dict):
@@ -81,8 +108,7 @@ class Node:
             raise ValueError(f"Target node {target} is not a direct daughter of this node {self}")
         
         # rotate so that the target momentum is aligned with the 
-        psi_rf, theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
-        rotation = LorentzTrafo(zero, zero, zero, theta_rf, zero, psi_rf)
+        rotation, psi_rf, theta_rf = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
         # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
         assert config.backend.allclose(akm.y_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
@@ -95,6 +121,50 @@ class Node:
         assert config.backend.allclose(akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one)
 
         return boost @ rotation
+    
+    def helicity_angles(self, momenta:dict):
+        """
+        Get the helicity angles for every internal node
+
+        Parameters: 
+            momenta: Dictionary of momenta for the final state particles
+
+        Returns: 
+            Helicity angles for the final state particles
+        
+        """
+
+        # define the daughter for which the momentum should be aligned with the positive z after the rotation
+        positive_z = self.daughters[0]
+        _, psi_rf, theta_rf = self.rotate_to(positive_z, momenta)
+        return psi_rf, theta_rf
+
+    
+    def rotate_to(self, target: 'Node', momenta: dict) -> Tuple[LorentzTrafo, float, float]:
+        """ Get the rotation from this node to a target node
+            The momenta dictionary will define the initial configuration.
+            It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
+
+            Returns:
+                rotation: The rotation to align the target momentum with the z-axis
+                psi_rf: The angle of the target momentum in the rest frame of this node
+                theta_rf: The angle of the target momentum in the rest frame of this node
+        """
+        if not config.backend.allclose(akm.gamma(self.momentum(momenta)), config.backend.ones_like(self.momentum(momenta))):
+            gamma = akm.gamma(self.momentum(momenta))
+            raise ValueError(f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future.")
+        zero = config.backend.zeros_like(akm.time_component(self.momentum(momenta)))
+        if self.value == target.value:
+            return LorentzTrafo(zero ,zero, zero, zero, zero, zero)
+        
+        if not target in self.daughters:
+            raise ValueError(f"Target node {target} is not a direct daughter of this node {self}")
+        
+        # rotate so that the target momentum is aligned with the z axis
+        psi_rf, theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
+        rotation = LorentzTrafo(zero, zero, zero, theta_rf, zero, psi_rf)
+
+        return rotation, psi_rf, theta_rf
 
 class Tree:
     def __init__(self, root:Node):
@@ -121,7 +191,38 @@ class Tree:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
     
+    def helicity_angles(self, momenta:dict):
+        """
+        Get a tree with the helicity angles for every internal node
+
+        Parameters: 
+            momenta: Dictionary of momenta for the final state particles
+
+        Returns: 
+            Helicity angles for the final state particles
+        
+        """
+        helicity_angles = {}
+        for node in self.root.inorder():
+            if not node.final_state and node != self.root:
+                boost_to_node = self.boost(node, momenta)
+                momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
+                helicity_angles[node.value] = node.helicity_angles(momenta_in_node_frame)
+        return helicity_angles
+
     def boost(self, target: 'Node', momenta: dict, inverse:bool = False) -> LorentzTrafo:
+        """
+        Get the boost from the root node to a target node.
+
+        Parameters: 
+            target: Node to boost to
+            momenta: Dictionary of momenta for the final state particles
+            inverse: If True, return the inverse of the boost
+
+        Returns: 
+            Boost from the root node to the target node
+        
+        """
         boost_tree, node_dict = self.__build_boost_tree(momenta)
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
         trafo = self.root.boost(node_dict[path[0]], momenta)
@@ -144,7 +245,7 @@ class Tree:
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(target, momenta, inverse=True) 
         boost2 = other.boost(target, momenta)
-        return (boost2 @ boost1_inv).wigner_angles()
+        return (boost1_inv @ boost2).wigner_angles()
     
     def __getattr__(self, name):
         return getattr(self.root, name)
