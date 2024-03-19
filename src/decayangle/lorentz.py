@@ -19,16 +19,8 @@ class LorentzTrafo:
     def __matmul__(self, other):
         if isinstance(other, LorentzTrafo):
             return LorentzTrafo(M2=self.M2 @ other.M2, M4=self.M4 @ other.M4)
-    
-    def __floor(self):
-        """
-        Set very small values to zero. This helps with numerical stability.
-        """
-        self.M4 = config.backend.where(config.backend.abs(self.M4) < 1e-14, 0, self.M4)
-        self.M2 = config.backend.where(config.backend.abs(self.M2) < 1e-14, 0 + 0j, self.M2)
 
     def decode(self, two_pi_aware=True):
-        self.__floor()
         params = decode_4_4(self.M4)
         if two_pi_aware:
             params = adjust_for_2pi_rotation(self.M2, *params)
@@ -42,13 +34,4 @@ class LorentzTrafo:
     
     def wigner_angles(self):
         theta, phi, xi, theta_rf, phi_rf, xi_rf = self.decode(two_pi_aware=True)
-        return xi_rf
-
-    # TODO: think about whether this is a good idea
-    # def __getattr__(self, name):
-    #     try:
-    #         attr2 = getattr(self.M2, name)
-    #         attr4 = getattr(self.M4, name)
-    #         return lambda *args, **kwargs: LorentzTrafo(M2=attr2(*args, **kwargs), M4=attr4(*args, **kwargs))
-    #     except AttributeError:
-    #         raise AttributeError(f"Attribute {name} not found in LorentzTrafo")
+        return phi_rf, xi_rf

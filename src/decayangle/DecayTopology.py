@@ -10,6 +10,13 @@ from decayangle.config import config
 
 
 class Node:
+
+    @classmethod
+    def get_node(cls, value: Union[int, Tuple[int], 'Node']) -> 'Node':
+        if isinstance(value, Node):
+            return value
+        return cls(value)
+
     def __init__(self, value: Union[Any, tuple]):
         self.value = value
         if isinstance(value, tuple):
@@ -79,6 +86,18 @@ class Node:
             return momenta[self.value]
         return sum([d.momentum(momenta) for d in self.daughters])
     
+    def mass(self, momenta:Dict[str, Union[jnp.ndarray, np.array]]) -> Union[jnp.ndarray, np.array]:
+        """Get the mass of the particle
+
+        Args:
+            momenta (dict): the momenta of the final state particles
+
+        Returns:
+            the mass of the particle, as set by the momenta dictionary
+            This expects the momenta to be jax or numpy compatible
+        """
+        return akm.mass(self.momentum(momenta))
+    
     def transform(self, trafo:LorentzTrafo, momenta:dict) -> dict:
         """Transform the momenta of the final state particles
 
@@ -91,7 +110,7 @@ class Node:
         """
         return {k: trafo.M4 @ v for k,v in momenta.items()}
 
-    def boost(self, target: 'Node', momenta: dict):
+    def boost(self, target: Union['Node', int], momenta: dict):
         """ Get the boost from this node to a target node
             The momenta dictionary will define the initial configuration.
             It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
@@ -99,6 +118,7 @@ class Node:
         if not config.backend.allclose(akm.gamma(self.momentum(momenta)), config.backend.ones_like(self.momentum(momenta))):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future.")
+        target = Node.get_node(target)
         zero = config.backend.zeros_like(akm.time_component(self.momentum(momenta)))
         one = config.backend.ones_like(zero)
         if self.value == target.value:
@@ -168,12 +188,15 @@ class Node:
 
 class Tree:
     def __init__(self, root:Node):
+        if not isinstance(root, Node):
+            raise ValueError("Root of a tree has to be a Node")
         self.root = root
     
     def __repr__(self):
         return str(self.root)
     
-    def contains(self, contained_node:'Node'):
+    def contains(self, contained_node: Union['Node', int]):
+        contained_node = Node.get_node(contained_node)
         return self.root.contains(contained_node)
     
     def to_rest_frame(self, momenta:dict):
@@ -190,6 +213,10 @@ class Tree:
             for d in node.daughters:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
+    
+    @property
+    def nodes(self):
+        return {n.value: n for n in self.inorder()}
     
     def helicity_angles(self, momenta:dict):
         """
@@ -210,7 +237,7 @@ class Tree:
                 helicity_angles[node.value] = node.helicity_angles(momenta_in_node_frame)
         return helicity_angles
 
-    def boost(self, target: 'Node', momenta: dict, inverse:bool = False) -> LorentzTrafo:
+    def boost(self, target: Union['Node', int], momenta: dict, inverse:bool = False) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
 
@@ -223,6 +250,7 @@ class Tree:
             Boost from the root node to the target node
         
         """
+        target = Node.get_node(target)
         boost_tree, node_dict = self.__build_boost_tree(momenta)
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
         trafo = self.root.boost(node_dict[path[0]], momenta)
@@ -241,11 +269,12 @@ class Tree:
             return inverse_trafo
         return trafo
     
-    def relative_wigner_angles(self, other:'Tree', target: 'Node', momenta: dict) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
+    def relative_wigner_angles(self, other:'Tree', target: Union['Node', int], momenta: dict) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
         # invert self, since this final state is seen as the reference
+        target = Node.get_node(target)
         boost1_inv = self.boost(target, momenta, inverse=True) 
         boost2 = other.boost(target, momenta)
-        return (boost1_inv @ boost2).wigner_angles()
+        return (boost2 @ boost1_inv ).wigner_angles()
     
     def __getattr__(self, name):
         return getattr(self.root, name)

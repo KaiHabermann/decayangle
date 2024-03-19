@@ -2,6 +2,7 @@ from jax import numpy as jnp
 import numpy as np
 from jax import jit
 from decayangle.config import config
+from typing import Tuple, Union
 
 
 def boost_matrix_2_2_x(xi):
@@ -217,7 +218,7 @@ def decode_4_4(matrix):
     phi_rf, theta_rf, psi_rf = decode_rotation_4x4(M_rf[:3, :3])
     return psi, theta, xi, theta_rf, phi_rf,  psi_rf
 
-def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  psi_rf):
+def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  psi_rf) -> Tuple[Union[jnp.array, np.array]]:
     """Adjust the rotation angles for the 2pi rotation ambiguity
 
     Args:
