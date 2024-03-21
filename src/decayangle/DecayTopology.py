@@ -218,7 +218,7 @@ class Tree:
     def nodes(self):
         return {n.value: n for n in self.inorder()}
     
-    def helicity_angles(self, momenta:dict):
+    def helicity_angles(self, momenta:dict) -> dict:
         """
         Get a tree with the helicity angles for every internal node
 
