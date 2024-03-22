@@ -18,15 +18,31 @@ class Node:
         return cls(value)
 
     def __init__(self, value: Union[Any, tuple]):
-        self.value = value
         if isinstance(value, tuple):
             self.value = tuple(sorted(value))
-        self.daughters = []
+        else:
+            if not isinstance(value, int):
+                raise ValueError("Node value has to be an integer or a tuple of integers")
+            if value < 0:
+                raise ValueError("Node value has to be a positive integer or 0")
+            self.value = value
+        self.__daughters = []
         self.parent = None
     
     def add_daughter(self, daughter):
-        self.daughters.append(daughter)
+        self.__daughters.append(daughter)
+        self.__daughters = sorted(self.__daughters, key=lambda x: x.sorting_key)
         daughter.parent = self
+    
+    @property
+    def daughters(self):
+        return self.__daughters
+    
+    @property
+    def sorting_key(self):
+        if isinstance(self.value, tuple):
+            return -len(self.value)
+        return abs(self.value)
     
     def __repr__(self):
         if len(self.daughters) == 0:
@@ -234,7 +250,8 @@ class Tree:
             if not node.final_state and node != self.root:
                 boost_to_node = self.boost(node, momenta)
                 momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
-                helicity_angles[node.value] = node.helicity_angles(momenta_in_node_frame)
+                isobar, spectator = node.parent.daughters
+                helicity_angles[(isobar.value, spectator.value)] = node.helicity_angles(momenta_in_node_frame)
         return helicity_angles
 
     def boost(self, target: Union['Node', int], momenta: dict, inverse:bool = False) -> LorentzTrafo:
