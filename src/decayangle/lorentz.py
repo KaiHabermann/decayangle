@@ -1,5 +1,6 @@
 from decayangle.kinematics import *
-from decayangle.config import config
+from decayangle.config import config as cfg
+cb = cfg.backend
 
 
 class LorentzTrafo:
@@ -30,8 +31,8 @@ class LorentzTrafo:
         return f"LorentzTrafo" + "\n SU(2): \n" + f"{self.M2}" + "\n O(3): \n" + f"{self.M4}"
     
     def inverse(self):
-        return LorentzTrafo(M2=config.backend.linalg.inv(self.M2), M4=config.backend.linalg.inv(self.M4))
+        return LorentzTrafo(M2=cb.linalg.inv(self.M2), M4=cb.linalg.inv(self.M4))
     
     def wigner_angles(self):
         theta, phi, xi, theta_rf, phi_rf, xi_rf = self.decode(two_pi_aware=True)
-        return phi_rf, xi_rf
+        return  theta, phi

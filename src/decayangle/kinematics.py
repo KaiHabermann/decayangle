@@ -1,8 +1,10 @@
 from jax import numpy as jnp
 import numpy as np
 from jax import jit
-from decayangle.config import config
+from decayangle.config import config as cfg
+cb = cfg.backend
 from typing import Tuple, Union
+from decayangle.numerics_helpers import save_arccos
 
 
 def boost_matrix_2_2_x(xi):
@@ -11,11 +13,11 @@ def boost_matrix_2_2_x(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    sigma_x = config.backend.array([[0, 1],
+    sigma_x = cb.array([[0, 1],
                         [1, 0]])
-    I = config.backend.array([[1, 0],
+    I = cb.array([[1, 0],
                 [0, 1]])
-    return config.backend.cosh(xi/2)*I + config.backend.sinh(xi/2)*sigma_x
+    return cb.cosh(xi/2)*I + cb.sinh(xi/2)*sigma_x
 
 def boost_matrix_2_2_y(xi):
     r"""
@@ -23,11 +25,11 @@ def boost_matrix_2_2_y(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    sigma_y = config.backend.array([[0, -1j],
+    sigma_y = cb.array([[0, -1j],
                         [1j, 0]])
-    I = config.backend.array([[1, 0],
+    I = cb.array([[1, 0],
                 [0, 1]])
-    return config.backend.cosh(xi/2)*I  + config.backend.sinh(xi/2)*sigma_y
+    return cb.cosh(xi/2)*I  + cb.sinh(xi/2)*sigma_y
 
 def boost_matrix_2_2_z(xi):
     r"""
@@ -35,11 +37,11 @@ def boost_matrix_2_2_z(xi):
     Args:
         xi (float): rapidity of the boost
     """
-    sigma_z = config.backend.array([[1, 0],
+    sigma_z = cb.array([[1, 0],
                         [0, -1]])
-    I = config.backend.array([[1, 0],
+    I = cb.array([[1, 0],
                 [0, 1]])
-    return (config.backend.cosh(xi/2)*I + config.backend.sinh(xi/2) * sigma_z)
+    return (cb.cosh(xi/2)*I + cb.sinh(xi/2) * sigma_z)
 
 def rotate_to_z_axis(v):
     """Given a vector, rotate it to the z-axis
@@ -50,9 +52,9 @@ def rotate_to_z_axis(v):
     Returns:
         jax.numpy.ndarray: the rotation angles around first z and then y axis
     """ 
-    v = config.backend.array(v)
-    psi_rf = -config.backend.arctan2(y_component(v), x_component(v))
-    theta_rf = config.backend.arccos(z_component(v) / p(v))
+    v = cb.array(v)
+    psi_rf = -cb.arctan2(y_component(v), x_component(v))
+    theta_rf = cb.arccos(z_component(v) / p(v))
     return psi_rf, -theta_rf
 
 def rotation_matrix_2_2_x(theta):
@@ -64,11 +66,11 @@ def rotation_matrix_2_2_x(theta):
     Returns:
         jax.numpy.ndarray: the rotation matrix with shape (...,2,2)
     """
-    I = config.backend.array([[1, 0],
+    I = cb.array([[1, 0],
                    [0, 1]])
-    sgma_x = config.backend.array([[0, 1],
+    sgma_x = cb.array([[0, 1],
                         [1, 0]])
-    return (config.backend.cos(theta/2) * I - 1j*config.backend.sin(theta/2)*sgma_x)
+    return (cb.cos(theta/2) * I - 1j*cb.sin(theta/2)*sgma_x)
 
 def rotation_matrix_2_2_y(theta):
     """Build a 2x2 rotation matrix around the y-axis
@@ -79,11 +81,11 @@ def rotation_matrix_2_2_y(theta):
     Returns:
         jax.numpy.ndarray: the rotation matrix with shape (...,2,2)
     """
-    I = config.backend.array([[1, 0],
+    I = cb.array([[1, 0],
                      [0, 1]])
-    sgma_y = config.backend.array([[0, -1j],
+    sgma_y = cb.array([[0, -1j],
                         [1j, 0]])
-    return (config.backend.cos(theta/2)*I - 1j*config.backend.sin(theta/2)*sgma_y)
+    return (cb.cos(theta/2)*I - 1j*cb.sin(theta/2)*sgma_y)
 
 def rotation_matrix_2_2_z(theta):
     """Build a 2x2 rotation matrix around the z-axis
@@ -94,11 +96,11 @@ def rotation_matrix_2_2_z(theta):
     Returns:
         jax.numpy.ndarray: the rotation matrix with shape (...,2,2)
     """
-    I = config.backend.array([[1, 0], 
+    I = cb.array([[1, 0], 
                    [0, 1]])
-    sgma_z = config.backend.array([[1,  0], 
+    sgma_z = cb.array([[1,  0], 
                         [0, -1]])
-    return (config.backend.cos(theta/2)*I - 1j*config.backend.sin(theta/2)*sgma_z)
+    return (cb.cos(theta/2)*I - 1j*cb.sin(theta/2)*sgma_z)
 
 def boost_matrix_4_4_z(xi):
     r"""Build a 4x4 boost matrix in the z-direction
@@ -109,9 +111,9 @@ def boost_matrix_4_4_z(xi):
     Returns:
         jax.numpy.ndarray: the 4x4 boost matrix with shape (...,4,4)
     """
-    gamma = config.backend.cosh(xi)
-    beta_gamma = config.backend.sinh(xi)
-    return config.backend.array([
+    gamma = cb.cosh(xi)
+    beta_gamma = cb.sinh(xi)
+    return cb.array([
         [1, 0, 0, 0,],
         [0, 1, 0, 0,],
         [0, 0, gamma, beta_gamma,],
@@ -127,17 +129,17 @@ def rotation_matrix_4_4_y(theta):
     Returns:
         jax.numpy.ndarray: the rotation matrix with shape (...,4,4)
     """
-    return config.backend.array([
-        [config.backend.cos(theta), 0, config.backend.sin(theta), 0,],
+    return cb.array([
+        [cb.cos(theta), 0, cb.sin(theta), 0,],
         [0, 1, 0, 0,],
-        [-config.backend.sin(theta), 0, config.backend.cos(theta), 0,],
+        [-cb.sin(theta), 0, cb.cos(theta), 0,],
         [0, 0, 0, 1]
     ])
 
 def rotation_matrix_4_4_z(theta):
-    return config.backend.array([
-        [config.backend.cos(theta), -config.backend.sin(theta), 0, 0,],
-        [config.backend.sin(theta), config.backend.cos(theta), 0, 0,],
+    return cb.array([
+        [cb.cos(theta), -cb.sin(theta), 0, 0,],
+        [cb.sin(theta), cb.cos(theta), 0, 0,],
         [0, 0, 1, 0,],
         [0, 0, 0, 1]
     ])
@@ -181,9 +183,9 @@ def decode_rotation_4x4(R):
     Args:
         matrix (_type_): _description_
     """
-    phi = config.backend.arctan2(R[1,2], R[0,2])
-    theta = config.backend.arccos(R[2,2])
-    psi = config.backend.arctan2(R[2,1], -R[2,0])
+    phi = cb.arctan2(R[1,2], R[0,2])
+    theta = save_arccos(R[2,2])
+    psi = cb.arctan2(R[2,1], -R[2,0])
     return phi, theta, psi
 
 def decode_4_4(matrix):
@@ -194,7 +196,7 @@ def decode_4_4(matrix):
     """
 
     m = 1.0
-    V0 = config.backend.array([0, 0, 0, m])
+    V0 = cb.array([0, 0, 0, m])
 
     V = matrix @ V0
     w = time_component(V)
@@ -203,16 +205,23 @@ def decode_4_4(matrix):
     if gamma < 1:
         # gamma can be smaller than 1 due to numerical errors
         # for large deviations we will raise an exception
-        if abs(gamma - 1) < 1e-10:
+        if abs(gamma - 1) < 1e-14:
             gamma = 1.0
         else:
             raise ValueError(f"gamma is {gamma}, which is less than 1. This is not a valid Lorentz transformation")
-    xi = config.backend.arccosh(gamma)
+    if abs(gamma - 1) < 1e-14:
+        # if gamma is 1, the matrix is a pure rotation. We may have issues with determining angles under such circumstances
+        # thus we will ignore the pre boost angles, since without a boost they are not well defined
+        if cb.allclose(matrix, cb.eye(4)):
+            return 0, 0, 0, 0, 0, 0
+        phi_rf, theta_rf, psi_rf = decode_rotation_4x4(matrix[:3, :3])
+        return 0, 0, 0, theta_rf, phi_rf,  psi_rf
 
-    psi = config.backend.arctan2(y_component(V), x_component(V))
+    xi = cb.arccosh(gamma)
+    psi = cb.arctan2(y_component(V), x_component(V))
 
-    cosine_input = config.backend.where(abs(abs_mom) <= 1e-19, 0, z_component(V) / abs_mom)
-    theta = config.backend.arccos(cosine_input)
+    cosine_input = cb.where(abs(abs_mom) <= 1e-19, 0, z_component(V) / abs_mom)
+    theta = cb.arccos(cosine_input)
 
     M_rf = boost_matrix_4_4_z(-xi) @ rotation_matrix_4_4_y(-theta) @ rotation_matrix_4_4_z(-psi) @ matrix
     phi_rf, theta_rf, psi_rf = decode_rotation_4x4(M_rf[:3, :3])
@@ -233,15 +242,18 @@ def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  p
     Returns:
         tuple: the adjusted rotation angles
     """
+    # TODO: is this amount of numerical tolerance maybe a little too much?
     new_2x2 = build_2_2(psi, theta, xi, theta_rf, phi_rf,  psi_rf)
-    if np.allclose(M_original_2x2, new_2x2):
+    if np.allclose(M_original_2x2, new_2x2, atol=3e-2):
         return psi, theta, xi, theta_rf, phi_rf,  psi_rf
-    elif np.allclose(M_original_2x2, -new_2x2):
+    elif np.allclose(M_original_2x2, -new_2x2, atol=3e-2):
         return psi, theta, xi, theta_rf, phi_rf,  psi_rf + 2*np.pi
     else:
         raise ValueError(f"The 2x2 matrix does not match the reconstruced parameters!"
                          f"This can happen due to numerical errors." 
-                         f"The original matrix is {M_original_2x2} and the reconstructed matrix is {new_2x2}")
+                         f"The original matrix is {M_original_2x2} and the reconstructed matrix is {new_2x2}"
+                         f"Difference is {M_original_2x2 - new_2x2}"
+                         f"Parameters are {psi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}")
 
 
 def spatial_components(vector):
@@ -296,7 +308,7 @@ def pt(vector):
     :returns: vector of transverse components
 
     """
-    return config.backend.sqrt(x_component(vector) ** 2 + y_component(vector) ** 2)
+    return cb.sqrt(x_component(vector) ** 2 + y_component(vector) ** 2)
 
 def eta(vector):
     """Return pseudorapidity component of the input Lorentz or 3-vector
@@ -305,7 +317,7 @@ def eta(vector):
     :returns: vector of pseudorapidity components
 
     """
-    return -config.backend.log(pt(vector) / 2.0 / z_component(vector))
+    return -cb.log(pt(vector) / 2.0 / z_component(vector))
 
 def vector(x, y, z):
     """
@@ -316,7 +328,7 @@ def vector(x, y, z):
     :param z: z-component of the vector
     :returns: 3-vector
     """
-    return config.backend.stack([x, y, z], axis=-1)
+    return cb.stack([x, y, z], axis=-1)
 
 def mass_squared(vector):
     """
@@ -326,7 +338,7 @@ def mass_squared(vector):
     :returns: scalar invariant mass squared
 
     """
-    return config.backend.sum(vector * vector * metric_tensor(), -1)
+    return cb.sum(vector * vector * metric_tensor(), -1)
 
 def metric_tensor():
     """
@@ -334,7 +346,7 @@ def metric_tensor():
 
     :returns: Metric tensor
     """
-    return config.backend.array([-1.0, -1.0, -1.0, 1.0], dtype=config.backend.float64)
+    return cb.array([-1.0, -1.0, -1.0, 1.0], dtype=cb.float64)
 
 def lorentz_vector(space, time):
     """
@@ -345,7 +357,18 @@ def lorentz_vector(space, time):
     :returns: Lorentz vector
 
     """
-    return config.backend.concatenate([space, config.backend.stack([time], axis=-1)], axis=-1)
+    return cb.concatenate([space, cb.stack([time], axis=-1)], axis=-1)
+
+def from_mass_and_momentum(mass, momentum):
+    """
+    Create a Lorentz vector from mass and momentum vector
+
+    :param mass: Mass scalar
+    :param momentum: 3-vector of momentum components
+    :returns: Lorentz vector
+
+    """
+    return lorentz_vector(momentum, cb.sqrt(norm(momentum)**2 + mass ** 2))
 
 def mass(vector):
     """
@@ -355,7 +378,7 @@ def mass(vector):
     :returns: scalar invariant mass
 
     """
-    return config.backend.sqrt(mass_squared(vector))
+    return cb.sqrt(mass_squared(vector))
 
 def gamma(momentum):
     r"""calculate gamma factor
@@ -380,7 +403,7 @@ def rapidity(momentum):
         p (jax.numpy.ndarray): momentum 4-vector
     """
     b = beta(momentum)
-    return 0.5 * config.backend.log((b + 1) / (1 - b))
+    return 0.5 * cb.log((b + 1) / (1 - b))
 
 def norm(vec):
     """
@@ -390,7 +413,7 @@ def norm(vec):
     :returns: Scalar norm
 
     """
-    return config.backend.sqrt(config.backend.sum(vec * vec, -1))
+    return cb.sqrt(cb.sum(vec * vec, -1))
 
 def p(vector):
     """
@@ -411,7 +434,7 @@ def scalar_product(vec1, vec2):
     :returns: Scalar product
 
     """
-    return config.backend.sum(vec1 * vec2, -1)
+    return cb.sum(vec1 * vec2, -1)
 
 def scalar(x):
     """
@@ -422,7 +445,7 @@ def scalar(x):
     :returns: Scalar value
 
     """
-    return config.backend.stack([x], axis=-1)
+    return cb.stack([x], axis=-1)
 
 def lorentz_boost(vector, boostvector):
     """
@@ -438,7 +461,7 @@ def lorentz_boost(vector, boostvector):
     """
     boost = spatial_components(boostvector)
     b2 = scalar_product(boost, boost)
-    gamma = 1.0 / config.backend.sqrt(1.0 - b2)
+    gamma = 1.0 / cb.sqrt(1.0 - b2)
     gamma2 = (gamma - 1.0) / b2
     ve = time_component(vector)
     vp = spatial_components(vector)

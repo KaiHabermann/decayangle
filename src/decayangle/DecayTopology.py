@@ -6,7 +6,8 @@ from functools import cached_property
 from decayangle.lorentz import LorentzTrafo
 from decayangle import kinematics as akm
 import networkx as nx
-from decayangle.config import config
+from decayangle.config import config as cfg
+cb = cfg.backend
 
 
 class Node:
@@ -131,12 +132,12 @@ class Node:
             The momenta dictionary will define the initial configuration.
             It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
         """
-        if not config.backend.allclose(akm.gamma(self.momentum(momenta)), config.backend.ones_like(self.momentum(momenta))):
+        if not cb.allclose(akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future.")
         target = Node.get_node(target)
-        zero = config.backend.zeros_like(akm.time_component(self.momentum(momenta)))
-        one = config.backend.ones_like(zero)
+        zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
+        one = cb.ones_like(zero)
         if self.value == target.value:
             return LorentzTrafo(zero ,zero, zero, zero, zero, zero)
         
@@ -147,14 +148,14 @@ class Node:
         rotation, psi_rf, theta_rf = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
         # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert config.backend.allclose(akm.y_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
-        assert config.backend.allclose(akm.x_component(target.momentum(rotated_momenta)), config.backend.zeros_like(akm.x_component(target.momentum(rotated_momenta))))
+        assert cb.allclose(akm.y_component(target.momentum(rotated_momenta)), cb.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
+        assert cb.allclose(akm.x_component(target.momentum(rotated_momenta)), cb.zeros_like(akm.x_component(target.momentum(rotated_momenta))))
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
         # assert the boost worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert config.backend.allclose(akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one)
+        assert cb.allclose(akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one)
 
         return boost @ rotation
     
@@ -186,10 +187,10 @@ class Node:
                 psi_rf: The angle of the target momentum in the rest frame of this node
                 theta_rf: The angle of the target momentum in the rest frame of this node
         """
-        if not config.backend.allclose(akm.gamma(self.momentum(momenta)), config.backend.ones_like(self.momentum(momenta))):
+        if not cb.allclose(akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future.")
-        zero = config.backend.zeros_like(akm.time_component(self.momentum(momenta)))
+        zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
         if self.value == target.value:
             return LorentzTrafo(zero ,zero, zero, zero, zero, zero)
         
@@ -287,11 +288,16 @@ class Tree:
         return trafo
     
     def relative_wigner_angles(self, other:'Tree', target: Union['Node', int], momenta: dict) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
-        # invert self, since this final state is seen as the reference
         target = Node.get_node(target)
-        boost1_inv = self.boost(target, momenta, inverse=True) 
+        # invert self, since this final state is seen as the reference
+        # boost1_inv = self.boost(target, momenta, inverse=True) 
+        # boost2 = other.boost(target, momenta)
+        # return (boost2 @ boost1_inv ).wigner_angles()
+        # TODO: find out whats the right way here
+        boost1 = self.boost(target, momenta)
         boost2 = other.boost(target, momenta)
-        return (boost2 @ boost1_inv ).wigner_angles()
+        return [v2-v1 for v1,v2 in zip(boost1.wigner_angles(), boost2.wigner_angles())]
+       
     
     def __getattr__(self, name):
         return getattr(self.root, name)
