@@ -114,14 +114,15 @@ def test_lorentz_threeBody():
     }
     for k, isobar in isobars.items():
         frame, = tg.filter(isobar)
-        print(f"Rotation of {frame} into {reference_frame}")
         for node in [1, 2, 3]:
-            theta, phi = reference_frame.relative_wigner_angles(frame, node, momenta)
+            args = reference_frame.relative_wigner_angles(frame, node, momenta)
 
+    frame1, = tg.filter((2,3))
+    frame2, = tg.filter((1,3))
     frame3, = tg.filter((1,2))
-    theta, phi = reference_frame.relative_wigner_angles(frame3, 2, momenta)
-    print(np.cos(phi), np.cos(theta))
-    print(cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas))
+    phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame2.relative_wigner_angles(frame1, 3, momenta)
+    dpd_value = cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas)
+    assert np.isclose(np.cos(theta_rf), dpd_value)
 
 if __name__ == "__main__":
     test_lorentz_threeBody()

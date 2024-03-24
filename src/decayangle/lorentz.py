@@ -35,4 +35,4 @@ class LorentzTrafo:
     
     def wigner_angles(self):
         phi, theta, xi, phi_rf, theta_rf,  psi_rf = self.decode(two_pi_aware=True)
-        return  theta, phi
+        return  psi_rf, theta_rf

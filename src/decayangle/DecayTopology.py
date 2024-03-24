@@ -290,13 +290,13 @@ class Tree:
     def relative_wigner_angles(self, other:'Tree', target: Union['Node', int], momenta: dict) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
-        # boost1_inv = self.boost(target, momenta, inverse=True) 
-        # boost2 = other.boost(target, momenta)
-        # return (boost2 @ boost1_inv ).wigner_angles()
+        boost1_inv = self.boost(target, momenta, inverse=True) 
+        boost2 = other.boost(target, momenta)
+        return (boost2 @ boost1_inv ).decode()
         # TODO: find out whats the right way here
         boost1 = self.boost(target, momenta)
         boost2 = other.boost(target, momenta)
-        return [v2-v1 for v1,v2 in zip(boost1.wigner_angles(), boost2.wigner_angles())]
+        return [v2-v1 for v1,v2 in zip(boost1.decode(), boost2.decode())]
        
     
     def __getattr__(self, name):
