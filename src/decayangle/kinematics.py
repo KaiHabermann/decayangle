@@ -144,37 +144,37 @@ def rotation_matrix_4_4_z(theta):
         [0, 0, 0, 1]
     ])
 
-def build_2_2(psi, theta, xi, theta_rf, phi_rf, psi_rf):
+def build_2_2(phi, theta, xi, phi_rf, theta_rf,  psi_rf):
     r"""Build a 2x2 matrix from the 6 kinematic parameters
 
     Args:
         psi (float): the rotation angle around the z-axis
         theta (float): the rotation angle around the y-axis
         xi (float): the rapidity of the boost
-        theta_rf (float): the rotation angle around the y-axis in the rest frame
         phi_rf (float): the rotation angle around the z-axis in the rest frame
+        theta_rf (float): the rotation angle around the y-axis in the rest frame
         psi_rf (float): the rotation angle around the z-axis in the rest frame
 
     Returns:
         jax.numpy.ndarray: the 2x2 matrix
     """
-    return (rotation_matrix_2_2_z(psi) @ rotation_matrix_2_2_y(theta) @ boost_matrix_2_2_z(xi) @ rotation_matrix_2_2_z(phi_rf) @ rotation_matrix_2_2_y(theta_rf) @ rotation_matrix_2_2_z(psi_rf))
+    return (rotation_matrix_2_2_z(phi) @ rotation_matrix_2_2_y(theta) @ boost_matrix_2_2_z(xi) @ rotation_matrix_2_2_z(phi_rf) @ rotation_matrix_2_2_y(theta_rf) @ rotation_matrix_2_2_z(psi_rf))
 
-def build_4_4(psi, theta, xi, theta_rf, phi_rf, psi_rf):
+def build_4_4(phi, theta, xi, phi_rf, theta_rf,  psi_rf):
     r"""Build a 4x4 matrix from the 6 kinematic parameters
 
     Args:
         psi (float): the rotation angle around the z-axis
         theta (float): the rotation angle around the y-axis
         xi (float): the rapidity of the boost
-        theta_rf (float): the rotation angle around the y-axis in the rest frame
         phi_rf (float): the rotation angle around the z-axis in the rest frame
+        theta_rf (float): the rotation angle around the y-axis in the rest frame
         psi_rf (float): the rotation angle around the z-axis in the rest frame
 
     Returns:
         jax.numpy.ndarray: the 4x4 matrix
     """
-    return (rotation_matrix_4_4_z(psi) @ rotation_matrix_4_4_y(theta) @ boost_matrix_4_4_z(xi) @ rotation_matrix_4_4_z(phi_rf) @ rotation_matrix_4_4_y(theta_rf) @ rotation_matrix_4_4_z(psi_rf))
+    return (rotation_matrix_4_4_z(phi) @ rotation_matrix_4_4_y(theta) @ boost_matrix_4_4_z(xi) @ rotation_matrix_4_4_z(phi_rf) @ rotation_matrix_4_4_y(theta_rf) @ rotation_matrix_4_4_z(psi_rf))
 
 
 def decode_rotation_4x4(R):
@@ -214,20 +214,20 @@ def decode_4_4(matrix):
         # thus we will ignore the pre boost angles, since without a boost they are not well defined
         if cb.allclose(matrix, cb.eye(4)):
             return 0, 0, 0, 0, 0, 0
-        phi_rf, theta_rf, psi_rf = decode_rotation_4x4(matrix[:3, :3])
-        return 0, 0, 0, theta_rf, phi_rf,  psi_rf
+        phi_rf, theta_rf,  psi_rf = decode_rotation_4x4(matrix[:3, :3])
+        return 0, 0, 0, phi_rf, theta_rf,  psi_rf
 
     xi = cb.arccosh(gamma)
-    psi = cb.arctan2(y_component(V), x_component(V))
+    phi = cb.arctan2(y_component(V), x_component(V))
 
     cosine_input = cb.where(abs(abs_mom) <= 1e-19, 0, z_component(V) / abs_mom)
     theta = cb.arccos(cosine_input)
 
-    M_rf = boost_matrix_4_4_z(-xi) @ rotation_matrix_4_4_y(-theta) @ rotation_matrix_4_4_z(-psi) @ matrix
+    M_rf = boost_matrix_4_4_z(-xi) @ rotation_matrix_4_4_y(-theta) @ rotation_matrix_4_4_z(-phi) @ matrix
     phi_rf, theta_rf, psi_rf = decode_rotation_4x4(M_rf[:3, :3])
-    return psi, theta, xi, theta_rf, phi_rf,  psi_rf
+    return phi, theta, xi, phi_rf, theta_rf,  psi_rf
 
-def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  psi_rf) -> Tuple[Union[jnp.array, np.array]]:
+def adjust_for_2pi_rotation(M_original_2x2, phi, theta, xi, phi_rf, theta_rf,  psi_rf) -> Tuple[Union[jnp.array, np.array]]:
     """Adjust the rotation angles for the 2pi rotation ambiguity
 
     Args:
@@ -243,17 +243,17 @@ def adjust_for_2pi_rotation(M_original_2x2, psi, theta, xi, theta_rf, phi_rf,  p
         tuple: the adjusted rotation angles
     """
     # TODO: is this amount of numerical tolerance maybe a little too much?
-    new_2x2 = build_2_2(psi, theta, xi, theta_rf, phi_rf,  psi_rf)
+    new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf,  psi_rf)
     if np.allclose(M_original_2x2, new_2x2, atol=3e-2):
-        return psi, theta, xi, theta_rf, phi_rf,  psi_rf
+        return phi, theta, xi, phi_rf, theta_rf,  psi_rf
     elif np.allclose(M_original_2x2, -new_2x2, atol=3e-2):
-        return psi, theta, xi, theta_rf, phi_rf,  psi_rf + 2*np.pi
+        return phi, theta, xi, phi_rf, theta_rf,  psi_rf + 2*np.pi
     else:
         raise ValueError(f"The 2x2 matrix does not match the reconstruced parameters!"
                          f"This can happen due to numerical errors." 
                          f"The original matrix is {M_original_2x2} and the reconstructed matrix is {new_2x2}"
                          f"Difference is {M_original_2x2 - new_2x2}"
-                         f"Parameters are {psi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}")
+                         f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}")
 
 
 def spatial_components(vector):

@@ -104,6 +104,8 @@ def test_lorentz_threeBody():
     assert abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10
     tg = TopologyGroup(0, [1,2,3])
     momenta = tg.trees[0].to_rest_frame(momenta)
+
+    #frame 1 is the reference frame
     reference_frame, = tg.filter((2,3))
     isobars = {
         1: (2,3),

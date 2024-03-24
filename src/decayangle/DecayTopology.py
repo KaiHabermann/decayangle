@@ -145,7 +145,7 @@ class Node:
             raise ValueError(f"Target node {target} is not a direct daughter of this node {self}")
         
         # rotate so that the target momentum is aligned with the 
-        rotation, psi_rf, theta_rf = self.rotate_to(target, momenta)
+        rotation, theta_rf, psi_rf = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
         # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
         assert cb.allclose(akm.y_component(target.momentum(rotated_momenta)), cb.zeros_like(akm.y_component(target.momentum(rotated_momenta))))
@@ -173,8 +173,8 @@ class Node:
 
         # define the daughter for which the momentum should be aligned with the positive z after the rotation
         positive_z = self.daughters[0]
-        _, psi_rf, theta_rf = self.rotate_to(positive_z, momenta)
-        return psi_rf, theta_rf
+        _, theta_rf, psi_rf = self.rotate_to(positive_z, momenta)
+        return theta_rf, psi_rf
 
     
     def rotate_to(self, target: 'Node', momenta: dict) -> Tuple[LorentzTrafo, float, float]:
@@ -199,9 +199,9 @@ class Node:
         
         # rotate so that the target momentum is aligned with the z axis
         psi_rf, theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
-        rotation = LorentzTrafo(zero, zero, zero, theta_rf, zero, psi_rf)
-
-        return rotation, psi_rf, theta_rf
+        rotation = LorentzTrafo(zero, zero, zero, zero, theta_rf, psi_rf)
+        
+        return rotation, theta_rf, psi_rf
 
 class Tree:
     def __init__(self, root:Node):

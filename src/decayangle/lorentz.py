@@ -6,9 +6,9 @@ cb = cfg.backend
 class LorentzTrafo:
     def __init__(self, *args, **kwargs):
         if len(args) > 0:
-            theta, phi, xi, theta_rf, phi_rf, xi_rf = args
-            self.M4 = build_4_4(theta, phi, xi, theta_rf, phi_rf, xi_rf)
-            self.M2 = build_2_2(theta, phi, xi, theta_rf, phi_rf, xi_rf)
+            phi, theta, xi, phi_rf, theta_rf,  psi_rf = args
+            self.M4 = build_4_4(phi, theta, xi, phi_rf, theta_rf,  psi_rf)
+            self.M2 = build_2_2(phi, theta, xi, phi_rf, theta_rf,  psi_rf)
         M2 = kwargs.get('M2', None)
         M4 = kwargs.get('M4', None)
         if M2 is not None and M4 is not None:
@@ -34,5 +34,5 @@ class LorentzTrafo:
         return LorentzTrafo(M2=cb.linalg.inv(self.M2), M4=cb.linalg.inv(self.M4))
     
     def wigner_angles(self):
-        theta, phi, xi, theta_rf, phi_rf, xi_rf = self.decode(two_pi_aware=True)
+        phi, theta, xi, phi_rf, theta_rf,  psi_rf = self.decode(two_pi_aware=True)
         return  theta, phi
