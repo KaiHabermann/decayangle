@@ -90,6 +90,11 @@ def test_lorentz_threeBody():
     
 
     def cos_zeta_1_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        """
+        Calculate the cosine of the ζ angle for the case where k=1.
+        The aligned frame is frame 3, the reference frame is frame 1.
+        i.e. we rotate frame 3 into frame 1 for particle 1.
+        """
         return (
             2 * m1 ** 2 * (sigma2 - M ** 2 - m2 ** 2)
             + (M ** 2 + m1 ** 2 - sigma1) * (sigma3 - m1 ** 2 - m2 ** 2)
@@ -107,10 +112,10 @@ def test_lorentz_threeBody():
     def cos_zeta_2_aligned_2_in_frame_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_zeta_1_aligned_3_in_frame_1(M, m2, m1, m3, sigma2, sigma1, sigma3)
 
-    def cos_zeta_3_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+    def cos_zeta_3_aligned_2_in_frame_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_zeta_1_aligned_3_in_frame_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
 
-    def cos_zeta_3_aligned_2_in_frame_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
+    def cos_zeta_3_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_zeta_1_aligned_3_in_frame_1(M, m3, m2, m1, sigma3, sigma2, sigma1)
 
     momenta = np.random.rand(3, 3)
@@ -147,35 +152,33 @@ def test_lorentz_threeBody():
     frame3, = tg.filter((1,2))
     phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame2.relative_wigner_angles(frame1, 3, momenta)
     dpd_value = cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas)
-    print(np.cos(theta_rf), dpd_value)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_3_in_frame_1(mothermass2**0.5, *masses, *sigmas)
     phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame1.relative_wigner_angles(frame3, 1, momenta)
-    print(np.cos(theta_rf), dpd_value)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_1_in_frame_2(mothermass2**0.5, *masses, *sigmas)
     phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame2.relative_wigner_angles(frame1, 1, momenta)
-    print(np.cos(theta_rf), dpd_value)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_1_in_frame_2(mothermass2**0.5, *masses, *sigmas)
     phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame2.relative_wigner_angles(frame1, 2, momenta)
-    print(np.cos(theta_rf), dpd_value)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_2_in_frame_3(mothermass2**0.5, *masses, *sigmas)
     phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame3.relative_wigner_angles(frame2, 2, momenta)
-    print(np.cos(theta_rf), dpd_value)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    # TODO: Check why this fails
-    # I probably messed up the definition of cos_zeta_3_aligned_3_in_frame_1
-    # dpd_value = cos_zeta_3_aligned_3_in_frame_1(mothermass2**0.5, *masses, *sigmas)
-    # phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame1.relative_wigner_angles(frame3, 3, momenta)
-    # print(np.cos(theta_rf), dpd_value)
-    # assert np.isclose(np.cos(theta_rf), dpd_value)
+    dpd_value = cos_zeta_3_aligned_2_in_frame_3(mothermass2**0.5, *masses, *sigmas)
+    phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame3.relative_wigner_angles(frame2, 3, momenta)
+    assert np.isclose(np.cos(theta_rf), dpd_value)
+
+    dpd_value = cos_zeta_3_aligned_3_in_frame_1(mothermass2**0.5, *masses, *sigmas)
+    phi, theta, xi, phi_rf, theta_rf,  psi_rf = frame1.relative_wigner_angles(frame3, 3, momenta)
+    phi_, theta_, xi_, phi_rf_, theta_rf_,  psi_rf_ = frame3.relative_wigner_angles(frame1, 3, momenta)
+    assert np.isclose(theta_rf, theta_rf_)
+    assert np.isclose(np.cos(theta_rf), dpd_value)
 
 if __name__ == "__main__":
     test_lorentz_threeBody()
