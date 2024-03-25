@@ -1,6 +1,5 @@
-from decayangle.DecayTopology import generateTreeDefinitions, Node, TopologyGroup
+from decayangle.decay_topology import generate_tree_definitions, Node, TopologyGroup
 from jax import numpy as jnp
-from decayangle.Decay import NBodyDecay
 from jax import config as jax_cfg
 jax_cfg.update("jax_enable_x64", True)
 from decayangle.config import config as cfg
@@ -38,8 +37,6 @@ def test_topology():
 
     tg = TopologyGroup(0,[1,2,3,4,5])
     assert len(tg.trees) == 105
-
-    decay = NBodyDecay(0,1,2,3,4,5)
 
     momenta = {   1: cb.array([0, 0, -0.9, 1]),
                 2: cb.array([0, 0.15, 0.4,1]),

@@ -22,7 +22,7 @@ First we define the decay we are working with. For example, we can define the de
 
 Lets start with defining the decay and generating the decay trees.
 ```python
-from decayangle.DecayTopology import TopologyGroup
+from decayangle.decay_topology import TopologyGroup
 
 tg = TopologyGroup(0, [1, 2, 3]) # generate all decay trees for 0 -> 1 2 3
 tg.trees # list of all decay trees

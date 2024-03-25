@@ -1,4 +1,4 @@
-from decayangle.DecayTopology import TopologyGroup, Node
+from decayangle.decay_topology import TopologyGroup, Node
 from jax import config as jax_cfg
 jax_cfg.update("jax_enable_x64", True)
 from decayangle.config import config as cfg

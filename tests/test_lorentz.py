@@ -1,6 +1,6 @@
 from decayangle.kinematics import build_4_4,  build_2_2, from_mass_and_momentum, mass_squared
 from decayangle.lorentz import LorentzTrafo
-from decayangle.DecayTopology import TopologyGroup
+from decayangle.decay_topology import TopologyGroup
 from jax import numpy as jnp
 import jax
 import numpy as np
@@ -19,7 +19,7 @@ def boost_definitions():
 def test_lotentz(boost_definitions):
     def single_test(psi, theta, xi, theta_rf, phi_rf, psi_rf):
         M = build_4_4(psi, theta, xi, theta_rf, phi_rf, psi_rf)
-        M2 = build_2_2(psi, theta, xi, theta_rf, phi_rf, psi_rf)
+        matrix_2x2 = build_2_2(psi, theta, xi, theta_rf, phi_rf, psi_rf)
         trafo = LorentzTrafo(psi, theta, xi, theta_rf, phi_rf, psi_rf)
         psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_ = trafo.decode()
         assert np.allclose(M, build_4_4(psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_))
@@ -55,8 +55,8 @@ def test_lotentz2(boost_definitions):
         assert np.isfinite(psi_rf_)
 
         assert np.allclose(
-            (LorentzTrafo(*definition1) @ LorentzTrafo(*definition2)).inverse().M4,
-            (LorentzTrafo(*definition2).inverse() @ LorentzTrafo(*definition1).inverse()).M4
+            (LorentzTrafo(*definition1) @ LorentzTrafo(*definition2)).inverse().matrix_4x4,
+            (LorentzTrafo(*definition2).inverse() @ LorentzTrafo(*definition1).inverse()).matrix_4x4
         )
 
     for i in range(len(boost_definitions) - 1):
