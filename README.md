@@ -46,12 +46,19 @@ frame2 = tg.filter((1, 3)) # we filter for trees where the state (1, 3) is prese
 frame3 = tg.filter((1, 2)) # we filter for trees where the state (1, 2) is present
 ```
 
-Finally, we can calculate the relative Wigner angles between the different frames. For example, we can calculate the relative Wigner angles between frame1 and frame2 for the final state particle 1.
+Finally, we can calculate the relative Wigner angles between the different frames. For example, we can calculate the relative Wigner angles between frame1 and frame2 for the final state particle 1. Only for this last step 4 momenta are needed. 
+The function expects these momenta to be in the form of an array of 4 vectors, where the last (index 3) element is the time component. The momenta variable is then a dict of the form {particle: momentum}. For example, for a 3 body decay we can define the momenta as
+```python	
+import numpy as np
+momenta = {1: np.array([-1, 0, 0, 2]), 2: np.array([0, 2, 0, 4]), 3: np.array([0, 0, 0.3, 2])}
+```
+where the momentum of the initial state is [0, 0, 0, 0], the momentum of the final state particles are [1, 0, 0, 1], [0, 1, 0, 1], and [0, 0, 1, 1]. Then the relative Wigner angles can be calculated as
+
 ```python
 # now we can get the rotation between each of the frames and for each final state particle
-rotation1_2_1 = frame1.relative_wigner_angles(frame2, 1)
-rotation1_2_2 = frame1.relative_wigner_angles(frame2, 2)
-rotation1_2_3 = frame1.relative_wigner_angles(frame2, 3)
+rotation1_2_1 = frame1.relative_wigner_angles(frame2, 1, momenta)
+rotation1_2_2 = frame1.relative_wigner_angles(frame2, 2, momenta)
+rotation1_2_3 = frame1.relative_wigner_angles(frame2, 3, momenta)
 # etc.
 ```
 
