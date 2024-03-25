@@ -1,4 +1,4 @@
-name: Client Python Package
+name: Release Package
 
 on:
   release:
@@ -31,7 +31,7 @@ jobs:
       - name: Build dist
         run: hatch build
       - name: Publish package
-        run: hatch publish test
+        run: hatch publish -r test dist/*
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_TEST_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
