@@ -1,4 +1,4 @@
-  name: TestPyPI Release
+name: TestPyPI Release
 
 on:
   release:
