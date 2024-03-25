@@ -1,4 +1,4 @@
-name: Client Python Package
+name: Test the functionality of the package
 
 on:
   push:
@@ -30,5 +30,3 @@ jobs:
         run: pipx install hatch
       - name: Run tests
         run: hatch run test:cov
-      - name: Build dist
-        run: hatch build
