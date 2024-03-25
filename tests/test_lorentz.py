@@ -133,6 +133,27 @@ def test_daltiz_plot_decomposition():
 
     def cos_zeta_3_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_zeta_1_aligned_3_in_frame_1(M, m3, m2, m1, sigma3, sigma2, sigma1)
+    
+    def cos_theta_hat_3_canonical_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return (
+            (M ** 2 + m3 ** 2 - sigma3) * (M ** 2 + m1 ** 2 - sigma1)
+            - 2 * M ** 2 * (sigma2 - m3 ** 2 - m1 ** 2)
+        ) / (
+            Kallen(M ** 2, m1 ** 2, sigma1)
+            * Kallen(M ** 2, sigma3, m3 ** 2)
+        )**0.5
+    
+    def cos_theta_hat_1_canonical_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return 1
+    def cos_theta_hat_2_canonical_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return 1
+    def cos_theta_hat_3_canonical_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return 1
+    def cos_theta_hat_1_canonical_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_theta_hat_3_canonical_1(M, m2, m3, m1, sigma2, sigma3, sigma1)
+
+    def cos_theta_hat_2_canonical_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_theta_hat_3_canonical_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
 
     momenta = np.random.rand(3, 3)
     masses = np.array([1, 2, 3])
@@ -215,6 +236,15 @@ def test_daltiz_plot_decomposition():
     helicity_2, _ = hel_angles[(2,3)]
     assert np.isclose(dpd_helicity_2, np.cos(helicity_2))
 
+    # we will now test the theta hat angles from dpd
+    # the issue here is, that we will need specific aligned frames for that
+
+    alignment_angles_1 = frame1.helicity_angles(momenta)[((2,3), 1)]
+    transform = LorentzTrafo(0, 0, 0, 0, *alignment_angles_1)
+    frame1_aligned_momenta = frame1.transform(transform, momenta)
+    dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
+    hel_angles = frame3.helicity_angles(frame1_aligned_momenta)[((1, 2), 3)]
+    assert np.isclose(dpd_value, np.cos(hel_angles[0]))
 
 if __name__ == "__main__":
     test_daltiz_plot_decomposition()
