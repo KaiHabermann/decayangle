@@ -389,7 +389,7 @@ class Tree:
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(target, momenta, inverse=True)
         boost2 = other.boost(target, momenta)
-        return (boost2 @ boost1_inv).decode()
+        return (boost2 @ boost1_inv).wigner_angles()
 
     def __getattr__(self, name):
         return getattr(self.root, name)
