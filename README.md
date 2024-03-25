@@ -41,9 +41,9 @@ for tree in tg.trees:
 We get three trees, where each tree contains a unique intermediate state.
 To select specific trees we can use the filter option of the ```TopologyGroup``` class. For example, we can filter for trees where the intermediate state (2, 3) is present.
 ```python	
-frame1 = tg.filter((2, 3)) # we filter for trees where the state (2, 3) is present 
-frame2 = tg.filter((1, 3)) # we filter for trees where the state (1, 3) is present
-frame3 = tg.filter((1, 2)) # we filter for trees where the state (1, 2) is present
+frame1, = tg.filter((2, 3)) # we filter for trees where the state (2, 3) is present 
+frame2, = tg.filter((1, 3)) # we filter for trees where the state (1, 3) is present
+frame3, = tg.filter((1, 2)) # we filter for trees where the state (1, 2) is present
 ```
 
 Finally, we can calculate the relative Wigner angles between the different frames. For example, we can calculate the relative Wigner angles between frame1 and frame2 for the final state particle 1. Only for this last step 4 momenta are needed. 
