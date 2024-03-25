@@ -1,3 +1,4 @@
 *.cpython*
 *.pyc
 *.coverage
+dist/
