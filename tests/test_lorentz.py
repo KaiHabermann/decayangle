@@ -69,6 +69,22 @@ def test_daltiz_plot_decomposition():
         """Returns the indices based on k, adapted for Python's 0-based indexing."""
         return [(k + 1) % 3, (k + 2) % 3, k]
 
+    def cos_theta_12(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return (
+            2 * sigma3 * (sigma2 - m3 ** 2 - m1 ** 2)
+            - (sigma3 + m1 ** 2 - m2 ** 2) * (M ** 2 - sigma3 - m3 ** 2)
+        ) / (
+            Kallen(M ** 2, m3 ** 2, sigma3)
+            * Kallen(sigma3, m1 ** 2, m2 ** 2)
+        )**0.5
+
+    def cos_theta_23(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_theta_12(M, m2, m3, m1, sigma2, sigma3, sigma1)
+
+    def cos_theta_31(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_theta_12(M, m3, m1, m2, sigma3, sigma1, sigma2)
+
+
     def cos_zeta_31_for2(msq, sigmas):
         """
         Calculate the cosine of the ζ angle for the case where k=2.
@@ -181,6 +197,24 @@ def test_daltiz_plot_decomposition():
     phi_rf_, theta_rf_,  psi_rf_ = frame3.relative_wigner_angles(frame1, 3, momenta)
     assert np.isclose(theta_rf, theta_rf_)
     assert np.isclose(np.cos(theta_rf), dpd_value)
+
+    dpd_helicity_2 = cos_theta_12(mothermass2**0.5, *masses, *sigmas)
+    hel_angles = frame3.helicity_angles(momenta)
+    helicity_2, _ = hel_angles[(1,2)]
+    assert np.isclose(dpd_helicity_2, np.cos(helicity_2))
+
+    dpd_helicity_2 = cos_theta_31(mothermass2**0.5, *masses, *sigmas)
+    hel_angles = frame2.helicity_angles(momenta)
+    helicity_2, _ = hel_angles[(1,3)]
+    # dpd defines the angle to particle 3, but we chose the angle to particle 1
+    # so we need to invert the angle
+    assert np.isclose(dpd_helicity_2, np.cos(np.pi - helicity_2))
+
+    dpd_helicity_2 = cos_theta_23(mothermass2**0.5, *masses, *sigmas)
+    hel_angles = frame1.helicity_angles(momenta)
+    helicity_2, _ = hel_angles[(2,3)]
+    assert np.isclose(dpd_helicity_2, np.cos(helicity_2))
+
 
 if __name__ == "__main__":
     test_daltiz_plot_decomposition()

@@ -328,11 +328,15 @@ class Tree:
 
         """
         helicity_angles = {}
+        
         for node in self.root.inorder():
-            if not node.final_state and node != self.root:
-                boost_to_node = self.boost(node, momenta)
-                momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
-                isobar, spectator = node.parent.daughters
+            if not node.final_state:
+                if node != self.root:
+                    boost_to_node = self.boost(node, momenta)
+                    momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
+                else:
+                    momenta_in_node_frame = momenta
+                isobar, spectator = node.daughters
                 helicity_angles[(isobar.value, spectator.value)] = node.helicity_angles(
                     momenta_in_node_frame
                 )

@@ -19,7 +19,6 @@
 ```console
 pip install decayangle
 ```
-
 ## Usage
 First we define the decay we are working with. For example, we can define the decay of a particle 0 into particles 1, 2, and 3. We can then generate all possible decay trees for this decay. We can then filter the trees based on the intermediate states we are interesetd in. Finally, we can calculate the relative Wigner angles between the different frames resulting from different rotations when boosting along different configurations.
 
