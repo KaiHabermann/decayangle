@@ -62,7 +62,7 @@ def test_lotentz2(boost_definitions):
     for i in range(len(boost_definitions) - 1):
         test_single(boost_definitions[i], boost_definitions[i+1])
 
-def test_lorentz_threeBody():
+def test_daltiz_plot_decomposition():
     def Kallen(x, y, z):
         return x**2 + y**2 + z**2 - 2*(x*y + x*z + y*z)
     def ijk(k):
@@ -145,8 +145,10 @@ def test_lorentz_threeBody():
     for k, isobar in isobars.items():
         frame, = tg.filter(isobar)
         for node in [1, 2, 3]:
+            # first simple test to check, that we can compute everything without exception
             args = reference_frame.relative_wigner_angles(frame, node, momenta)
 
+    # we can simply filter for the isobars to get the chain we want
     frame1, = tg.filter((2,3))
     frame2, = tg.filter((1,3))
     frame3, = tg.filter((1,2))
@@ -181,4 +183,4 @@ def test_lorentz_threeBody():
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
 if __name__ == "__main__":
-    test_lorentz_threeBody()
+    test_daltiz_plot_decomposition()
