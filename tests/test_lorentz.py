@@ -221,30 +221,30 @@ def test_daltiz_plot_decomposition():
 
     dpd_helicity_2 = cos_theta_12(mothermass2**0.5, *masses, *sigmas)
     hel_angles = frame3.helicity_angles(momenta)
-    helicity_2, _ = hel_angles[(1,2)]
-    assert np.isclose(dpd_helicity_2, np.cos(helicity_2))
+    theta_rf, psi_rf = hel_angles[(1,2)]
+    assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
 
     dpd_helicity_2 = cos_theta_31(mothermass2**0.5, *masses, *sigmas)
     hel_angles = frame2.helicity_angles(momenta)
-    helicity_2, _ = hel_angles[(1,3)]
+    theta_rf, psi_rf = hel_angles[(1,3)]
     # dpd defines the angle to particle 3, but we chose the angle to particle 1
     # so we need to invert the angle
-    assert np.isclose(dpd_helicity_2, np.cos(np.pi - helicity_2))
+    assert np.isclose(dpd_helicity_2, np.cos(np.pi - theta_rf))
 
     dpd_helicity_2 = cos_theta_23(mothermass2**0.5, *masses, *sigmas)
     hel_angles = frame1.helicity_angles(momenta)
-    helicity_2, _ = hel_angles[(2,3)]
-    assert np.isclose(dpd_helicity_2, np.cos(helicity_2))
+    theta_rf, psi_rf = hel_angles[(2,3)]
+    assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
 
     # we will now test the theta hat angles from dpd
     # the issue here is, that we will need specific aligned frames for that
 
-    alignment_angles_1 = frame1.helicity_angles(momenta)[((2,3), 1)]
-    transform = LorentzTrafo(0, 0, 0, 0, *alignment_angles_1)
+    theta_rf, psi_rf = frame1.helicity_angles(momenta)[((2,3), 1)]
+    transform = LorentzTrafo(0, 0, 0, 0, theta_rf, psi_rf)
     frame1_aligned_momenta = frame1.transform(transform, momenta)
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
-    hel_angles = frame3.helicity_angles(frame1_aligned_momenta)[((1, 2), 3)]
-    assert np.isclose(dpd_value, np.cos(hel_angles[0]))
+    theta_rf, psi_rf = frame3.helicity_angles(frame1_aligned_momenta)[((1, 2), 3)]
+    assert np.isclose(dpd_value, np.cos(theta_rf))
 
 if __name__ == "__main__":
     test_daltiz_plot_decomposition()
