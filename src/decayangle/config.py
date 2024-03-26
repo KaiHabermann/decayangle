@@ -4,6 +4,7 @@ from decayangle.backend import jax_backend, numpy_backend
 class _cfg:
     state = {
         "backend": "numpy",
+        "node_sorting": "value",
     }
     backend_map = {
         "jax": jax_backend,
@@ -27,5 +28,51 @@ class _cfg:
             raise ValueError(f"Backend {value} not found")
         self.state["backend"] = value
 
+    @property
+    def node_sorting(self):
+        return self.state["node_sorting"]
+    
+    @node_sorting.setter
+    def node_sorting(self, value):
+        if value not in ["value", "process_plane"]:
+            raise ValueError(f"Node sorting {value} not found"
+                             "Only 'value' and 'process_plane' are allowed"
+                             "Default is 'value'")
+        self.state["node_sorting"] = value
+    
+    def __value_sorting_key(self, value):
+        """Get the sorting key of the node. 
+        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
+
+        Returns:
+            int: the sorting key
+        """
+        if isinstance(value, tuple):
+            # this is a hack to make sure, that the order of the daughters is consistent
+            # it will fail, if there are more than 10000 particles in the final state
+            # but this is not realistic for the time being
+            return -len(value) * 10000 + value[0]
+        if isinstance(value, int):
+            return abs(value)
+        raise ValueError(f"Value {value} not understood for sorting")
+
+    def __value_process_plane_sorting_key(self, value, maximum_node):
+        raise NotImplementedError("Not implemented")
+        if isinstance(value, tuple):
+            return self.__value_process_plane_sorting_key(value[0], maximum_node)
+        if isinstance(value, int):
+            if value > maximum_node//2:
+                pass
+    
+    def sorting_key(self, value, maximum_node=None):
+        if self.node_sorting == "value":
+            return self.__value_sorting_key(value)
+
+        if self.node_sorting == "process_plane":
+            if maximum_node is None:
+                raise ValueError("Maximum node must be given for process plane sorting")
+            return self.__value_process_plane_sorting_key(value, maximum_node)
+        
+        raise ValueError(f"Node sorting {self.node_sorting} not found")
 
 config = _cfg()

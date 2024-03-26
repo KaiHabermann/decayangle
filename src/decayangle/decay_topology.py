@@ -30,7 +30,7 @@ class Node:
 
     def __init__(self, value: Union[Any, tuple]):
         if isinstance(value, tuple):
-            self.value = tuple(sorted(value))
+            self.value = tuple(sorted(value, key=cfg.sorting_key))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -71,12 +71,7 @@ class Node:
         Returns:
             int: the sorting key
         """
-        if isinstance(self.value, tuple):
-            # this is a hack to make sure, that the order of the daughters is consistent
-            # it will fail, if there are more than 10000 particles in the final state
-            # but this is not realistic for the time being
-            return -len(self.value) * 10000 + self.value[0]
-        return abs(self.value)
+        return cfg.sorting_key(self.value)
 
     def __repr__(self):
         if len(self.daughters) == 0:
