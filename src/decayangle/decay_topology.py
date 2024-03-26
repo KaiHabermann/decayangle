@@ -210,6 +210,21 @@ class Node:
         )
 
         return boost @ rotation
+    
+    def align_with_daughter(self, momenta:Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0) -> Dict[int, Union[np.array, jnp.array]]:
+        """Align the momenta with the nth daughter
+
+        Args:
+            momenta (dict): the momenta of the final state particles
+            nth_daughter (int, optional): the daughter to align with. Defaults to 0.
+
+        Returns:
+            dict: the aligned momenta
+        """
+        if nth_daughter >= len(self.daughters):
+            raise ValueError(f"Node {self} does not have a daughter with index {nth_daughter}")
+        rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta)
+        return self.transform(rotation, momenta)
 
     def helicity_angles(self, momenta: dict):
         """
