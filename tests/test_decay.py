@@ -13,11 +13,11 @@ def test_decay():
         4: cb.array([ 0, 0.25, -0.4,1]),
     }
 
-    reference_tree = tg.trees[0]
+    reference_tree = tg.topologies[0]
     momenta = reference_tree.to_rest_frame(momenta)
-    for tree in tg.trees:
+    for topology in tg.topologies:
         final_state_rotations = {
-            target:reference_tree.relative_wigner_angles(tree, target, momenta)
+            target:reference_tree.relative_wigner_angles(topology, target, momenta)
             for target in [Node(1), Node(2), Node(3)]
         }
 

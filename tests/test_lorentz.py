@@ -89,7 +89,7 @@ def test_daltiz_plot_decomposition():
         """
         Calculate the cosine of the ζ angle for the case where k=2.
         
-        rotates tree 3 into tree 1 for particle 2
+        rotates topology 3 into topology 1 for particle 2
 
         :param msq: List containing squared masses, with msq[-1] being m02
         :param sigmas: List containing sigma values, adjusted for Python.
@@ -108,8 +108,8 @@ def test_daltiz_plot_decomposition():
     def cos_zeta_1_aligned_3_in_tree_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         """
         Calculate the cosine of the ζ angle for the case where k=1.
-        The aligned tree is tree 3, the reference tree is tree 1.
-        i.e. we rotate tree 3 into tree 1 for particle 1.
+        The aligned topology is topology 3, the reference topology is topology 1.
+        i.e. we rotate topology 3 into topology 1 for particle 1.
         """
         return (
             2 * m1 ** 2 * (sigma2 - M ** 2 - m2 ** 2)
@@ -170,9 +170,9 @@ def test_daltiz_plot_decomposition():
     mothermass2 = mass_squared(momenta[1] + momenta[2] + momenta[3])
     assert abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10
     tg = TopologyGroup(0, [1,2,3])
-    momenta = tg.trees[0].to_rest_frame(momenta)
+    momenta = tg.topologies[0].to_rest_frame(momenta)
 
-    #tree 1 is the reference tree
+    #topology 1 is the reference topology
     reference_tree, = tg.filter((2,3))
     isobars = {
         1: (2,3),
@@ -180,12 +180,12 @@ def test_daltiz_plot_decomposition():
         3: (1,2)
     }
     for k, isobar in isobars.items():
-        tree, = tg.filter(isobar)
+        topology, = tg.filter(isobar)
         for node in [1, 2, 3]:
             # first simple test to check, that we can compute everything without exception
-            args = reference_tree.relative_wigner_angles(tree, node, momenta)
+            args = reference_tree.relative_wigner_angles(topology, node, momenta)
 
-    # we can simply filter for the isobars to get the tree we want
+    # we can simply filter for the isobars to get the topology we want
     tree1, = tg.filter((2,3))
     tree2, = tg.filter((1,3))
     tree3, = tg.filter((1,2))
@@ -237,7 +237,7 @@ def test_daltiz_plot_decomposition():
     assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
 
     # we will now test the theta hat angles from dpd
-    # the issue here is, that we will need specific aligned trees for that
+    # the issue here is, that we will need specific aligned topologies for that
 
     tree1_aligned_momenta = tree1.align_with_daughter(momenta, 0)
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
