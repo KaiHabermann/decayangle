@@ -89,7 +89,7 @@ def test_daltiz_plot_decomposition():
         """
         Calculate the cosine of the ζ angle for the case where k=2.
         
-        rotates frame 3 into frame 1 for particle 2
+        rotates topology 3 into topology 1 for particle 2
 
         :param msq: List containing squared masses, with msq[-1] being m02
         :param sigmas: List containing sigma values, adjusted for Python.
@@ -105,11 +105,11 @@ def test_daltiz_plot_decomposition():
         return (2*msq[k] * rest + EE4m1sq) / pp4m1sq
     
 
-    def cos_zeta_1_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+    def cos_zeta_1_aligned_3_in_tree_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         """
         Calculate the cosine of the ζ angle for the case where k=1.
-        The aligned frame is frame 3, the reference frame is frame 1.
-        i.e. we rotate frame 3 into frame 1 for particle 1.
+        The aligned topology is topology 3, the reference topology is topology 1.
+        i.e. we rotate topology 3 into topology 1 for particle 1.
         """
         return (
             2 * m1 ** 2 * (sigma2 - M ** 2 - m2 ** 2)
@@ -119,20 +119,20 @@ def test_daltiz_plot_decomposition():
             * Kallen(sigma3, m1 ** 2, m2 ** 2)
         )**0.5
 
-    def cos_zeta_1_aligned_1_in_frame_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
-        return cos_zeta_1_aligned_3_in_frame_1(M, m1, m3, m2, sigma1, sigma3, sigma2)
+    def cos_zeta_1_aligned_1_in_tree_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_zeta_1_aligned_3_in_tree_1(M, m1, m3, m2, sigma1, sigma3, sigma2)
 
-    def cos_zeta_2_aligned_1_in_frame_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
-        return cos_zeta_1_aligned_3_in_frame_1(M, m2, m3, m1, sigma2, sigma3, sigma1)
+    def cos_zeta_2_aligned_1_in_tree_2(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_zeta_1_aligned_3_in_tree_1(M, m2, m3, m1, sigma2, sigma3, sigma1)
 
-    def cos_zeta_2_aligned_2_in_frame_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
-        return cos_zeta_1_aligned_3_in_frame_1(M, m2, m1, m3, sigma2, sigma1, sigma3)
+    def cos_zeta_2_aligned_2_in_tree_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_zeta_1_aligned_3_in_tree_1(M, m2, m1, m3, sigma2, sigma1, sigma3)
 
-    def cos_zeta_3_aligned_2_in_frame_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
-        return cos_zeta_1_aligned_3_in_frame_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
+    def cos_zeta_3_aligned_2_in_tree_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_zeta_1_aligned_3_in_tree_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
 
-    def cos_zeta_3_aligned_3_in_frame_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
-        return cos_zeta_1_aligned_3_in_frame_1(M, m3, m2, m1, sigma3, sigma2, sigma1)
+    def cos_zeta_3_aligned_3_in_tree_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
+        return cos_zeta_1_aligned_3_in_tree_1(M, m3, m2, m1, sigma3, sigma2, sigma1)
     
     def cos_theta_hat_3_canonical_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return (
@@ -170,78 +170,78 @@ def test_daltiz_plot_decomposition():
     mothermass2 = mass_squared(momenta[1] + momenta[2] + momenta[3])
     assert abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10
     tg = TopologyGroup(0, [1,2,3])
-    momenta = tg.trees[0].to_rest_frame(momenta)
+    momenta = tg.topologies[0].to_rest_frame(momenta)
 
-    #frame 1 is the reference frame
-    reference_frame, = tg.filter((2,3))
+    #topology 1 is the reference topology
+    reference_tree, = tg.filter((2,3))
     isobars = {
         1: (2,3),
         2: (1,3),
         3: (1,2)
     }
     for k, isobar in isobars.items():
-        frame, = tg.filter(isobar)
+        topology, = tg.filter(isobar)
         for node in [1, 2, 3]:
             # first simple test to check, that we can compute everything without exception
-            args = reference_frame.relative_wigner_angles(frame, node, momenta)
+            args = reference_tree.relative_wigner_angles(topology, node, momenta)
 
-    # we can simply filter for the isobars to get the chain we want
-    frame1, = tg.filter((2,3))
-    frame2, = tg.filter((1,3))
-    frame3, = tg.filter((1,2))
-    phi_rf, theta_rf, psi_rf = frame2.relative_wigner_angles(frame1, 3, momenta)
+    # we can simply filter for the isobars to get the topology we want
+    tree1, = tg.filter((2,3))
+    tree2, = tg.filter((1,3))
+    tree3, = tg.filter((1,2))
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 3, momenta)
     dpd_value = cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_1_aligned_3_in_frame_1(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame1.relative_wigner_angles(frame3, 1, momenta)
+    dpd_value = cos_zeta_1_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 1, momenta)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_1_aligned_1_in_frame_2(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame2.relative_wigner_angles(frame1, 1, momenta)
+    dpd_value = cos_zeta_1_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 1, momenta)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_2_aligned_1_in_frame_2(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame2.relative_wigner_angles(frame1, 2, momenta)
+    dpd_value = cos_zeta_2_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 2, momenta)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_2_aligned_2_in_frame_3(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame3.relative_wigner_angles(frame2, 2, momenta)
+    dpd_value = cos_zeta_2_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 2, momenta)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_3_aligned_2_in_frame_3(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame3.relative_wigner_angles(frame2, 3, momenta)
+    dpd_value = cos_zeta_3_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 3, momenta)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
-    dpd_value = cos_zeta_3_aligned_3_in_frame_1(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = frame1.relative_wigner_angles(frame3, 3, momenta)
-    phi_rf_, theta_rf_,  psi_rf_ = frame3.relative_wigner_angles(frame1, 3, momenta)
+    dpd_value = cos_zeta_3_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
+    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 3, momenta)
+    phi_rf_, theta_rf_,  psi_rf_ = tree3.relative_wigner_angles(tree1, 3, momenta)
     assert np.isclose(theta_rf, theta_rf_)
     assert np.isclose(np.cos(theta_rf), dpd_value)
 
     dpd_helicity_2 = cos_theta_12(mothermass2**0.5, *masses, *sigmas)
-    hel_angles = frame3.helicity_angles(momenta)
+    hel_angles = tree3.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(1,2)]
     assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
 
     dpd_helicity_2 = cos_theta_31(mothermass2**0.5, *masses, *sigmas)
-    hel_angles = frame2.helicity_angles(momenta)
+    hel_angles = tree2.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(1,3)]
     # dpd defines the angle to particle 3, but we chose the angle to particle 1
     # so we need to invert the angle
     assert np.isclose(dpd_helicity_2, np.cos(np.pi - theta_rf))
 
     dpd_helicity_2 = cos_theta_23(mothermass2**0.5, *masses, *sigmas)
-    hel_angles = frame1.helicity_angles(momenta)
+    hel_angles = tree1.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(2,3)]
     assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
 
     # we will now test the theta hat angles from dpd
-    # the issue here is, that we will need specific aligned frames for that
+    # the issue here is, that we will need specific aligned topologies for that
 
-    frame1_aligned_momenta = frame1.align_with_daughter(momenta, 0)
+    tree1_aligned_momenta = tree1.align_with_daughter(momenta, 0)
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
-    theta_rf, psi_rf = frame3.helicity_angles(frame1_aligned_momenta)[((1, 2), 3)]
+    theta_rf, psi_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
     assert np.isclose(dpd_value, np.cos(theta_rf))
 
 if __name__ == "__main__":

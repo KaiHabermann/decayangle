@@ -91,19 +91,19 @@ class Node:
         return self.__repr__()
 
     def print_tree(self):
-        """Print the tree starting from this node"""
+        """Print the tree below from this node"""
         for d in self.daughters:
             d.print_tree()
         print(f"\n {self.value}")
 
     def contains(self, contained_node: "Node") -> bool:
-        """Check if a node is contained in the tree
+        """Check if a node is contained in the topology
 
         Args:
             contained_node (Node): the node to check for
 
         Returns:
-            bool: True if the node is contained in the tree, False otherwise
+            bool: True if the node is contained in the topology, False otherwise
         """
 
         if self.value == contained_node.value:
@@ -278,23 +278,23 @@ class Node:
         return rotation, theta_rf, psi_rf
 
 
-class Tree:
+class Topology:
     def __init__(self, root: Node):
         if not isinstance(root, Node):
-            raise ValueError("Root of a tree has to be a Node")
+            raise ValueError("Root of a topology has to be a Node")
         self.root = root
 
     def __repr__(self):
         return str(self.root)
 
     def contains(self, contained_node: Union["Node", int]):
-        """Check if a node is contained in the tree
+        """Check if a node is contained in the topology
 
         Args:
             contained_node (Node): the node to check for
 
         Returns:
-            bool: True if the node is contained in the tree, False otherwise
+            bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
         return self.root.contains(contained_node)
@@ -392,12 +392,12 @@ class Tree:
         return trafo
 
     def relative_wigner_angles(
-        self, other: "Tree", target: Union["Node", int], momenta: dict
+        self, other: "Topology", target: Union["Node", int], momenta: dict
     ) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
-        """ Get the relative Wigner angles between two trees
+        """ Get the relative Wigner angles between two topologies
 
         Parameters:
-            other: Tree to compare to
+            other: Topology to compare to
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
 
@@ -433,11 +433,11 @@ def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
 
 def generate_tree_definitions(nodes: List[int]) -> List[Node]:
     """
-    Generate all possible tree definitions for a given list of nodes.
-    Parameters: nodes: List of nodes to generate tree definitions for
-    Returns: List of tree definitions
+    Generate all possible topology definitions for a given list of nodes.
+    Parameters: nodes: List of nodes to generate topology definitions for
+    Returns: List of topology definitions
     """
-    trees = []
+    topologies = []
     if len(nodes) == 1:
         return [(None, None)]
     for i in range(1, 1 << len(nodes) - 1):
@@ -458,69 +458,25 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
                 if l2 is not None:
                     r_node.add_daughter(l2)
                     r_node.add_daughter(r2)
-                trees.append((l_node, r_node))
-    return trees
-
-
-class Topology:
-
-    def __init__(self, tree: Node):
-        """
-        Class to represent the topology of an N-body decay.
-        Parameters: topology: List of integers representing the topology of the decay
-        """
-        self.__tree = tree
-
-    @property
-    def tree(self):
-        """
-        Returns: Tree representation of the topology
-        """
-        return Tree(self.__tree)
-
-    def __repr__(self) -> str:
-        return str(self.tree)
-
-    def contains(self, contained_node: "Node"):
-        """
-        Check if a given node is contained in this topology.
-        Parameters: contained_node: Node to check if it is contained
-        Returns: True if the given node is contained in this topology, False otherwise
-        """
-        return self.tree.contains(contained_node)
+                topologies.append((l_node, r_node))
+    return topologies
 
 
 class TopologyGroup:
     @staticmethod
-    def filter_list(trees: List[Node], contained_node: Node):
+    def filter_list(topologies: List[Node], contained_node: Node):
         """
         Filter the topologies based on the number of contained steps.
 
         Args:
             contained_step (list): sub topology for which to filter
         """
-        return [t for t in trees if t.contains(contained_node)]
+        return [t for t in topologies if t.contains(contained_node)]
 
     def __init__(self, start_node: int, final_state_nodes: List[int]):
         self.start_node = start_node
         self.final_state_nodes = final_state_nodes
         self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
-
-    @cached_property
-    def trees(self) -> List[Tree]:
-        """returns all possible trees for the given final state nodes
-
-        Returns:
-            List[Tree]: all possible trees for the given final state nodes
-        """
-        trees = generate_tree_definitions(self.final_state_nodes)
-        trees_with_root_node = []
-        for l, r in trees:
-            root = Node(self.start_node)
-            root.add_daughter(l)
-            root.add_daughter(r)
-            trees_with_root_node.append(root)
-        return [Tree(node) for node in trees_with_root_node]
 
     @cached_property
     def topologies(self) -> List[Topology]:
@@ -529,16 +485,23 @@ class TopologyGroup:
         Returns:
             List[Topology]: all possible topologies for the given final state nodes
         """
-        return [Topology(tree) for tree in self.trees]
+        topologies = generate_tree_definitions(self.final_state_nodes)
+        topologies_with_root_node = []
+        for l, r in topologies:
+            root = Node(self.start_node)
+            root.add_daughter(l)
+            root.add_daughter(r)
+            topologies_with_root_node.append(root)
+        return [Topology(node) for node in topologies_with_root_node]
 
     def filter(self, *contained_nodes: Node):
         """
         Filter the topologies based on the number of contained steps.
 
         Args:
-            contained_nodes (tuple[Node]): nodes which should be contained in the trees
+            contained_nodes (tuple[Node]): nodes which should be contained in the topologies
         """
-        trees = self.trees
+        topologies = self.topologies
         for contained_node in contained_nodes:
-            trees = self.filter_list(trees, contained_node)
-        return trees
+            topologies = self.filter_list(topologies, contained_node)
+        return topologies
