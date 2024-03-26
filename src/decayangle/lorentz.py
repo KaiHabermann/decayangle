@@ -1,4 +1,5 @@
 from typing import Tuple, Union
+from collections import namedtuple
 import numpy as np
 import jax.numpy as jnp
 from decayangle.kinematics import (
@@ -11,6 +12,7 @@ from decayangle.config import config as cfg
 
 cb = cfg.backend
 
+WignerAngles = namedtuple("WignerAngles", ["phi_rf", "theta_rf", "psi_rf"])
 
 class LorentzTrafo:
     def __init__(self, *args, **kwargs):
@@ -78,4 +80,4 @@ class LorentzTrafo:
             Tuple[Union[np.array, jnp.array]]: the angles of the rotation in the frame before the boost
         """
         _, _, _, phi_rf, theta_rf, psi_rf = self.decode(two_pi_aware=True)
-        return phi_rf, theta_rf, psi_rf
+        return WignerAngles(phi_rf, theta_rf, psi_rf)

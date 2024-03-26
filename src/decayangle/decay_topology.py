@@ -1,5 +1,6 @@
 from typing import List, Tuple, Union, Any, Dict
 from functools import cached_property
+from collections import namedtuple
 import numpy as np
 from jax import numpy as jnp
 import networkx as nx
@@ -9,6 +10,7 @@ from decayangle.config import config as cfg
 
 cb = cfg.backend
 
+HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
 
 class Node:
 
@@ -241,7 +243,7 @@ class Node:
         # define the daughter for which the momentum should be aligned with the positive z after the rotation
         positive_z = self.daughters[0]
         _, theta_rf, psi_rf = self.rotate_to(positive_z, momenta)
-        return theta_rf, psi_rf
+        return HelicityAngles(theta_rf, psi_rf)
 
     def rotate_to(
         self, target: "Node", momenta: dict
