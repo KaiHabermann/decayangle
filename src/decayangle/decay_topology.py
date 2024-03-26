@@ -38,6 +38,8 @@ class Node:
                 )
             if value < 0:
                 raise ValueError("Node value has to be a positive integer or 0")
+            if value > 10000:
+                raise ValueError("Node value has to be smaller than 10000 to ensure consistent sorting of daughters")
             self.value = value
         self.__daughters = []
         self.parent = None
@@ -70,7 +72,10 @@ class Node:
             int: the sorting key
         """
         if isinstance(self.value, tuple):
-            return -len(self.value)
+            # this is a hack to make sure, that the order of the daughters is consistent
+            # it will fail, if there are more than 10000 particles in the final state
+            # but this is not realistic for the time being
+            return -len(self.value) * 10000 + self.value[0]
         return abs(self.value)
 
     def __repr__(self):
