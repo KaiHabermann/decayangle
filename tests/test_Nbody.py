@@ -54,10 +54,10 @@ def test_topology():
     # with no net boosts, the rotations can not be uniquely determined
     for tree in tg.trees[1:]:
         for node in [Node(1), Node(2), Node(3), Node(4), Node(5)]:
-            chain1 = base_tree.boost(node, momenta)
-            chain2 = tree.boost(node, momenta)
+            tree1 = base_tree.boost(node, momenta)
+            tree2 = tree.boost(node, momenta)
             
-            difference = chain1 @ chain2.inverse()
+            difference = tree1 @ tree2.inverse()
             # we cant really assert things here, but if it runs through we at least know, that we can do the operations
             result = difference.decode()
 
@@ -67,9 +67,9 @@ def test_topology():
     # this is useful for cases, where resonances are only present in some of the possible isobars
     for tree in tg.filter(Node((1,2)), Node((1,2,3))):
         for node in [Node(1), Node(2), Node(3), Node(4), Node(5)]:
-            chain1 = base_tree.boost(node, momenta)
-            chain2 = tree.boost(node, momenta)
-            difference = chain1 @ chain2.inverse()
+            tree1 = base_tree.boost(node, momenta)
+            tree2 = tree.boost(node, momenta)
+            difference = tree1 @ tree2.inverse()
             base_tree.relative_wigner_angles(tree, node, momenta)
             # we cant really assert things here, but if it runs through we at least know, that we can do the operations
             result = difference.decode()
