@@ -62,7 +62,10 @@ def test_lotentz2(boost_definitions):
     for i in range(len(boost_definitions) - 1):
         test_single(boost_definitions[i], boost_definitions[i+1])
 
-def test_daltiz_plot_decomposition():
+
+
+@pytest.mark.parametrize('momenta', [np.random.rand(3, 3)] + [np.random.rand(3, 100, 3) for _ in range(10)])
+def test_daltiz_plot_decomposition(momenta):
     def Kallen(x, y, z):
         return x**2 + y**2 + z**2 - 2*(x*y + x*z + y*z)
     def ijk(k):
