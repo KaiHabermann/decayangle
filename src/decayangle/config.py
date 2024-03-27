@@ -56,22 +56,15 @@ class _cfg:
             return abs(value)
         raise ValueError(f"Value {value} not understood for sorting")
 
-    def __value_process_plane_sorting_key(self, value, maximum_node):
+    def __value_process_plane_sorting_key(self, value):
         raise NotImplementedError("Not implemented")
-        if isinstance(value, tuple):
-            return self.__value_process_plane_sorting_key(value[0], maximum_node)
-        if isinstance(value, int):
-            if value > maximum_node//2:
-                pass
     
-    def sorting_key(self, value, maximum_node=None):
+    def sorting_key(self, value):
         if self.node_sorting == "value":
             return self.__value_sorting_key(value)
 
         if self.node_sorting == "process_plane":
-            if maximum_node is None:
-                raise ValueError("Maximum node must be given for process plane sorting")
-            return self.__value_process_plane_sorting_key(value, maximum_node)
+            return self.__value_process_plane_sorting_key(value)
         
         raise ValueError(f"Node sorting {self.node_sorting} not found")
 
