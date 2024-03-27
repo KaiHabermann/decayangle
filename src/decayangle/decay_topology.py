@@ -193,24 +193,11 @@ class Node:
         # rotate so that the target momentum is aligned with the
         rotation, _, _ = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
-        # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert cb.allclose(
-            akm.y_component(target.momentum(rotated_momenta)),
-            cb.zeros_like(akm.y_component(target.momentum(rotated_momenta))),
-        )
-        assert cb.allclose(
-            akm.x_component(target.momentum(rotated_momenta)),
-            cb.zeros_like(akm.x_component(target.momentum(rotated_momenta))),
-        )
-
+        
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
-        # assert the boost worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert cb.allclose(
-            akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one
-        )
-
+       
         return boost @ rotation
     
     def align_with_daughter(self, momenta:Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0) -> Dict[int, Union[np.array, jnp.array]]:

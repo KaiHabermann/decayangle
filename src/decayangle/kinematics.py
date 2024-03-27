@@ -1,4 +1,5 @@
 from typing import Tuple, Union
+from functools import partial
 from jax import numpy as jnp
 import numpy as np
 from decayangle.config import config as cfg
@@ -6,7 +7,7 @@ from decayangle.numerics_helpers import save_arccos
 
 cb = cfg.backend
 
-
+@partial(cb.vectorize, signature='()->(2,2)')
 def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the x-direction
@@ -21,6 +22,7 @@ def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x
 
 
+@partial(cb.vectorize, signature='()->(2,2)')
 def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the y-direction
@@ -34,7 +36,7 @@ def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
     eye = cb.eye(2)
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y
 
-
+@partial(cb.vectorize, signature='()->(2,2)')
 def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the z-direction
@@ -47,7 +49,6 @@ def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
     sigma_z = cb.array([[1, 0], [0, -1]])
     eye = cb.eye(2)
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z
-
 
 def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Given a vector, rotate it to the z-axis
@@ -63,7 +64,7 @@ def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array
     theta_rf = cb.arccos(z_component(v) / p(v))
     return psi_rf, -theta_rf
 
-
+@partial(cb.vectorize, signature='()->(2,2)')
 def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the x-axis
 
@@ -77,7 +78,7 @@ def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
     sgma_x = cb.array([[0, 1], [1, 0]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x
 
-
+@partial(cb.vectorize, signature='()->(2,2)')
 def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the y-axis
 
@@ -91,7 +92,7 @@ def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
     sgma_y = cb.array([[0, -1j], [1j, 0]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y
 
-
+@partial(cb.vectorize, signature='()->(2,2)')
 def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the z-axis
 
@@ -105,7 +106,7 @@ def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
     sgma_z = cb.array([[1, 0], [0, -1]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z
 
-
+@partial(cb.vectorize, signature='()->(4,4)')
 def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
     r"""Build a 4x4 boost matrix in the z-direction
 
@@ -146,7 +147,7 @@ def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-
+@partial(cb.vectorize, signature='()->(4,4)')
 def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
     """Build a 4x4 rotation matrix around the y-axis
 
@@ -180,7 +181,7 @@ def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-
+@partial(cb.vectorize, signature='()->(4,4)')
 def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
     """Build a 4x4 rotation matrix around the z-axis^
 
@@ -214,7 +215,7 @@ def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-
+@partial(cb.vectorize, signature='(), (), (), (), (), ()->(2,2)')
 def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 2x2 matrix from the 6 kinematic parameters
 
@@ -238,7 +239,7 @@ def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
         @ rotation_matrix_2_2_z(psi_rf)
     )
 
-
+@partial(cb.vectorize, signature='(), (), (), (), (), ()->(4,4)')
 def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 4x4 matrix from the 6 kinematic parameters
 
@@ -269,19 +270,18 @@ def decode_rotation_4x4(rotation_matrix: jnp.array) -> Tuple[float, float, float
     Args:
         matrix (_type_): _description_
     """
-    phi = cb.arctan2(rotation_matrix[1, 2], rotation_matrix[0, 2])
-    theta = save_arccos(rotation_matrix[2, 2])
-    psi = cb.arctan2(rotation_matrix[2, 1], -rotation_matrix[2, 0])
+    phi = cb.arctan2(rotation_matrix[...,1, 2], rotation_matrix[...,0, 2])
+    theta = save_arccos(rotation_matrix[...,2, 2])
+    psi = cb.arctan2(rotation_matrix[...,2, 1], -rotation_matrix[...,2, 0])
     return phi, theta, psi
 
 
-def decode_4_4(matrix):
+def decode_4_4(matrix, tol=1e-14):
     r"""decode a 4x4 matrix into the 6 kinematic parameters
 
     Args:
         matrix (jax.numpy.ndarray): the 4x4 matrix
     """
-
     m = 1.0
     v_0 = cb.array([0, 0, 0, m])
 
@@ -289,27 +289,19 @@ def decode_4_4(matrix):
     w = time_component(v)
     abs_mom = p(v)
     gma = w / m
-    if gma < 1:
-        # gamma can be smaller than 1 due to numerical errors
-        # for large deviations we will raise an exception
-        if abs(gma - 1) < 1e-14:
-            gma = 1.0
-        else:
-            raise ValueError(
-                f"gamma is {gma}, which is less than 1. This is not a valid Lorentz transformation"
-            )
-    if abs(gma - 1) < 1e-14:
-        # if gamma is 1, the matrix is a pure rotation. We may have issues with determining angles under such circumstances
-        # thus we will ignore the pre boost angles, since without a boost they are not well defined
-        if cb.allclose(matrix, cb.eye(4)):
-            return 0, 0, 0, 0, 0, 0
-        phi_rf, theta_rf, psi_rf = decode_rotation_4x4(matrix[:3, :3])
-        return 0, 0, 0, phi_rf, theta_rf, psi_rf
+
+    # gamma can be smaller than 1 due to numerical errors
+    # for large deviations we will raise an exception
+    gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < 1e-14), 1, gma)
+    if cb.any(gma < 1):
+        raise ValueError(
+            f"gamma is {gma}, which is less than 1. This is not a valid Lorentz transformation"
+        )
 
     xi = cb.arccosh(gma)
     phi = cb.arctan2(y_component(v), x_component(v))
 
-    cosine_input = cb.where(abs(abs_mom) <= 1e-19, 0, z_component(v) / abs_mom)
+    cosine_input = cb.where(abs(abs_mom) <= tol, 0, z_component(v) / abs_mom)
     theta = cb.arccos(cosine_input)
 
     m_rf = (
@@ -318,7 +310,30 @@ def decode_4_4(matrix):
         @ rotation_matrix_4_4_z(-phi)
         @ matrix
     )
-    phi_rf, theta_rf, psi_rf = decode_rotation_4x4(m_rf[:3, :3])
+    # check for the special case of no absolute boost 
+    phi_rf, theta_rf, psi_rf = decode_rotation_4x4(m_rf[...,:3, :3]) 
+    phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_rotation_4x4(matrix[...,:3, :3])
+    phi_rf = cb.where(abs(gma - 1) < tol, phi_rf_no_boost, phi_rf)
+    theta_rf = cb.where(abs(gma - 1) < tol, theta_rf_no_boost, theta_rf)
+    psi_rf = cb.where(abs(gma - 1) < tol, psi_rf_no_boost, psi_rf)
+    phi = cb.where(abs(gma - 1) < tol, 0, phi)
+    theta = cb.where(abs(gma - 1) < tol, 0, theta)
+    xi = cb.where(abs(gma - 1) < tol, 0, xi)
+
+    is_unity = cb.all(
+        cb.all( 
+            cb.isclose(matrix, cb.eye(4)), axis = -1 
+        ), axis = -1
+    )
+    def check_unity(val):
+        return cb.where(is_unity, 0, val)
+
+    # replace the values with 0 if the matrix is unity
+    phi, theta, xi, phi_rf, theta_rf, psi_rf = [
+        check_unity(val) for val in 
+        [phi, theta, xi, phi_rf, theta_rf, psi_rf]
+        ]
+
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
