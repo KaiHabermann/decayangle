@@ -165,7 +165,7 @@ class Node:
         Returns:
             dict: the transformed momenta
         """
-        return {k: trafo.matrix_4x4 @ v for k, v in momenta.items()}
+        return {k: np.einsum("...ij, ...j", trafo.matrix_4x4, v) for k, v in momenta.items()}
 
     def boost(self, target: Union["Node", int], momenta: dict):
         """Get the boost from this node to a target node
@@ -173,7 +173,7 @@ class Node:
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))
+            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(
@@ -245,7 +245,7 @@ class Node:
             theta_rf: The angle of the target momentum in the rest frame of this node
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))
+            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(

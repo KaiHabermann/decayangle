@@ -354,19 +354,36 @@ def adjust_for_2pi_rotation(
     Returns:
         tuple: the adjusted rotation angles
     """
-    # TODO: is this amount of numerical tolerance maybe a little too much?
     new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf)
-    if np.allclose(m_original_2x2, new_2x2, atol=3e-2):
-        return phi, theta, xi, phi_rf, theta_rf, psi_rf
-    if np.allclose(m_original_2x2, -new_2x2, atol=3e-2):
-        return phi, theta, xi, phi_rf, theta_rf, psi_rf + 2 * np.pi
-    raise ValueError(
+
+    # TODO: is this amount of numerical tolerance maybe a little too much?
+    two_pi_shifted = cb.all(
+        cb.all(
+                cb.isclose(
+                    m_original_2x2, -new_2x2, atol=3e-2
+            ), axis=-1
+        ), axis=-1
+    )
+
+    not_two_pi_shifted = cb.all(
+        cb.all(
+                cb.isclose(
+                    m_original_2x2, new_2x2, atol=3e-2
+            ), axis=-1
+        ), axis=-1
+    )
+    if cb.any(not_two_pi_shifted & two_pi_shifted):
+        raise ValueError(
         f"The 2x2 matrix does not match the reconstruced parameters!"
         f"This can happen due to numerical errors."
         f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
         f"Difference is {m_original_2x2 - new_2x2}"
         f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
     )
+
+    psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)
+    return phi, theta, xi, phi_rf, theta_rf, psi_rf 
+
 
 
 def spatial_components(vector):
