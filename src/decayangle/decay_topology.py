@@ -281,10 +281,11 @@ class Node:
 
 
 class Topology:
-    def __init__(self, root: Node):
+    def __init__(self, root: Node, final_state_nodes: List[Union[int, Node]]):
         if not isinstance(root, Node):
             raise ValueError("Root of a topology has to be a Node")
         self.root = root
+        self.final_state_nodes = [Node.get_node(n) for n in final_state_nodes]
 
     def __repr__(self):
         return str(self.root)
@@ -494,7 +495,7 @@ class TopologyGroup:
             root.add_daughter(l)
             root.add_daughter(r)
             topologies_with_root_node.append(root)
-        return [Topology(node) for node in topologies_with_root_node]
+        return [Topology(node, self.final_state_nodes) for node in topologies_with_root_node]
 
     def filter(self, *contained_nodes: Node):
         """
