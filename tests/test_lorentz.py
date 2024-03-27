@@ -62,7 +62,10 @@ def test_lotentz2(boost_definitions):
     for i in range(len(boost_definitions) - 1):
         test_single(boost_definitions[i], boost_definitions[i+1])
 
-def test_daltiz_plot_decomposition():
+
+
+@pytest.mark.parametrize('momenta', [np.random.rand(3, 3)] + [np.random.rand(3, 100, 3) for _ in range(10)])
+def test_daltiz_plot_decomposition(momenta):
     def Kallen(x, y, z):
         return x**2 + y**2 + z**2 - 2*(x*y + x*z + y*z)
     def ijk(k):
@@ -155,7 +158,7 @@ def test_daltiz_plot_decomposition():
     def cos_theta_hat_2_canonical_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_theta_hat_3_canonical_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
 
-    momenta = np.random.rand(3, 3)
+    momenta = np.random.rand(3, 2, 3)
     masses = np.array([1, 2, 3])
     momenta = {
         i+1: from_mass_and_momentum(mass, momentum) 
@@ -168,7 +171,7 @@ def test_daltiz_plot_decomposition():
         mass_squared(momenta[1] + momenta[2])
     ]
     mothermass2 = mass_squared(momenta[1] + momenta[2] + momenta[3])
-    assert abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10
+    assert all(abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10)
     tg = TopologyGroup(0, [1,2,3])
     momenta = tg.topologies[0].to_rest_frame(momenta)
 
@@ -191,50 +194,50 @@ def test_daltiz_plot_decomposition():
     tree3, = tg.filter((1,2))
     phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 3, momenta)
     dpd_value = cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 1, momenta)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 1, momenta)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 2, momenta)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 2, momenta)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_3_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 3, momenta)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_3_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
     phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 3, momenta)
     phi_rf_, theta_rf_,  psi_rf_ = tree3.relative_wigner_angles(tree1, 3, momenta)
-    assert np.isclose(theta_rf, theta_rf_)
-    assert np.isclose(np.cos(theta_rf), dpd_value)
+    assert np.allclose(theta_rf, theta_rf_)
+    assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_helicity_2 = cos_theta_12(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree3.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(1,2)]
-    assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
+    assert np.allclose(dpd_helicity_2, np.cos(theta_rf))
 
     dpd_helicity_2 = cos_theta_31(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree2.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(1,3)]
     # dpd defines the angle to particle 3, but we chose the angle to particle 1
     # so we need to invert the angle
-    assert np.isclose(dpd_helicity_2, np.cos(np.pi - theta_rf))
+    assert np.allclose(dpd_helicity_2, np.cos(np.pi - theta_rf))
 
     dpd_helicity_2 = cos_theta_23(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree1.helicity_angles(momenta)
     theta_rf, psi_rf = hel_angles[(2,3)]
-    assert np.isclose(dpd_helicity_2, np.cos(theta_rf))
+    assert np.allclose(dpd_helicity_2, np.cos(theta_rf))
 
     # we will now test the theta hat angles from dpd
     # the issue here is, that we will need specific aligned topologies for that
@@ -242,7 +245,9 @@ def test_daltiz_plot_decomposition():
     tree1_aligned_momenta = tree1.align_with_daughter(momenta, 0)
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
     theta_rf, psi_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
-    assert np.isclose(dpd_value, np.cos(theta_rf))
+    assert np.allclose(dpd_value, np.cos(theta_rf))
 
 if __name__ == "__main__":
+    # test_lotentz(boost_definitions())
+    # test_lotentz2(boost_definitions())
     test_daltiz_plot_decomposition()

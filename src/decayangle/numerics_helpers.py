@@ -14,3 +14,15 @@ def save_arccos(x):
     """
     x = cb.clip(x, -1, 1)
     return cb.arccos(x)
+
+def matrix_vector_product(matrix, vector):
+    """Vectorized version of the matrix vector product
+
+    Args:
+        matrix (Union[np.array, jnp.array]): The matrix
+        vector (Union[np.array, jnp.array]): The vector
+
+    Returns:
+        Union[np.array, jnp.array]: The result of the matrix vector product
+    """
+    return cb.einsum("...ij, ...j", matrix, vector)
