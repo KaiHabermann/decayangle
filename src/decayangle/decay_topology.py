@@ -6,6 +6,7 @@ from jax import numpy as jnp
 import networkx as nx
 from decayangle.lorentz import LorentzTrafo
 from decayangle import kinematics as akm
+from decayangle.numerics_helpers import matrix_vector_product
 from decayangle.config import config as cfg
 
 cb = cfg.backend
@@ -165,7 +166,7 @@ class Node:
         Returns:
             dict: the transformed momenta
         """
-        return {k: np.einsum("...ij, ...j", trafo.matrix_4x4, v) for k, v in momenta.items()}
+        return {k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()}
 
     def boost(self, target: Union["Node", int], momenta: dict):
         """Get the boost from this node to a target node
