@@ -6,6 +6,7 @@ from jax import numpy as jnp
 import networkx as nx
 from decayangle.lorentz import LorentzTrafo
 from decayangle import kinematics as akm
+from decayangle.numerics_helpers import matrix_vector_product
 from decayangle.config import config as cfg
 
 cb = cfg.backend
@@ -165,7 +166,7 @@ class Node:
         Returns:
             dict: the transformed momenta
         """
-        return {k: trafo.matrix_4x4 @ v for k, v in momenta.items()}
+        return {k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()}
 
     def boost(self, target: Union["Node", int], momenta: dict):
         """Get the boost from this node to a target node
@@ -173,7 +174,7 @@ class Node:
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))
+            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(
@@ -193,24 +194,11 @@ class Node:
         # rotate so that the target momentum is aligned with the
         rotation, _, _ = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
-        # assert the rotation worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert cb.allclose(
-            akm.y_component(target.momentum(rotated_momenta)),
-            cb.zeros_like(akm.y_component(target.momentum(rotated_momenta))),
-        )
-        assert cb.allclose(
-            akm.x_component(target.momentum(rotated_momenta)),
-            cb.zeros_like(akm.x_component(target.momentum(rotated_momenta))),
-        )
-
+        
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
-        # assert the boost worked as expected (TODO: remove this in the future, but for now, this gives security while debugging other parts of the code)
-        assert cb.allclose(
-            akm.gamma(target.momentum(self.transform(boost, rotated_momenta))), one
-        )
-
+       
         return boost @ rotation
     
     def align_with_daughter(self, momenta:Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0) -> Dict[int, Union[np.array, jnp.array]]:
@@ -258,7 +246,7 @@ class Node:
             theta_rf: The angle of the target momentum in the rest frame of this node
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(self.momentum(momenta))
+            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(
