@@ -55,16 +55,10 @@ class _cfg:
         if isinstance(value, int):
             return abs(value)
         raise ValueError(f"Value {value} not understood for sorting")
-
-    def __value_process_plane_sorting_key(self, value):
-        raise NotImplementedError("Not implemented")
     
     def sorting_key(self, value):
         if self.node_sorting == "value":
             return self.__value_sorting_key(value)
-
-        if self.node_sorting == "process_plane":
-            return self.__value_process_plane_sorting_key(value)
         
         raise ValueError(f"Node sorting {self.node_sorting} not found")
 
