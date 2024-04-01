@@ -29,9 +29,14 @@ class Node:
             return value
         return cls(value)
 
-    def __init__(self, value: Union[Any, tuple]):
+    def __init__(self, value: Union[Any, tuple], sorting_key=None):
+        if sorting_key is not None:
+            self.__sorting_key = sorting_key
+        else:
+            self.__sorting_key = cfg.sorting_key
+
         if isinstance(value, tuple):
-            self.value = tuple(sorted(value, key=cfg.sorting_key))
+            self.value = tuple(sorted(value, key=self.sorting_key))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -45,6 +50,30 @@ class Node:
         self.__daughters = []
         self.parent = None
 
+    @property
+    def sorting_key(self):
+        """Get the sorting key of the node. 
+        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
+
+        Returns:
+            int: the sorting key
+        """
+        return self.__sorting_key
+
+    @sorting_key.setter
+    def sorting_key(self, value):
+        if not isinstance(value((1,2,3)), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value(1), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        
+        self.__sorting_key = value
+        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
+        if isinstance(self.value, tuple):
+            self.value = tuple(sorted(self.value, key=self.sorting_key))
+        for d in self.__daughters:
+            d.sorting_key = value
+
     def add_daughter(self, daughter: 'Node'):
         """Add a daughter to the node
 
@@ -52,7 +81,7 @@ class Node:
             daughter (Node): the daughter to add
         """
         self.__daughters.append(daughter)
-        self.__daughters = sorted(self.__daughters, key=lambda x: x.sorting_key)
+        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
         daughter.parent = self
 
     @property
@@ -63,16 +92,6 @@ class Node:
             List[Node]: the daughters of the node
         """
         return self.__daughters
-
-    @property
-    def sorting_key(self):
-        """Get the sorting key of the node. 
-        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
-
-        Returns:
-            int: the sorting key
-        """
-        return cfg.sorting_key(self.value)
 
     def __repr__(self):
         if len(self.daughters) == 0:
@@ -108,7 +127,8 @@ class Node:
         Returns:
             bool: True if the node is contained in the topology, False otherwise
         """
-
+        contained_node = Node.get_node(contained_node)
+        contained_node.sorting_key = self.sorting_key
         if self.value == contained_node.value:
             return True
         for d in self.daughters:
@@ -276,6 +296,7 @@ class Topology:
         self.__final_state_nodes = [Node.get_node(n) for n in final_state_nodes]
         if sorting_key is not None:
             self.__sorting_key = sorting_key
+            self.__root.sorting_key = sorting_key
         else:
             self.__sorting_key = cfg.sorting_key
 
@@ -314,9 +335,10 @@ class Topology:
             raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
         
         self.__sorting_key = value
+        self.__root.sorting_key = value
 
     def __repr__(self) -> str:
-        return str(self.root)
+        return f"Topology: {self.root}"
 
     def contains(self, contained_node: Union["Node", int]) -> bool:
         """Check if a node is contained in the topology
@@ -328,6 +350,7 @@ class Topology:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
+        contained_node.sorting_key = self.sorting_key
         return self.root.contains(contained_node)
 
     def to_rest_frame(self, momenta: dict):

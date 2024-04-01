@@ -54,7 +54,7 @@ class _cfg:
             return -len(value) * 10000 + value[0]
         if isinstance(value, int):
             return abs(value)
-        raise ValueError(f"Value {value} not understood for sorting")
+        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
     
     def sorting_key(self, value):
         if self.node_sorting == "value":
