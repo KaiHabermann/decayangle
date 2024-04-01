@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union, Any, Dict
+from typing import List, Tuple, Union, Any, Dict, Optional
 from functools import cached_property
 from collections import namedtuple
 import numpy as np
@@ -13,11 +13,46 @@ cb = cfg.backend
 
 HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
 
+def flat(l):
+    """Flatten a nested list
+
+    Args:
+        l (list): the list to flatten
+
+    Returns:
+        list: the flattened list
+    """
+    if isinstance(l, (tuple, list)):
+        for el in l:
+            yield from flat(el)
+    else:
+        yield l
+
 class Node:
+
+    @staticmethod
+    def construct_topology(node: "Node", topology: Tuple[Union[int, tuple]]):
+        """Construct a topology from a tuple of integers and tuples, in the form like the string representation of a topology
+
+        i.e. ((1,2), 3)
+        or ((1, (2, 3)), 4) for a four body decay
+        
+        Args:
+            node (Node): the node to add the daughters to
+            topology (List[Union[int, tuple]]): the topology to construct
+        """
+        if not isinstance(topology, tuple):
+            return
+        left = Node(tuple(flat(topology[0])))
+        right = Node(tuple(flat(topology[1])))
+        node.add_daughter(left)
+        node.add_daughter(right)
+        Node.construct_topology(left, topology[0])
+        Node.construct_topology(right, topology[1])
 
     @classmethod
     def get_node(cls, value: Union[int, Tuple[int], "Node"]) -> "Node":
-        """Get a node from a value
+        """Get a node from a value or return the value if a node is given
 
         Args:
             value (Union[int, Tuple[int], Node]): the value of the node
@@ -36,7 +71,14 @@ class Node:
             self.__sorting_key = cfg.sorting_key
 
         if isinstance(value, tuple):
-            self.value = tuple(sorted(value, key=self.sorting_key))
+            if len(value) == 0:
+                raise ValueError("Node value has to be an integer or a tuple of integers")
+            if len(value) == 1:
+                # a single element in a tuple should have the value of the element
+                # tuples are only for composites
+                self.value = value[0]
+            else:
+                self.value = tuple(sorted(value, key=self.sorting_key))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -289,17 +331,20 @@ class Node:
 
 
 class Topology:
-    def __init__(self, root: Node, final_state_nodes: List[Union[int, Node]], sorting_key=None):
-        if not isinstance(root, Node):
-            raise ValueError("Root of a topology has to be a Node")
-        self.__root = root
-        self.__final_state_nodes = [Node.get_node(n) for n in final_state_nodes]
+    def __init__(self, root: Union[Node, int], decay_topology: Optional[List[Union[int ,tuple]]] = None, sorting_key=None):
+        self.__root = Node.get_node(root)
         if sorting_key is not None:
             self.__sorting_key = sorting_key
             self.__root.sorting_key = sorting_key
         else:
             self.__sorting_key = cfg.sorting_key
-
+        
+        if decay_topology is not None:
+            if len(self.root.daughters) != 0:
+                raise ValueError("If a decay topology is given, then the root node should not already have daughters!"
+                f"Root: {self.root}")
+            Node.construct_topology(self.root, decay_topology)
+            
     @property
     def root(self) -> Node:
         """The root node of the topology
@@ -316,7 +361,7 @@ class Topology:
         Returns:
             List[Node]: the final state nodes of the topology
         """
-        return self.__final_state_nodes
+        return [n for n in self.inorder() if n.final_state]
     
     @property
     def sorting_key(self):
@@ -565,7 +610,7 @@ class TopologyGroup:
             root.add_daughter(l)
             root.add_daughter(r)
             topologies_with_root_node.append(root)
-        return [Topology(node, self.final_state_nodes, sorting_key=self.sorting_key) for node in topologies_with_root_node]
+        return [Topology(node, sorting_key=self.sorting_key) for node in topologies_with_root_node]
 
     def filter(self, *contained_nodes: Node):
         """
