@@ -29,9 +29,14 @@ class Node:
             return value
         return cls(value)
 
-    def __init__(self, value: Union[Any, tuple]):
+    def __init__(self, value: Union[Any, tuple], sorting_key=None):
+        if sorting_key is not None:
+            self.__sorting_key = sorting_key
+        else:
+            self.__sorting_key = cfg.sorting_key
+
         if isinstance(value, tuple):
-            self.value = tuple(sorted(value, key=cfg.sorting_key))
+            self.value = tuple(sorted(value, key=self.sorting_key))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -45,6 +50,30 @@ class Node:
         self.__daughters = []
         self.parent = None
 
+    @property
+    def sorting_key(self):
+        """Get the sorting key of the node. 
+        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
+
+        Returns:
+            int: the sorting key
+        """
+        return self.__sorting_key
+
+    @sorting_key.setter
+    def sorting_key(self, value):
+        if not isinstance(value((1,2,3)), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value(1), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        
+        self.__sorting_key = value
+        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
+        if isinstance(self.value, tuple):
+            self.value = tuple(sorted(self.value, key=self.sorting_key))
+        for d in self.__daughters:
+            d.sorting_key = value
+
     def add_daughter(self, daughter: 'Node'):
         """Add a daughter to the node
 
@@ -52,7 +81,7 @@ class Node:
             daughter (Node): the daughter to add
         """
         self.__daughters.append(daughter)
-        self.__daughters = sorted(self.__daughters, key=lambda x: x.sorting_key)
+        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
         daughter.parent = self
 
     @property
@@ -63,16 +92,6 @@ class Node:
             List[Node]: the daughters of the node
         """
         return self.__daughters
-
-    @property
-    def sorting_key(self):
-        """Get the sorting key of the node. 
-        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
-
-        Returns:
-            int: the sorting key
-        """
-        return cfg.sorting_key(self.value)
 
     def __repr__(self):
         if len(self.daughters) == 0:
@@ -108,7 +127,8 @@ class Node:
         Returns:
             bool: True if the node is contained in the topology, False otherwise
         """
-
+        contained_node = Node.get_node(contained_node)
+        contained_node.sorting_key = self.sorting_key
         if self.value == contained_node.value:
             return True
         for d in self.daughters:
@@ -269,15 +289,58 @@ class Node:
 
 
 class Topology:
-    def __init__(self, root: Node):
+    def __init__(self, root: Node, final_state_nodes: List[Union[int, Node]], sorting_key=None):
         if not isinstance(root, Node):
             raise ValueError("Root of a topology has to be a Node")
-        self.root = root
+        self.__root = root
+        self.__final_state_nodes = [Node.get_node(n) for n in final_state_nodes]
+        if sorting_key is not None:
+            self.__sorting_key = sorting_key
+            self.__root.sorting_key = sorting_key
+        else:
+            self.__sorting_key = cfg.sorting_key
 
-    def __repr__(self):
-        return str(self.root)
+    @property
+    def root(self) -> Node:
+        """The root node of the topology
 
-    def contains(self, contained_node: Union["Node", int]):
+        Returns:
+            Node: the root node of the topology
+        """
+        return self.__root
+    
+    @property
+    def final_state_nodes(self) -> List[Node]:
+        """The final state nodes of the topology
+
+        Returns:
+            List[Node]: the final state nodes of the topology
+        """
+        return self.__final_state_nodes
+    
+    @property
+    def sorting_key(self):
+        """The sorting key of the topology
+
+        Returns:
+            int: the sorting key of the topology
+        """
+        return self.__sorting_key
+    
+    @sorting_key.setter
+    def sorting_key(self, value):
+        if not isinstance(value((1,2,3)), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value(1), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        
+        self.__sorting_key = value
+        self.__root.sorting_key = value
+
+    def __repr__(self) -> str:
+        return f"Topology: {self.root}"
+
+    def contains(self, contained_node: Union["Node", int]) -> bool:
         """Check if a node is contained in the topology
 
         Args:
@@ -287,6 +350,7 @@ class Topology:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
+        contained_node.sorting_key = self.sorting_key
         return self.root.contains(contained_node)
 
     def to_rest_frame(self, momenta: dict):
@@ -301,7 +365,7 @@ class Topology:
         momentum = self.root.momentum(momenta)
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
-    def __build_boost_tree(self):
+    def __build_boost_tree(self) -> Tuple[nx.DiGraph, Dict[int, Node]]:
         boost_tree = nx.DiGraph()
         node_dict = {}
         for node in self.inorder():
@@ -313,7 +377,7 @@ class Topology:
         return boost_tree, node_dict
 
     @property
-    def nodes(self):
+    def nodes(self) -> Dict[Union[tuple, int], Node]:
         """nodes of the tree
 
         Returns:
@@ -321,7 +385,7 @@ class Topology:
         """
         return {n.value: n for n in self.inorder()}
 
-    def helicity_angles(self, momenta: dict) -> dict:
+    def helicity_angles(self, momenta: dict) -> Dict[Tuple[int, int], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
 
@@ -463,10 +527,29 @@ class TopologyGroup:
         """
         return [t for t in topologies if t.contains(contained_node)]
 
-    def __init__(self, start_node: int, final_state_nodes: List[int]):
+    def __init__(self, start_node: int, final_state_nodes: List[int], sorting_key=None):
         self.start_node = start_node
         self.final_state_nodes = final_state_nodes
         self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
+        if sorting_key is not None:
+            self.__sorting_key = sorting_key
+        else:
+            self.__sorting_key = cfg.sorting_key
+    
+    @property
+    def sorting_key(self):
+        return self.__sorting_key
+    
+    @sorting_key.setter
+    def sorting_key(self, value):
+        if not isinstance(value((1,2,3)), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value(1), int):
+            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        
+        self.__sorting_key = value
+        for topology in self.topologies:
+            topology.sorting_key = value
 
     @cached_property
     def topologies(self) -> List[Topology]:
@@ -482,7 +565,7 @@ class TopologyGroup:
             root.add_daughter(l)
             root.add_daughter(r)
             topologies_with_root_node.append(root)
-        return [Topology(node) for node in topologies_with_root_node]
+        return [Topology(node, self.final_state_nodes, sorting_key=self.sorting_key) for node in topologies_with_root_node]
 
     def filter(self, *contained_nodes: Node):
         """

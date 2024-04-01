@@ -36,8 +36,7 @@ class _cfg:
     def node_sorting(self, value):
         if value not in ["value", "process_plane"]:
             raise ValueError(f"Node sorting {value} not found"
-                             "Only 'value' and 'process_plane' are allowed"
-                             "Default is 'value'")
+                             "Only 'value' is allowed for the time being")
         self.state["node_sorting"] = value
     
     def __value_sorting_key(self, value):
@@ -54,17 +53,11 @@ class _cfg:
             return -len(value) * 10000 + value[0]
         if isinstance(value, int):
             return abs(value)
-        raise ValueError(f"Value {value} not understood for sorting")
-
-    def __value_process_plane_sorting_key(self, value):
-        raise NotImplementedError("Not implemented")
+        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
     
     def sorting_key(self, value):
         if self.node_sorting == "value":
             return self.__value_sorting_key(value)
-
-        if self.node_sorting == "process_plane":
-            return self.__value_process_plane_sorting_key(value)
         
         raise ValueError(f"Node sorting {self.node_sorting} not found")
 
