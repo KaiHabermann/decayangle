@@ -22,11 +22,11 @@ def flat(l):
     Returns:
         list: the flattened list
     """
-    for el in l:
-        if isinstance(el, (tuple, list)):
+    if isinstance(l, (tuple, list)):
+        for el in l:
             yield from flat(el)
-        else:
-            yield el
+    else:
+        yield l
 
 class Node:
 
@@ -41,10 +41,7 @@ class Node:
             node (Node): the node to add the daughters to
             topology (List[Union[int, tuple]]): the topology to construct
         """
-        if len(topology) == 0:
-            return
-        if len(topology) == 1:
-            node.add_daughter(Node(topology[0]))
+        if not isinstance(topology, tuple):
             return
         left = Node(tuple(flat(topology[0])))
         right = Node(tuple(flat(topology[1])))
@@ -79,7 +76,7 @@ class Node:
             if len(value) == 1:
                 # a single element in a tuple should have the value of the element
                 # tuples are only for composites
-                value = value[0]
+                self.value = value[0]
             else:
                 self.value = tuple(sorted(value, key=self.sorting_key))
         else:
@@ -334,11 +331,8 @@ class Node:
 
 
 class Topology:
-    def __init__(self, root: Union[Node, int], final_state_nodes: List[Union[int, Node]], decay_topology: Optional[List[Union[int ,tuple]]] = None, sorting_key=None):
-        if not isinstance(root, Node):
-            raise ValueError("Root of a topology has to be a Node")
+    def __init__(self, root: Union[Node, int], decay_topology: Optional[List[Union[int ,tuple]]] = None, sorting_key=None):
         self.__root = Node.get_node(root)
-        self.__final_state_nodes = [Node.get_node(n) for n in final_state_nodes]
         if sorting_key is not None:
             self.__sorting_key = sorting_key
             self.__root.sorting_key = sorting_key
@@ -367,7 +361,7 @@ class Topology:
         Returns:
             List[Node]: the final state nodes of the topology
         """
-        return self.__final_state_nodes
+        return [n for n in self.inorder() if n.final_state]
     
     @property
     def sorting_key(self):
@@ -616,7 +610,7 @@ class TopologyGroup:
             root.add_daughter(l)
             root.add_daughter(r)
             topologies_with_root_node.append(root)
-        return [Topology(node, self.final_state_nodes, sorting_key=self.sorting_key) for node in topologies_with_root_node]
+        return [Topology(node, sorting_key=self.sorting_key) for node in topologies_with_root_node]
 
     def filter(self, *contained_nodes: Node):
         """
