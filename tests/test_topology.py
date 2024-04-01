@@ -22,8 +22,6 @@ def test_topology():
 
     for i, topology in enumerate(tg.topologies):
         assert str(topology) != representations[i]
-
-
     
 
 if __name__ == "__main__":

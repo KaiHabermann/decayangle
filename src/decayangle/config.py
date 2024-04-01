@@ -36,8 +36,7 @@ class _cfg:
     def node_sorting(self, value):
         if value not in ["value", "process_plane"]:
             raise ValueError(f"Node sorting {value} not found"
-                             "Only 'value' and 'process_plane' are allowed"
-                             "Default is 'value'")
+                             "Only 'value' is allowed for the time being")
         self.state["node_sorting"] = value
     
     def __value_sorting_key(self, value):
