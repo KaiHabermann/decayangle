@@ -13,6 +13,7 @@ cb = cfg.backend
 
 HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
 
+
 def flat(l):
     """Flatten a nested list
 
@@ -28,6 +29,7 @@ def flat(l):
     else:
         yield l
 
+
 class Node:
 
     @staticmethod
@@ -36,7 +38,7 @@ class Node:
 
         i.e. ((1,2), 3)
         or ((1, (2, 3)), 4) for a four body decay
-        
+
         Args:
             node (Node): the node to add the daughters to
             topology (List[Union[int, tuple]]): the topology to construct
@@ -72,7 +74,9 @@ class Node:
 
         if isinstance(value, tuple):
             if len(value) == 0:
-                raise ValueError("Node value has to be an integer or a tuple of integers")
+                raise ValueError(
+                    "Node value has to be an integer or a tuple of integers"
+                )
             if len(value) == 1:
                 # a single element in a tuple should have the value of the element
                 # tuples are only for composites
@@ -87,14 +91,16 @@ class Node:
             if value < 0:
                 raise ValueError("Node value has to be a positive integer or 0")
             if value > 10000:
-                raise ValueError("Node value has to be smaller than 10000 to ensure consistent sorting of daughters")
+                raise ValueError(
+                    "Node value has to be smaller than 10000 to ensure consistent sorting of daughters"
+                )
             self.value = value
         self.__daughters = []
         self.parent = None
 
     @property
     def sorting_key(self):
-        """Get the sorting key of the node. 
+        """Get the sorting key of the node.
         This is used to sort the daughters and make sure, that the order of the daughters is consistent.
 
         Returns:
@@ -104,26 +110,34 @@ class Node:
 
     @sorting_key.setter
     def sorting_key(self, value):
-        if not isinstance(value((1,2,3)), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value((1, 2, 3)), int):
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
         if not isinstance(value(1), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
-        
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
+
         self.__sorting_key = value
-        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
+        self.__daughters = sorted(
+            self.__daughters, key=lambda x: self.sorting_key(x.value)
+        )
         if isinstance(self.value, tuple):
             self.value = tuple(sorted(self.value, key=self.sorting_key))
         for d in self.__daughters:
             d.sorting_key = value
 
-    def add_daughter(self, daughter: 'Node'):
+    def add_daughter(self, daughter: "Node"):
         """Add a daughter to the node
 
         Args:
             daughter (Node): the daughter to add
         """
         self.__daughters.append(daughter)
-        self.__daughters = sorted(self.__daughters, key=lambda x: self.sorting_key(x.value))
+        self.__daughters = sorted(
+            self.__daughters, key=lambda x: self.sorting_key(x.value)
+        )
         daughter.parent = self
 
     @property
@@ -228,7 +242,9 @@ class Node:
         Returns:
             dict: the transformed momenta
         """
-        return {k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()}
+        return {
+            k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()
+        }
 
     def boost(self, target: Union["Node", int], momenta: dict):
         """Get the boost from this node to a target node
@@ -236,7 +252,8 @@ class Node:
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
+            akm.gamma(self.momentum(momenta)),
+            cb.ones_like(akm.gamma(self.momentum(momenta))),
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(
@@ -256,14 +273,16 @@ class Node:
         # rotate so that the target momentum is aligned with the
         rotation, _, _ = self.rotate_to(target, momenta)
         rotated_momenta = self.transform(rotation, momenta)
-        
+
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
-       
+
         return boost @ rotation
-    
-    def align_with_daughter(self, momenta:Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0) -> Dict[int, Union[np.array, jnp.array]]:
+
+    def align_with_daughter(
+        self, momenta: Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0
+    ) -> Dict[int, Union[np.array, jnp.array]]:
         """Align the momenta with the nth daughter
 
         Args:
@@ -274,7 +293,9 @@ class Node:
             dict: the aligned momenta
         """
         if nth_daughter >= len(self.daughters):
-            raise ValueError(f"Node {self} does not have a daughter with index {nth_daughter}")
+            raise ValueError(
+                f"Node {self} does not have a daughter with index {nth_daughter}"
+            )
         rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta)
         return self.transform(rotation, momenta)
 
@@ -308,7 +329,8 @@ class Node:
             theta_rf: The angle of the target momentum in the rest frame of this node
         """
         if not cb.allclose(
-            akm.gamma(self.momentum(momenta)), cb.ones_like(akm.gamma(self.momentum(momenta)))
+            akm.gamma(self.momentum(momenta)),
+            cb.ones_like(akm.gamma(self.momentum(momenta))),
         ):
             gamma = akm.gamma(self.momentum(momenta))
             raise ValueError(
@@ -331,20 +353,27 @@ class Node:
 
 
 class Topology:
-    def __init__(self, root: Union[Node, int], decay_topology: Optional[List[Union[int ,tuple]]] = None, sorting_key=None):
+    def __init__(
+        self,
+        root: Union[Node, int],
+        decay_topology: Optional[List[Union[int, tuple]]] = None,
+        sorting_key=None,
+    ):
         self.__root = Node.get_node(root)
         if sorting_key is not None:
             self.__sorting_key = sorting_key
             self.__root.sorting_key = sorting_key
         else:
             self.__sorting_key = cfg.sorting_key
-        
+
         if decay_topology is not None:
             if len(self.root.daughters) != 0:
-                raise ValueError("If a decay topology is given, then the root node should not already have daughters!"
-                f"Root: {self.root}")
+                raise ValueError(
+                    "If a decay topology is given, then the root node should not already have daughters!"
+                    f"Root: {self.root}"
+                )
             Node.construct_topology(self.root, decay_topology)
-            
+
     @property
     def root(self) -> Node:
         """The root node of the topology
@@ -353,7 +382,7 @@ class Topology:
             Node: the root node of the topology
         """
         return self.__root
-    
+
     @property
     def final_state_nodes(self) -> List[Node]:
         """The final state nodes of the topology
@@ -362,7 +391,7 @@ class Topology:
             List[Node]: the final state nodes of the topology
         """
         return [n for n in self.inorder() if n.final_state]
-    
+
     @property
     def sorting_key(self):
         """The sorting key of the topology
@@ -371,14 +400,18 @@ class Topology:
             int: the sorting key of the topology
         """
         return self.__sorting_key
-    
+
     @sorting_key.setter
     def sorting_key(self, value):
-        if not isinstance(value((1,2,3)), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value((1, 2, 3)), int):
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
         if not isinstance(value(1), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
-        
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
+
         self.__sorting_key = value
         self.__root.sorting_key = value
 
@@ -442,7 +475,7 @@ class Topology:
 
         """
         helicity_angles = {}
-        
+
         for node in self.root.inorder():
             if not node.final_state:
                 if node != self.root:
@@ -493,7 +526,7 @@ class Topology:
     def relative_wigner_angles(
         self, other: "Topology", target: Union["Node", int], momenta: dict
     ) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
-        """ Get the relative Wigner angles between two topologies
+        """Get the relative Wigner angles between two topologies
 
         Parameters:
             other: Topology to compare to
@@ -576,7 +609,13 @@ class TopologyCollection:
         """
         return [t for t in topologies if t.contains(contained_node)]
 
-    def __init__(self, start_node: int = None, final_state_nodes: List[int] = None, topologies: List[Topology] = None ,sorting_key=None):
+    def __init__(
+        self,
+        start_node: int = None,
+        final_state_nodes: List[int] = None,
+        topologies: List[Topology] = None,
+        sorting_key=None,
+    ):
         if topologies is not None:
             self.__topologies = topologies
             self.start_node = topologies[0].root.value
@@ -584,14 +623,23 @@ class TopologyCollection:
             for topology in topologies:
                 if topology.root.value != self.start_node:
                     raise ValueError("All topologies have to have the same start node")
-                if any([n.value not in self.final_state_nodes for n in topology.final_state_nodes]):
-                    raise ValueError("All topologies have to have the same final state nodes")
+                if any(
+                    [
+                        n.value not in self.final_state_nodes
+                        for n in topology.final_state_nodes
+                    ]
+                ):
+                    raise ValueError(
+                        "All topologies have to have the same final state nodes"
+                    )
         elif start_node is not None and final_state_nodes is not None:
             self.__topologies = None
             self.start_node = start_node
             self.final_state_nodes = final_state_nodes
         else:
-            raise ValueError("Either topologies or start_node and final_state_nodes have to be given")
+            raise ValueError(
+                "Either topologies or start_node and final_state_nodes have to be given"
+            )
 
         self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
         if sorting_key is not None:
@@ -599,7 +647,6 @@ class TopologyCollection:
         else:
             self.__sorting_key = cfg.sorting_key
 
-    
     @property
     def sorting_key(self):
         """The sorting key of the topology, used to sort the daughters of the nodes and the values of the composite nodes
@@ -608,14 +655,18 @@ class TopologyCollection:
             A function returning an integer and accepting an integer or tuple as input
         """
         return self.__sorting_key
-    
+
     @sorting_key.setter
     def sorting_key(self, value):
-        if not isinstance(value((1,2,3)), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
+        if not isinstance(value((1, 2, 3)), int):
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
         if not isinstance(value(1), int):
-            raise ValueError("Sorting key has to be a function returning an integer and accepting an integer or tuple as input")
-        
+            raise ValueError(
+                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+            )
+
         self.__sorting_key = value
         for topology in self.topologies:
             topology.sorting_key = value
@@ -633,7 +684,10 @@ class TopologyCollection:
             root.add_daughter(l)
             root.add_daughter(r)
             topologies_with_root_node.append(root)
-        return [Topology(node, sorting_key=self.sorting_key) for node in topologies_with_root_node]
+        return [
+            Topology(node, sorting_key=self.sorting_key)
+            for node in topologies_with_root_node
+        ]
 
     @property
     def topologies(self) -> List[Topology]:

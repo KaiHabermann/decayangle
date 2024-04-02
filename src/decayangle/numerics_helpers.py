@@ -15,6 +15,7 @@ def save_arccos(x):
     x = cb.clip(x, -1, 1)
     return cb.arccos(x)
 
+
 def matrix_vector_product(matrix, vector):
     """Vectorized version of the matrix vector product
 

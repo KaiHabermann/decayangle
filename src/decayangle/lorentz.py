@@ -14,6 +14,7 @@ cb = cfg.backend
 
 WignerAngles = namedtuple("WignerAngles", ["phi_rf", "theta_rf", "psi_rf"])
 
+
 class LorentzTrafo:
     def __init__(self, *args, **kwargs):
         if len(args) > 0:

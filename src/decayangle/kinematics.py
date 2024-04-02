@@ -7,7 +7,8 @@ from decayangle.numerics_helpers import save_arccos
 
 cb = cfg.backend
 
-@partial(cb.vectorize, signature='()->(2,2)')
+
+@partial(cb.vectorize, signature="()->(2,2)")
 def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the x-direction
@@ -22,7 +23,7 @@ def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x
 
 
-@partial(cb.vectorize, signature='()->(2,2)')
+@partial(cb.vectorize, signature="()->(2,2)")
 def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the y-direction
@@ -36,7 +37,8 @@ def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
     eye = cb.eye(2)
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y
 
-@partial(cb.vectorize, signature='()->(2,2)')
+
+@partial(cb.vectorize, signature="()->(2,2)")
 def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the z-direction
@@ -49,6 +51,7 @@ def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
     sigma_z = cb.array([[1, 0], [0, -1]])
     eye = cb.eye(2)
     return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z
+
 
 def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Given a vector, rotate it to the z-axis
@@ -64,7 +67,8 @@ def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array
     theta_rf = cb.arccos(z_component(v) / p(v))
     return psi_rf, -theta_rf
 
-@partial(cb.vectorize, signature='()->(2,2)')
+
+@partial(cb.vectorize, signature="()->(2,2)")
 def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the x-axis
 
@@ -78,7 +82,8 @@ def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
     sgma_x = cb.array([[0, 1], [1, 0]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x
 
-@partial(cb.vectorize, signature='()->(2,2)')
+
+@partial(cb.vectorize, signature="()->(2,2)")
 def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the y-axis
 
@@ -92,7 +97,8 @@ def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
     sgma_y = cb.array([[0, -1j], [1j, 0]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y
 
-@partial(cb.vectorize, signature='()->(2,2)')
+
+@partial(cb.vectorize, signature="()->(2,2)")
 def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the z-axis
 
@@ -106,7 +112,8 @@ def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
     sgma_z = cb.array([[1, 0], [0, -1]])
     return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z
 
-@partial(cb.vectorize, signature='()->(4,4)')
+
+@partial(cb.vectorize, signature="()->(4,4)")
 def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
     r"""Build a 4x4 boost matrix in the z-direction
 
@@ -147,7 +154,8 @@ def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-@partial(cb.vectorize, signature='()->(4,4)')
+
+@partial(cb.vectorize, signature="()->(4,4)")
 def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
     """Build a 4x4 rotation matrix around the y-axis
 
@@ -181,7 +189,8 @@ def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-@partial(cb.vectorize, signature='()->(4,4)')
+
+@partial(cb.vectorize, signature="()->(4,4)")
 def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
     """Build a 4x4 rotation matrix around the z-axis^
 
@@ -215,7 +224,8 @@ def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
         ]
     )
 
-@partial(cb.vectorize, signature='(), (), (), (), (), ()->(2,2)')
+
+@partial(cb.vectorize, signature="(), (), (), (), (), ()->(2,2)")
 def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 2x2 matrix from the 6 kinematic parameters
 
@@ -239,7 +249,8 @@ def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
         @ rotation_matrix_2_2_z(psi_rf)
     )
 
-@partial(cb.vectorize, signature='(), (), (), (), (), ()->(4,4)')
+
+@partial(cb.vectorize, signature="(), (), (), (), (), ()->(4,4)")
 def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 4x4 matrix from the 6 kinematic parameters
 
@@ -270,9 +281,9 @@ def decode_rotation_4x4(rotation_matrix: jnp.array) -> Tuple[float, float, float
     Args:
         matrix (_type_): _description_
     """
-    phi = cb.arctan2(rotation_matrix[...,1, 2], rotation_matrix[...,0, 2])
-    theta = save_arccos(rotation_matrix[...,2, 2])
-    psi = cb.arctan2(rotation_matrix[...,2, 1], -rotation_matrix[...,2, 0])
+    phi = cb.arctan2(rotation_matrix[..., 1, 2], rotation_matrix[..., 0, 2])
+    theta = save_arccos(rotation_matrix[..., 2, 2])
+    psi = cb.arctan2(rotation_matrix[..., 2, 1], -rotation_matrix[..., 2, 0])
     return phi, theta, psi
 
 
@@ -310,9 +321,11 @@ def decode_4_4(matrix, tol=1e-14):
         @ rotation_matrix_4_4_z(-phi)
         @ matrix
     )
-    # check for the special case of no absolute boost 
-    phi_rf, theta_rf, psi_rf = decode_rotation_4x4(m_rf[...,:3, :3]) 
-    phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_rotation_4x4(matrix[...,:3, :3])
+    # check for the special case of no absolute boost
+    phi_rf, theta_rf, psi_rf = decode_rotation_4x4(m_rf[..., :3, :3])
+    phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_rotation_4x4(
+        matrix[..., :3, :3]
+    )
     phi_rf = cb.where(abs(gma - 1) < tol, phi_rf_no_boost, phi_rf)
     theta_rf = cb.where(abs(gma - 1) < tol, theta_rf_no_boost, theta_rf)
     psi_rf = cb.where(abs(gma - 1) < tol, psi_rf_no_boost, psi_rf)
@@ -320,19 +333,15 @@ def decode_4_4(matrix, tol=1e-14):
     theta = cb.where(abs(gma - 1) < tol, 0, theta)
     xi = cb.where(abs(gma - 1) < tol, 0, xi)
 
-    is_unity = cb.all(
-        cb.all( 
-            cb.isclose(matrix, cb.eye(4)), axis = -1 
-        ), axis = -1
-    )
+    is_unity = cb.all(cb.all(cb.isclose(matrix, cb.eye(4)), axis=-1), axis=-1)
+
     def check_unity(val):
         return cb.where(is_unity, 0, val)
 
     # replace the values with 0 if the matrix is unity
     phi, theta, xi, phi_rf, theta_rf, psi_rf = [
-        check_unity(val) for val in 
-        [phi, theta, xi, phi_rf, theta_rf, psi_rf]
-        ]
+        check_unity(val) for val in [phi, theta, xi, phi_rf, theta_rf, psi_rf]
+    ]
 
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
@@ -358,32 +367,23 @@ def adjust_for_2pi_rotation(
 
     # TODO: is this amount of numerical tolerance maybe a little too much?
     two_pi_shifted = cb.all(
-        cb.all(
-                cb.isclose(
-                    m_original_2x2, -new_2x2, atol=3e-2
-            ), axis=-1
-        ), axis=-1
+        cb.all(cb.isclose(m_original_2x2, -new_2x2, atol=3e-2), axis=-1), axis=-1
     )
 
     not_two_pi_shifted = cb.all(
-        cb.all(
-                cb.isclose(
-                    m_original_2x2, new_2x2, atol=3e-2
-            ), axis=-1
-        ), axis=-1
+        cb.all(cb.isclose(m_original_2x2, new_2x2, atol=3e-2), axis=-1), axis=-1
     )
     if cb.any(not_two_pi_shifted & two_pi_shifted):
         raise ValueError(
-        f"The 2x2 matrix does not match the reconstruced parameters!"
-        f"This can happen due to numerical errors."
-        f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
-        f"Difference is {m_original_2x2 - new_2x2}"
-        f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
-    )
+            f"The 2x2 matrix does not match the reconstruced parameters!"
+            f"This can happen due to numerical errors."
+            f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
+            f"Difference is {m_original_2x2 - new_2x2}"
+            f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
+        )
 
     psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)
-    return phi, theta, xi, phi_rf, theta_rf, psi_rf 
-
+    return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
 def spatial_components(vector):

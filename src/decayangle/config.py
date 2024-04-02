@@ -31,16 +31,18 @@ class _cfg:
     @property
     def node_sorting(self):
         return self.state["node_sorting"]
-    
+
     @node_sorting.setter
     def node_sorting(self, value):
         if value not in ["value", "process_plane"]:
-            raise ValueError(f"Node sorting {value} not found"
-                             "Only 'value' is allowed for the time being")
+            raise ValueError(
+                f"Node sorting {value} not found"
+                "Only 'value' is allowed for the time being"
+            )
         self.state["node_sorting"] = value
-    
+
     def __value_sorting_key(self, value):
-        """Get the sorting key of the node. 
+        """Get the sorting key of the node.
         This is used to sort the daughters and make sure, that the order of the daughters is consistent.
 
         Returns:
@@ -53,12 +55,15 @@ class _cfg:
             return -len(value) * 10000 + value[0]
         if isinstance(value, int):
             return abs(value)
-        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
-    
+        raise ValueError(
+            f"Value {value} of type {type(value)} not understood for sorting"
+        )
+
     def sorting_key(self, value):
         if self.node_sorting == "value":
             return self.__value_sorting_key(value)
-        
+
         raise ValueError(f"Node sorting {self.node_sorting} not found")
+
 
 config = _cfg()
