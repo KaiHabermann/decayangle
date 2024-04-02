@@ -1,4 +1,4 @@
-from decayangle.decay_topology import generate_tree_definitions, Node, TopologyGroup
+from decayangle.decay_topology import generate_tree_definitions, Node, TopologyCollection
 from jax import numpy as jnp
 from jax import config as jax_cfg
 jax_cfg.update("jax_enable_x64", True)
@@ -17,25 +17,25 @@ def test_topology():
     p3 = 3
     p4 = 4
 
-    tg = TopologyGroup(p0, [p1,p2,p3,p4])
+    tg = TopologyCollection(p0, [p1,p2,p3,p4])
     assert len(tg.topologies) == 15
 
-    tg = TopologyGroup(p0, [p1,p2,p3])
+    tg = TopologyCollection(p0, [p1,p2,p3])
     assert len(tg.topologies) == 3
 
-    tg = TopologyGroup(p0, [p1,p2])
+    tg = TopologyCollection(p0, [p1,p2])
     assert len(tg.topologies) == 1
 
-    tg = TopologyGroup(0,[1,2,3,4])
+    tg = TopologyCollection(0,[1,2,3,4])
     assert len(tg.topologies) == 15
 
-    tg = TopologyGroup(0,[1,2,3])
+    tg = TopologyCollection(0,[1,2,3])
     assert len(tg.topologies) == 3
 
-    tg = TopologyGroup(0,[1,2])
+    tg = TopologyCollection(0,[1,2])
     assert len(tg.topologies) == 1
 
-    tg = TopologyGroup(0,[1,2,3,4,5])
+    tg = TopologyCollection(0,[1,2,3,4,5])
     assert len(tg.topologies) == 105
 
     momenta = {   1: cb.array([0, 0, -0.9, 1]),

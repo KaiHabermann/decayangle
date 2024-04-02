@@ -561,7 +561,11 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
     return topologies
 
 
-class TopologyGroup:
+class TopologyCollection:
+    """
+    A group of topologies with the same start node and final state nodes
+    """
+
     @staticmethod
     def filter_list(topologies: List[Node], contained_node: Node):
         """
@@ -572,17 +576,37 @@ class TopologyGroup:
         """
         return [t for t in topologies if t.contains(contained_node)]
 
-    def __init__(self, start_node: int, final_state_nodes: List[int], sorting_key=None):
-        self.start_node = start_node
-        self.final_state_nodes = final_state_nodes
+    def __init__(self, start_node: int = None, final_state_nodes: List[int] = None, topologies: List[Topology] = None ,sorting_key=None):
+        if topologies is not None:
+            self.__topologies = topologies
+            self.start_node = topologies[0].root.value
+            self.final_state_nodes = [n.value for n in topologies[0].final_state_nodes]
+            for topology in topologies:
+                if topology.root.value != self.start_node:
+                    raise ValueError("All topologies have to have the same start node")
+                if any([n.value not in self.final_state_nodes for n in topology.final_state_nodes]):
+                    raise ValueError("All topologies have to have the same final state nodes")
+        elif start_node is not None and final_state_nodes is not None:
+            self.__topologies = None
+            self.start_node = start_node
+            self.final_state_nodes = final_state_nodes
+        else:
+            raise ValueError("Either topologies or start_node and final_state_nodes have to be given")
+
         self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
         if sorting_key is not None:
             self.__sorting_key = sorting_key
         else:
             self.__sorting_key = cfg.sorting_key
+
     
     @property
     def sorting_key(self):
+        """The sorting key of the topology, used to sort the daughters of the nodes and the values of the composite nodes
+
+        Returns:
+            A function returning an integer and accepting an integer or tuple as input
+        """
         return self.__sorting_key
     
     @sorting_key.setter
@@ -596,8 +620,7 @@ class TopologyGroup:
         for topology in self.topologies:
             topology.sorting_key = value
 
-    @cached_property
-    def topologies(self) -> List[Topology]:
+    def __generate_topologies(self) -> List[Topology]:
         """returns all possible topologies for the given final state nodes
 
         Returns:
@@ -611,6 +634,17 @@ class TopologyGroup:
             root.add_daughter(r)
             topologies_with_root_node.append(root)
         return [Topology(node, sorting_key=self.sorting_key) for node in topologies_with_root_node]
+
+    @property
+    def topologies(self) -> List[Topology]:
+        """returns all possible topologies for the given final state nodes
+
+        Returns:
+            List[Topology]: all possible topologies for the given final state nodes
+        """
+        if self.__topologies is None:
+            self.__topologies = self.__generate_topologies()
+        return self.__topologies
 
     def filter(self, *contained_nodes: Node):
         """
