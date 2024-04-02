@@ -1,6 +1,6 @@
 from decayangle.kinematics import build_4_4,  build_2_2, from_mass_and_momentum, mass_squared
 from decayangle.lorentz import LorentzTrafo
-from decayangle.decay_topology import TopologyGroup
+from decayangle.decay_topology import TopologyCollection
 from jax import numpy as jnp
 import jax
 import numpy as np
@@ -172,7 +172,7 @@ def test_daltiz_plot_decomposition(momenta):
     ]
     mothermass2 = mass_squared(momenta[1] + momenta[2] + momenta[3])
     assert all(abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10)
-    tg = TopologyGroup(0, [1,2,3])
+    tg = TopologyCollection(0, [1,2,3])
     momenta = tg.topologies[0].to_rest_frame(momenta)
 
     #topology 1 is the reference topology
