@@ -13,6 +13,10 @@ Welcome to decayangle's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+Readme File
+===========
+.. mdinclude:: ../README.md
+
 Indices and tables
 ==================
 
