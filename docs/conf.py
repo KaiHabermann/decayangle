@@ -19,7 +19,7 @@ extensions = ['sphinx.ext.autodoc']
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 autoapi_type = 'python'
-autoapi_dir = '../src/decayangle'
+autoapi_dirs = '../src/decayangle'
 
 
 # -- Options for HTML output -------------------------------------------------
