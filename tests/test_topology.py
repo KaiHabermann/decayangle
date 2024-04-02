@@ -25,8 +25,12 @@ def test_topology():
     assert str(topology) == str(topology_from_group)
 
     tg.sorting_key = process_plane_sorting
+    topology.sorting_key = process_plane_sorting
+    assert str(topology) == str(topology_from_group)
+
     for i, topology in enumerate(tg.topologies):
         assert str(topology) != representations[i]
+
 
 if __name__ == "__main__":
     test_topology()
