@@ -1,11 +1,11 @@
-from decayangle.decay_topology import TopologyGroup, Node
+from decayangle.decay_topology import TopologyCollection, Node
 from jax import config as jax_cfg
 jax_cfg.update("jax_enable_x64", True)
 from decayangle.config import config as cfg
 cb = cfg.backend
 
 def test_decay():
-    tg = TopologyGroup(0,[1,2,3])
+    tg = TopologyCollection(0,[1,2,3])
     momenta = { 
         1: cb.array([0, 0, -0.9, 1]),
         2: cb.array([0, 0.15, 0.4,1]),

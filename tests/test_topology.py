@@ -1,8 +1,8 @@
 import pytest
-from decayangle.decay_topology import TopologyGroup, Node, Topology
+from decayangle.decay_topology import TopologyCollection, Node, Topology
 
 def test_topology():
-    tg = TopologyGroup(0, [1, 2, 3])
+    tg = TopologyCollection(0, [1, 2, 3])
 
     def process_plane_sorting(plane):
         if isinstance(plane, tuple):

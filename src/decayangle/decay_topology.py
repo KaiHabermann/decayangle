@@ -561,7 +561,7 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
     return topologies
 
 
-class TopologyGroup:
+class TopologyCollection:
     """
     A group of topologies with the same start node and final state nodes
     """
