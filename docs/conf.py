@@ -5,7 +5,8 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
+import os, sys
+sys.path.insert(0, os.path.abspath('../src'))
 project = 'decayangle'
 copyright = '2024, Kai Habermann, Mikhail Mikhasenko'
 author = 'Kai Habermann, Mikhail Mikhasenko'
@@ -14,12 +15,11 @@ release = '02.04.2024'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-autoapi_type = 'python'
-autoapi_dirs = '../src/decayangle'
+
 
 
 # -- Options for HTML output -------------------------------------------------

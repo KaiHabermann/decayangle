@@ -6,11 +6,12 @@
 Welcome to decayangle's documentation!
 ======================================
 
+.. automodule:: decayangle
+    :members:
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-
 
 Indices and tables
 ==================
