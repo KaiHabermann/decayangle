@@ -112,6 +112,12 @@ topologies = [
 ```
 Here the ordering of the nodes inside a tuple is not relveant. Only the overall topology i.e. which particles form an intermediate state and how they decay.
 
+Such a list of topologies can be fused into a `TopologyGroup` like
+
+```python
+tg = TopologyGroup(topologies=topologies)
+```
+
 ### Angles from Topologies
 
 The `Topology` class has two main methods to determine relevant angles. 
