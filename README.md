@@ -12,7 +12,8 @@
 
 - [Installation](#installation)
 - [Usage](#usage)
-- [On topologies](#Topologies)
+- [On Topologies](#Topologies)
+- [On Ordering](#ordering)
 - [License](#license)
 
 ## Installation
