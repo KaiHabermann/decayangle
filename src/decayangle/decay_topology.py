@@ -523,9 +523,9 @@ class Topology:
             return inverse_trafo
         return trafo
 
-    def relative_wigner_angles(
+    def rotate_between_topologies(
         self, other: "Topology", target: Union["Node", int], momenta: dict
-    ) -> Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]:
+    ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
         Parameters:
@@ -534,13 +534,31 @@ class Topology:
             momenta: Dictionary of momenta for the final state particles
 
         Returns:
-            Tuple of the relative Wigner angles
+            The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
         """
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(target, momenta, inverse=True)
         boost2 = other.boost(target, momenta)
-        return (boost2 @ boost1_inv).wigner_angles()
+        return (boost2 @ boost1_inv)
+
+    def relative_wigner_angles(
+        self, other: "Topology", momenta: dict
+    ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
+        """Get the relative Wigner angles between two topologies
+
+        Parameters:
+            other: Topology to compare to
+            target: Node to compare to
+            momenta: Dictionary of momenta for the final state particles
+
+        Returns:
+            Dict of the relative Wigner angles with the final state node as key
+        """
+        return {
+            target.value: self.rotate_between_topologies(other, target, momenta).wigner_angles()
+            for target in self.final_state_nodes
+        }
 
     def __getattr__(self, name):
         return getattr(self.root, name)

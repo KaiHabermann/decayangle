@@ -70,7 +70,7 @@ def test_topology():
             tree1 = base_tree.boost(node, momenta)
             tree2 = topology.boost(node, momenta)
             difference = tree1 @ tree2.inverse()
-            base_tree.relative_wigner_angles(topology, node, momenta)
+            base_tree.relative_wigner_angles(topology, momenta)
             # we cant really assert things here, but if it runs through we at least know, that we can do the operations
             result = difference.decode()
             assert cb.isfinite(cb.array(result)).all()

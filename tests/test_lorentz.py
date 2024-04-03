@@ -186,41 +186,40 @@ def test_daltiz_plot_decomposition(momenta):
     }
     for k, isobar in isobars.items():
         topology, = tg.filter(isobar)
-        for node in [1, 2, 3]:
-            # first simple test to check, that we can compute everything without exception
-            args = reference_tree.relative_wigner_angles(topology, node, momenta)
+        # first simple test to check, that we can compute everything without exception
+        args = reference_tree.relative_wigner_angles(topology, momenta)
 
     # we can simply filter for the isobars to get the topology we want
     tree1, = tg.filter((2,3))
     tree2, = tg.filter((1,3))
     tree3, = tg.filter((1,2))
-    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 3, momenta)
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, momenta)[3]
     dpd_value = cos_zeta_31_for2([m**2 for m in masses] + [mothermass2] , sigmas)
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 1, momenta)
+    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, momenta)[1]
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_1_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 1, momenta)
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, momenta)[1]
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_1_in_tree_2(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, 2, momenta)
+    phi_rf, theta_rf, psi_rf = tree2.relative_wigner_angles(tree1, momenta)[2]
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_2_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 2, momenta)
+    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, momenta)[2]
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_3_aligned_2_in_tree_3(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, 3, momenta)
+    phi_rf, theta_rf, psi_rf = tree3.relative_wigner_angles(tree2, momenta)[3]
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
     dpd_value = cos_zeta_3_aligned_3_in_tree_1(mothermass2**0.5, *masses, *sigmas)
-    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, 3, momenta)
-    phi_rf_, theta_rf_,  psi_rf_ = tree3.relative_wigner_angles(tree1, 3, momenta)
+    phi_rf, theta_rf, psi_rf = tree1.relative_wigner_angles(tree3, momenta)[3]
+    phi_rf_, theta_rf_,  psi_rf_ = tree3.relative_wigner_angles(tree1, momenta)[3]
     assert np.allclose(theta_rf, theta_rf_)
     assert np.allclose(np.cos(theta_rf), dpd_value)
 
