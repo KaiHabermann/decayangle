@@ -9,6 +9,7 @@ jax.config.update("jax_enable_x64", True)
 
 @pytest.fixture
 def boost_definitions():
+    np.random.seed(0)
     definitions = []
     for i in range(20):
         args = np.random.rand(6) * np.pi
@@ -157,7 +158,8 @@ def test_daltiz_plot_decomposition(momenta):
 
     def cos_theta_hat_2_canonical_3(M, m1, m2, m3, sigma1, sigma2, sigma3):
         return cos_theta_hat_3_canonical_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
-
+    
+    np.random.seed(0)
     momenta = np.random.rand(3, 2, 3)
     masses = np.array([1, 2, 3])
     momenta = {
