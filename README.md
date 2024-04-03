@@ -144,8 +144,7 @@ The second method is to calculate the relative rotations which relate the rest f
 reference = topologies[0]
 other = topologies[1]
 
-final_state_particle = 1
-relative_angles = reference.relative_wigner_angles(other, final_state_particle, momenta)
+relative_angles = reference.relative_wigner_angles(other, momenta)
 ```
 
 ## Ordering
