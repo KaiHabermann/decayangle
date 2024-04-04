@@ -60,9 +60,9 @@ where the momentum of the initial state is [0, 0, 0, 0], the momentum of the fin
 
 ```python
 # now we can get the rotation between each of the topologies and for each final state particle
-rotation1_2_1 = topology1.relative_wigner_angles(topology2, 1, momenta)
-rotation1_2_2 = topology1.relative_wigner_angles(topology2, 2, momenta)
-rotation1_2_3 = topology1.relative_wigner_angles(topology2, 3, momenta)
+rotation1_2_1 = topology1.relative_wigner_angles(topology2, momenta)
+rotation1_2_2 = topology1.relative_wigner_angles(topology2, momenta)
+rotation1_2_3 = topology1.relative_wigner_angles(topology2, momenta)
 # etc.
 ```
 
@@ -144,8 +144,7 @@ The second method is to calculate the relative rotations which relate the rest f
 reference = topologies[0]
 other = topologies[1]
 
-final_state_particle = 1
-relative_angles = reference.relative_wigner_angles(other, final_state_particle, momenta)
+relative_angles = reference.relative_wigner_angles(other, momenta)
 ```
 
 ## Ordering
