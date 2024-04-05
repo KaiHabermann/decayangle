@@ -13,14 +13,14 @@ packages = ["src/decayangle"]
 [project]
 name = "decayangle"
 description = 'A tool for wigner rotations in n-body decays'
-version = '1.0.0'
+version = '1.0.1'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 keywords = []
 authors = [
   { name = "Kai Habermann", email = "kai.habermann@gmx.net" },
-  { name = "Mikhail Mikhasenko", email = "mikhail.mikhasenko@cern.ch"}
+  { name = "Mikhail Mikhasenko", email = "mikhail.mikhasenko@cern.ch"},
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -65,4 +65,4 @@ cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov --cov=
 
 [[tool.hatch.envs.test.matrix]]
 python = ["312", "38", "39", "311", "310"]
-version = ["1.0.0"]
+version = ["1.0.1"]

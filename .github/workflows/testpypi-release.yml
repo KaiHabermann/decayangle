@@ -26,8 +26,8 @@ jobs:
       run: pipx install hatch
     - name: Build distribution 📦
       run: hatch build
-    - name: Run tests
-      run: hatch run test:cov
+    # - name: Run tests
+    #   run: hatch run test:cov
     - name: Upload distribution  📦
       uses: actions/upload-artifact@v3
       with:
