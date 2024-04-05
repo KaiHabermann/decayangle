@@ -45,7 +45,7 @@ def test_topology():
                 5: cb.array([ 0, 0.1, 0.8,1])}
 
     momenta = tg.topologies[0].to_rest_frame(momenta)
-    first_node = tg.topologies[0].inorder()[0]
+    first_node = tg.topologies[0].preorder()[0]
     base_tree = tg.topologies[0]
 
     # this test looks at what happens, if we do not have a net boost

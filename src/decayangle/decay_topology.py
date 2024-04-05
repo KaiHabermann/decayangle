@@ -143,11 +143,17 @@ class Node:
         return tuple(self.__daughters[daughter_values.index(v)] for v in sorted_values)
 
     def add_daughter(self, daughter: "Node"):
-        """Add a daughter to the node
-
+        """Add a daughter to the node. 
+        The daughter has to be of type Node, since this function should only be called when constructing a topology.
+        No checks are made to ensure that the daughter is not already a daughter of the node.
+        Daughters are re-sorted after adding a new daughter.
+        
         Args:
             daughter (Node): the daughter to add
         """
+        if not isinstance(daughter, Node):
+            raise ValueError("Daughter has to be a Node")
+
         self.__daughters = self.__daughters + (daughter,)
         self.__daughters = self.__sorted_daughters()
         daughter.parent = self
@@ -170,7 +176,7 @@ class Node:
 
     @property
     def final_state(self):
-        """Check if the node is a final state node
+        """Check if the node is a final state node by checking if it has daughters
 
         Returns:
             bool: True if the node is a final state node, False otherwise
@@ -179,12 +185,6 @@ class Node:
 
     def __str__(self):
         return self.__repr__()
-
-    def print_tree(self):
-        """Print the tree below from this node"""
-        for d in self.daughters:
-            d.print_tree()
-        print(f"\n {self.value}")
 
     def contains(self, contained_node: "Node") -> bool:
         """Check if a node is contained in the topology
@@ -206,15 +206,17 @@ class Node:
                 return True
         return False
 
-    def inorder(self):
-        """Get the nodes in the tree in inorder
+    def preorder(self) -> List["Node"]:
+        """Get the nodes in the tree in preorder. 
+        This is a recursive function, which will return the nodes in the tree in the order of the preorder traversal.
+        This means, root first, then daughters in the order they were added.
 
         Returns:
-            list: the nodes in the tree in inorder
+            list: the nodes in the tree in preorder
         """
         if len(self.daughters) == 0:
             return [self]
-        return [self] + [node for d in self.daughters for node in d.inorder()]
+        return [self] + [node for d in self.daughters for node in d.preorder()]
 
     def momentum(
         self, momenta: Dict[str, Union[jnp.ndarray, np.array]]
@@ -404,7 +406,7 @@ class Topology:
         Returns:
             List[Node]: the final state nodes of the topology
         """
-        return [n for n in self.inorder() if n.final_state]
+        return [n for n in self.preorder() if n.final_state]
 
     @property
     def ordering_function(self):
@@ -460,10 +462,10 @@ class Topology:
     def __build_boost_tree(self) -> Tuple[nx.DiGraph, Dict[int, Node]]:
         boost_tree = nx.DiGraph()
         node_dict = {}
-        for node in self.inorder():
+        for node in self.preorder():
             boost_tree.add_node(node.value)
             node_dict[node.value] = node
-        for node in self.inorder():
+        for node in self.preorder():
             for d in node.daughters:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
@@ -475,7 +477,7 @@ class Topology:
         Returns:
             Dict[Union[tuple, int], Node]: A dict of the nodes with the node value as key
         """
-        return {n.value: n for n in self.inorder()}
+        return {n.value: n for n in self.preorder()}
 
     def helicity_angles(self, momenta: dict) -> Dict[Tuple[int, int], HelicityAngles]:
         """
@@ -490,7 +492,7 @@ class Topology:
         """
         helicity_angles = {}
 
-        for node in self.root.inorder():
+        for node in self.root.preorder():
             if not node.final_state:
                 if node != self.root:
                     boost_to_node = self.boost(node, momenta)
@@ -593,13 +595,13 @@ class Topology:
             nth_daughter, = [i for i, d in enumerate(self.root.daughters) if d.value == node.value]
         return self.root.align_with_daughter(momenta, nth_daughter)
     
-    def inorder(self) -> List[Node]:
-        """Get the nodes in the tree in inorder
+    def preorder(self) -> List[Node]:
+        """Get the nodes in the tree in preorder
 
         Returns:
-            list: the nodes in the tree in inorder
+            list: the nodes in the tree in preorder
         """
-        return self.root.inorder()
+        return self.root.preorder()
 
 
 def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
