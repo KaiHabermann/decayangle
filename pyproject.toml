@@ -20,6 +20,7 @@ license = "MIT"
 keywords = []
 authors = [
   { name = "Kai Habermann", email = "kai.habermann@gmx.net" },
+  { name = "Mikhail Mikhasenko", email = "mikhail.mikhasenko@cern.ch"}
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
