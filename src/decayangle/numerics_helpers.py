@@ -17,7 +17,7 @@ def save_arccos(x):
 
 
 def matrix_vector_product(matrix, vector):
-    """Vectorized version of the matrix vector product
+    """Vectorized version of the matrix vector product using einsum
 
     Args:
         matrix (Union[np.array, jnp.array]): The matrix
