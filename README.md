@@ -219,4 +219,4 @@ Consistency of the `decayangle` framework with these appoaches is validated in t
 
 ## License
 
-`decayangle` is distributed under the terms of the [Apache2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
+`decayangle` is distributed under the terms of the [MIT](https://mit-license.org/) license.
