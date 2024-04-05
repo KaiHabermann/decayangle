@@ -695,11 +695,11 @@ class TopologyCollection:
                 "Either topologies or start_node and final_state_nodes have to be given"
             )
 
-        self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
+        self.node_numbers = dict(enumerate([self.start_node] + self.final_state_nodes))
         if sorting_fun is not None:
-            self.__sorting_fun = sorting_fun
+            self.sorting_fun = sorting_fun
         else:
-            self.__sorting_fun = cfg.sorting_fun
+            self.sorting_fun = cfg.sorting_fun
 
     @property
     def sorting_fun(self):
