@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union, Any, Dict, Optional
+from typing import List, Tuple, Union, Any, Dict, Optional, Generator, Callable
 from functools import cached_property
 from collections import namedtuple
 import numpy as np
@@ -14,14 +14,14 @@ cb = cfg.backend
 HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
 
 
-def flat(l):
+def flat(l) -> Generator:
     """Flatten a nested list
 
     Args:
         l (list): the list to flatten
 
     Returns:
-        list: the flattened list
+        list: the flattened list as a generator
     """
     if isinstance(l, (tuple, list)):
         for el in l:
@@ -31,7 +31,17 @@ def flat(l):
 
 
 class Node:
+    """
+    Class to represent a node in a decay topology. The node can have daughters, which are also nodes. 
+    The value of a node is either an integer or a tuple of integers. A tuple implies that the node will finally decay into the particles given in the tuple.
+    The ordering function is used to sort the daughters and the values of the composite nodes.
 
+    Attributes:
+        value (Union[int, Tuple[int]]): the value of the node
+        parent (Node): the parent node of the node
+        daughters (Tuple[Node]): the daughters of the node
+        ordering_function (function): function ordering the daughters and node values of the node
+    """
     @staticmethod
     def construct_topology(node: "Node", topology: Tuple[Union[int, tuple]]):
         """Construct a topology from a tuple of integers and tuples, in the form like the string representation of a topology
@@ -99,7 +109,7 @@ class Node:
         self.parent = None
 
     @property
-    def ordering_function(self):
+    def ordering_function(self) -> Callable:
         """Get the sorting key of the node.
         This is used to sort the daughters and make sure, that the order of the daughters is consistent.
 
@@ -159,7 +169,7 @@ class Node:
         daughter.parent = self
 
     @property
-    def daughters(self) -> List["Node"]:
+    def daughters(self) -> Tuple["Node"]:
         """Get the daughters of the node
 
         Returns:
@@ -175,7 +185,7 @@ class Node:
         )
 
     @property
-    def final_state(self):
+    def final_state(self) -> bool:
         """Check if the node is a final state node by checking if it has daughters
 
         Returns:
@@ -248,7 +258,7 @@ class Node:
         """
         return akm.mass(self.momentum(momenta))
 
-    def transform(self, trafo: LorentzTrafo, momenta: dict) -> dict:
+    def transform(self, trafo: LorentzTrafo, momenta: dict) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta of the final state particles
 
         Args:
@@ -262,7 +272,7 @@ class Node:
             k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()
         }
 
-    def boost(self, target: Union["Node", int], momenta: dict):
+    def boost(self, target: Union["Node", int], momenta: dict) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
@@ -316,9 +326,11 @@ class Node:
         rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta)
         return self.transform(rotation, momenta)
 
-    def helicity_angles(self, momenta: dict):
+    def helicity_angles(self, momenta: dict) -> HelicityAngles:
         """
-        Get the helicity angles for every internal node
+        Get the helicity angles for the daughters of this node.
+        The angles are with respect to the first daughter. 
+        Here the ordering scheme can be important.
 
         Parameters:
             momenta: Dictionary of momenta for the final state particles
@@ -370,6 +382,18 @@ class Node:
 
 
 class Topology:
+    """ A class to represent a decay topology as a tree of nodes.
+    The tree is constructed from a root node, which has daughters, which can have daughters and so on.
+    The final state nodes are the nodes without daughters.
+    The ordering function is used to sort the daughters of the nodes and the values of the composite nodes.
+
+    Properties:
+        root (Node): the root node of the topology
+        final_state_nodes (List[Node]): the final state nodes of the topology
+        ordering_function (function): function ordering the daughters and node values of the topology
+    
+    """
+
     def __init__(
         self,
         root: Union[Node, int],
@@ -410,7 +434,7 @@ class Topology:
         return [n for n in self.preorder() if n.final_state]
 
     @property
-    def ordering_function(self):
+    def ordering_function(self) -> Callable:
         """The sorting key of the topology
 
         Returns:
@@ -448,7 +472,7 @@ class Topology:
         contained_node.ordering_function = self.ordering_function
         return self.root.contains(contained_node)
 
-    def to_rest_frame(self, momenta: dict):
+    def to_rest_frame(self, momenta: dict) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta to the rest frame of the root node
 
         Args:
@@ -480,7 +504,7 @@ class Topology:
         """
         return {n.value: n for n in self.preorder()}
 
-    def helicity_angles(self, momenta: dict) -> Dict[Tuple[int, int], HelicityAngles]:
+    def helicity_angles(self, momenta: dict) -> Dict[Tuple[Union[tuple ,int], Union[tuple ,int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
 
@@ -660,11 +684,18 @@ def generate_topology_definitions(nodes: List[int]) -> List[Node]:
 
 class TopologyCollection:
     """
-    A group of topologies with the same start node and final state nodes
+    A group of topologies with the same start node and final state nodes. Mostly used to filter topologies based on the internal nodes they contain.
+    Also ensures, that all topologies are for the same final state nodes and start node.
+
+    Attributes:
+        start_node (int): the start node of the topologies. Has to be the same for all topologies.
+        final_state_nodes (list): the final state nodes of the topologies. Have to be the same for all topologies.
+        topologies (list): the topologies of the collection
+        ordering_function (function): function ordering the daughters and node values of the topologies. Will overwrite the ordering function of the topologies.
     """
 
     @staticmethod
-    def filter_list(topologies: List[Node], contained_node: Node):
+    def filter_list(topologies: List[Node], contained_node: Node) -> List[Topology]:
         """
         Filter the topologies based on the number of contained steps.
 
@@ -712,7 +743,7 @@ class TopologyCollection:
             self.ordering_function = cfg.ordering_function
 
     @property
-    def ordering_function(self):
+    def ordering_function(self) -> Callable:
         """The sorting key of the topology, used to sort the daughters of the nodes and the values of the composite nodes
 
         Returns:
@@ -755,18 +786,18 @@ class TopologyCollection:
 
     @property
     def topologies(self) -> List[Topology]:
-        """returns all possible topologies for the given final state nodes
+        """Returns all possible topologies for the given final state nodes or the topologies provided at initialization
 
         Returns:
-            List[Topology]: all possible topologies for the given final state nodes
+            List[Topology]: the topologies of the collection
         """
         if self.__topologies is None:
             self.__topologies = self.__generate_topologies()
         return self.__topologies
 
-    def filter(self, *contained_nodes: Node):
+    def filter(self, *contained_nodes: Node) -> List[Topology]:
         """
-        Filter the topologies based on the number of contained steps.
+        Filter the topologies based on the number of contained intermediate nodes.
 
         Args:
             contained_nodes (tuple[Node]): nodes which should be contained in the topologies

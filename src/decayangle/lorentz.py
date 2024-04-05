@@ -16,6 +16,16 @@ WignerAngles = namedtuple("WignerAngles", ["phi_rf", "theta_rf", "psi_rf"])
 
 
 class LorentzTrafo:
+    """
+    A class to represent a Lorentz transformation. It is initialized with either 6 values or 2 matrices.
+    The matrices are the 2x2 SU(2) matrix and the 4x4 O(3) matrix.
+    Both representations are held in the class and can be accessed via the attributes matrix_2x2 and matrix_4x4.
+
+    The 4x4 matrix is used to perfrom the Lorentz transformation on a 4-vector and to decode the parameters of the transformation up to a rotation of 2 pi.
+    The 2x2 matrix can then be used to determine if a rotation of 2 pi has been performed, as this implies matrix_2x2(decoded params) = -matrix_2x2(original params).
+    This is important information for fermions. 
+    """
+
     def __init__(self, *args, **kwargs):
         if len(args) > 0:
             phi, theta, xi, phi_rf, theta_rf, psi_rf = args
