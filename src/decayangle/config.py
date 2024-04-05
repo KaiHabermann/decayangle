@@ -4,7 +4,7 @@ from decayangle.backend import jax_backend, numpy_backend
 class _cfg:
     state = {
         "backend": "numpy",
-        "node_sorting": "value",
+        "node_sorting": "off",
     }
     backend_map = {
         "jax": jax_backend,
@@ -34,34 +34,49 @@ class _cfg:
 
     @node_sorting.setter
     def node_sorting(self, value):
-        if value not in ["value", "process_plane"]:
+        if value not in ["off", "value", "process_plane"]:
             raise ValueError(
                 f"Node sorting {value} not found"
                 "Only 'value' is allowed for the time being"
             )
         self.state["node_sorting"] = value
 
-    def __value_sorting_key(self, value):
-        """Get the sorting key of the node.
-        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
+    def __value_sorting_fun(self, value):
+        """Sort the value by lenght of the tuple first and then by absolute value of the integers
+        Two tuples of the same length are sorted by the first element
 
         Returns:
-            int: the sorting key
+            the sorted value
         """
-        if isinstance(value, tuple):
-            # this is a hack to make sure, that the order of the daughters is consistent
-            # it will fail, if there are more than 10000 particles in the final state
-            # but this is not realistic for the time being
-            return -len(value) * 10000 + value[0]
-        if isinstance(value, int):
-            return abs(value)
-        raise ValueError(
-            f"Value {value} of type {type(value)} not understood for sorting"
-        )
+        def key(value):
+            if isinstance(value, tuple):
+                # this is a hack to make sure, that the order of the daughters is consistent
+                # it will fail, if there are more than 10000 particles in the final state
+                # but this is not realistic for the time being
+                return -len(value) * 10000 + value[0]
+            if isinstance(value, int):
+                return abs(value)
 
-    def sorting_key(self, value):
+            raise ValueError(
+                f"Value {value} of type {type(value)} not understood for sorting"
+            )
+            
+        if isinstance(value, int):
+            return value
+        
+        if isinstance(value, tuple):
+            return tuple(sorted(value, key=key))
+        
+        if isinstance(value, list):
+            return sorted(value, key=key)
+        
+        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
+
+    def sorting_fun(self, value):
         if self.node_sorting == "value":
-            return self.__value_sorting_key(value)
+            return self.__value_sorting_fun(value)
+        if self.node_sorting == "off":
+            return value
 
         raise ValueError(f"Node sorting {self.node_sorting} not found")
 
