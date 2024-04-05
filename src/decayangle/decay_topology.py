@@ -66,11 +66,11 @@ class Node:
             return value
         return cls(value)
 
-    def __init__(self, value: Union[Any, tuple], sorting_key=None):
-        if sorting_key is not None:
-            self.__sorting_key = sorting_key
+    def __init__(self, value: Union[Any, tuple], sorting_fun=None):
+        if sorting_fun is not None:
+            self.__sorting_fun = sorting_fun
         else:
-            self.__sorting_key = cfg.sorting_key
+            self.__sorting_fun = cfg.sorting_fun
 
         if isinstance(value, tuple):
             if len(value) == 0:
@@ -82,7 +82,7 @@ class Node:
                 # tuples are only for composites
                 self.value = value[0]
             else:
-                self.value = tuple(sorted(value, key=self.sorting_key))
+                self.value = tuple(self.sorting_fun(value))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -99,34 +99,47 @@ class Node:
         self.parent = None
 
     @property
-    def sorting_key(self):
+    def sorting_fun(self):
         """Get the sorting key of the node.
         This is used to sort the daughters and make sure, that the order of the daughters is consistent.
 
         Returns:
             int: the sorting key
         """
-        return self.__sorting_key
+        return self.__sorting_fun
 
-    @sorting_key.setter
-    def sorting_key(self, value):
-        if not isinstance(value((1, 2, 3)), int):
+    @sorting_fun.setter
+    def sorting_fun(self, value):
+        """
+        Set the sorting function for the node and all daughters
+        Sorting functions are epected to return the same data type as the input
+        They need to accept lists, tuples and integers as input
+        """
+
+        if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
         if not isinstance(value(1), int):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
 
-        self.__sorting_key = value
-        self.__daughters = sorted(
-            self.__daughters, key=lambda x: self.sorting_key(x.value)
-        )
+        self.__sorting_fun = value
+        self.__daughters = self.__sorted_daughters()
+        
         if isinstance(self.value, tuple):
-            self.value = tuple(sorted(self.value, key=self.sorting_key))
+            self.value = self.sorting_fun(self.value)
         for d in self.__daughters:
-            d.sorting_key = value
+            d.sorting_fun = value
+
+    def __sorted_daughters(self):
+        """
+        Sort the daughters of the node
+        """
+        daughter_values = [d.value for d in self.__daughters]
+        sorted_values = self.sorting_fun(daughter_values)
+        return [self.__daughters[daughter_values.index(v)] for v in sorted_values]
 
     def add_daughter(self, daughter: "Node"):
         """Add a daughter to the node
@@ -135,9 +148,7 @@ class Node:
             daughter (Node): the daughter to add
         """
         self.__daughters.append(daughter)
-        self.__daughters = sorted(
-            self.__daughters, key=lambda x: self.sorting_key(x.value)
-        )
+        self.__daughters = self.__sorted_daughters()
         daughter.parent = self
 
     @property
@@ -184,8 +195,10 @@ class Node:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
-        contained_node.sorting_key = self.sorting_key
-        if self.value == contained_node.value:
+        if isinstance(self.value, int): 
+            if self.value == contained_node.value:
+                return True
+        elif set(self.value) == set(contained_node.value):
             return True
         for d in self.daughters:
             if d.contains(contained_node):
@@ -357,14 +370,14 @@ class Topology:
         self,
         root: Union[Node, int],
         decay_topology: Optional[List[Union[int, tuple]]] = None,
-        sorting_key=None,
+        sorting_fun=None,
     ):
         self.__root = Node.get_node(root)
-        if sorting_key is not None:
-            self.__sorting_key = sorting_key
-            self.__root.sorting_key = sorting_key
+        if sorting_fun is not None:
+            self.__sorting_fun = sorting_fun
+            self.__root.sorting_fun = sorting_fun
         else:
-            self.__sorting_key = cfg.sorting_key
+            self.__sorting_fun = cfg.sorting_fun
 
         if decay_topology is not None:
             if len(self.root.daughters) != 0:
@@ -393,27 +406,27 @@ class Topology:
         return [n for n in self.inorder() if n.final_state]
 
     @property
-    def sorting_key(self):
+    def sorting_fun(self):
         """The sorting key of the topology
 
         Returns:
             int: the sorting key of the topology
         """
-        return self.__sorting_key
+        return self.__sorting_fun
 
-    @sorting_key.setter
-    def sorting_key(self, value):
-        if not isinstance(value((1, 2, 3)), int):
+    @sorting_fun.setter
+    def sorting_fun(self, value):
+        if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
         if not isinstance(value(1), int):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
 
-        self.__sorting_key = value
-        self.__root.sorting_key = value
+        self.__sorting_fun = value
+        self.__root.sorting_fun = value
 
     def __repr__(self) -> str:
         return f"Topology: {self.root}"
@@ -428,7 +441,7 @@ class Topology:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
-        contained_node.sorting_key = self.sorting_key
+        contained_node.sorting_fun = self.sorting_fun
         return self.root.contains(contained_node)
 
     def to_rest_frame(self, momenta: dict):
@@ -560,8 +573,32 @@ class Topology:
             for target in self.final_state_nodes
         }
 
-    def __getattr__(self, name):
-        return getattr(self.root, name)
+    def align_with_daughter(
+        self, momenta: Dict[int, Union[np.array, jnp.array]], node: Optional[Union[int, Node]]=None
+    ) -> Dict[int, Union[np.array, jnp.array]]:
+        """Align the momenta with the nth daughter
+
+        Args:
+            momenta (dict): the momenta of the final state particles
+            node (int, optional): the daughter to align with. Defaults to the first daugher.
+
+        Returns:
+            dict: the aligned momenta
+        """
+        if node is None:
+            nth_daughter = 0
+        else:
+            node = Node.get_node(node)
+            nth_daughter, = [i for i, d in enumerate(self.root.daughters) if d.value == node.value]
+        return self.root.align_with_daughter(momenta, nth_daughter)
+    
+    def inorder(self) -> List[Node]:
+        """Get the nodes in the tree in inorder
+
+        Returns:
+            list: the nodes in the tree in inorder
+        """
+        return self.root.inorder()
 
 
 def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
@@ -611,7 +648,6 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
                 topologies.append((l_node, r_node))
     return topologies
 
-
 class TopologyCollection:
     """
     A group of topologies with the same start node and final state nodes
@@ -632,7 +668,7 @@ class TopologyCollection:
         start_node: int = None,
         final_state_nodes: List[int] = None,
         topologies: List[Topology] = None,
-        sorting_key=None,
+        sorting_fun=None,
     ):
         if topologies is not None:
             self.__topologies = topologies
@@ -660,34 +696,34 @@ class TopologyCollection:
             )
 
         self.node_numbers = dict(enumerate([start_node] + final_state_nodes))
-        if sorting_key is not None:
-            self.__sorting_key = sorting_key
+        if sorting_fun is not None:
+            self.__sorting_fun = sorting_fun
         else:
-            self.__sorting_key = cfg.sorting_key
+            self.__sorting_fun = cfg.sorting_fun
 
     @property
-    def sorting_key(self):
+    def sorting_fun(self):
         """The sorting key of the topology, used to sort the daughters of the nodes and the values of the composite nodes
 
         Returns:
             A function returning an integer and accepting an integer or tuple as input
         """
-        return self.__sorting_key
+        return self.__sorting_fun
 
-    @sorting_key.setter
-    def sorting_key(self, value):
-        if not isinstance(value((1, 2, 3)), int):
+    @sorting_fun.setter
+    def sorting_fun(self, value):
+        if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
         if not isinstance(value(1), int):
             raise ValueError(
-                "Sorting key has to be a function returning an integer and accepting an integer or tuple as input"
+                "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
             )
 
-        self.__sorting_key = value
+        self.__sorting_fun = value
         for topology in self.topologies:
-            topology.sorting_key = value
+            topology.sorting_fun = value
 
     def __generate_topologies(self) -> List[Topology]:
         """returns all possible topologies for the given final state nodes
@@ -703,7 +739,7 @@ class TopologyCollection:
             root.add_daughter(r)
             topologies_with_root_node.append(root)
         return [
-            Topology(node, sorting_key=self.sorting_key)
+            Topology(node, sorting_fun=self.sorting_fun)
             for node in topologies_with_root_node
         ]
 

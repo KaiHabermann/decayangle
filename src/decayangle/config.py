@@ -4,7 +4,7 @@ from decayangle.backend import jax_backend, numpy_backend
 class _cfg:
     state = {
         "backend": "numpy",
-        "node_sorting": "value",
+        "sorting": "value",
     }
     backend_map = {
         "jax": jax_backend,
@@ -29,41 +29,56 @@ class _cfg:
         self.state["backend"] = value
 
     @property
-    def node_sorting(self):
-        return self.state["node_sorting"]
+    def sorting(self):
+        return self.state["sorting"]
 
-    @node_sorting.setter
-    def node_sorting(self, value):
-        if value not in ["value", "process_plane"]:
+    @sorting.setter
+    def sorting(self, value):
+        if value not in ["off", "value"]:
             raise ValueError(
                 f"Node sorting {value} not found"
-                "Only 'value' is allowed for the time being"
+                "Only 'value' and 'off' are allowed for the time being"
             )
-        self.state["node_sorting"] = value
+        self.state["sorting"] = value
 
-    def __value_sorting_key(self, value):
-        """Get the sorting key of the node.
-        This is used to sort the daughters and make sure, that the order of the daughters is consistent.
+    def __value_sorting_fun(self, value):
+        """Sort the value by lenght of the tuple first and then by absolute value of the integers
+        Two tuples of the same length are sorted by the first element
 
         Returns:
-            int: the sorting key
+            the sorted value
         """
-        if isinstance(value, tuple):
-            # this is a hack to make sure, that the order of the daughters is consistent
-            # it will fail, if there are more than 10000 particles in the final state
-            # but this is not realistic for the time being
-            return -len(value) * 10000 + value[0]
+        def key(value):
+            if isinstance(value, tuple):
+                # this is a hack to make sure, that the order of the daughters is consistent
+                # it will fail, if there are more than 10000 particles in the final state
+                # but this is not realistic for the time being
+                return -len(value) * 10000 + value[0]
+            if isinstance(value, int):
+                return abs(value)
+
+            raise ValueError(
+                f"Value {value} of type {type(value)} not understood for sorting"
+            )
+
         if isinstance(value, int):
-            return abs(value)
-        raise ValueError(
-            f"Value {value} of type {type(value)} not understood for sorting"
-        )
+            return value
+        
+        if isinstance(value, tuple):
+            return tuple(sorted(value, key=key))
+        
+        if isinstance(value, list):
+            return sorted(value, key=key)
+        
+        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
 
-    def sorting_key(self, value):
-        if self.node_sorting == "value":
-            return self.__value_sorting_key(value)
+    def sorting_fun(self, value):
+        if self.sorting == "value":
+            return self.__value_sorting_fun(value)
+        if self.sorting == "off":
+            return value
 
-        raise ValueError(f"Node sorting {self.node_sorting} not found")
+        raise ValueError(f"Node sorting {self.sorting} not found")
 
 
 config = _cfg()

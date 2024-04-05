@@ -1,6 +1,7 @@
 from decayangle.kinematics import build_4_4,  build_2_2, from_mass_and_momentum, mass_squared
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import TopologyCollection
+from decayangle.config import config as cfg
 from jax import numpy as jnp
 import jax
 import numpy as np
@@ -67,6 +68,7 @@ def test_lotentz2(boost_definitions):
 
 @pytest.mark.parametrize('momenta', [np.random.rand(3, 3)] + [np.random.rand(3, 100, 3) for _ in range(10)])
 def test_daltiz_plot_decomposition(momenta):
+
     def Kallen(x, y, z):
         return x**2 + y**2 + z**2 - 2*(x*y + x*z + y*z)
     def ijk(k):
@@ -242,8 +244,9 @@ def test_daltiz_plot_decomposition(momenta):
 
     # we will now test the theta hat angles from dpd
     # the issue here is, that we will need specific aligned topologies for that
-
-    tree1_aligned_momenta = tree1.align_with_daughter(momenta, 0)
+    # dpd aligns to the reference topology alog the negative axis of the k-th particle
+    # for tree1 this is particle 1 and the negative direction is the combined momentum of particle 2 and 3
+    tree1_aligned_momenta = tree1.align_with_daughter(momenta, (2, 3))
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
     theta_rf, psi_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
     assert np.allclose(dpd_value, np.cos(theta_rf))

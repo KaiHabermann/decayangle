@@ -6,10 +6,8 @@ def test_topology():
 
     def process_plane_sorting(plane):
         if isinstance(plane, tuple):
-            return plane[0]
-        if isinstance(plane, int):
-            return -plane
-        raise ValueError("Invalid plane type")
+            return plane[::-1]
+        return plane
 
     representations = []
     for topology in tg.topologies:
@@ -24,8 +22,8 @@ def test_topology():
     topology_from_group, = tg.filter((1,2))
     assert str(topology) == str(topology_from_group)
 
-    tg.sorting_key = process_plane_sorting
-    topology.sorting_key = process_plane_sorting
+    tg.sorting_fun = process_plane_sorting
+    topology.sorting_fun = process_plane_sorting
     assert str(topology) == str(topology_from_group)
 
     for i, topology in enumerate(tg.topologies):
