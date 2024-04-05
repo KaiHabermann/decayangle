@@ -168,6 +168,15 @@ The code above will now sort by value or first value in the tuple if the given v
 The default sorting scheme prioritizes sortes by length first and then by value. 
 To achieve this in the most simple way,  the maximum value for a final state particle (or rather the integer representing it) is limited to 10000. This should be enough for all realistic usecases though.
 
+## Related projects
+
+Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.
+However, there are a few projects addressing these rotations explicitly using analytic expressions in [DPD paper](https://inspirehep.net/literature/1758460), derived for three-body decays:
+- [ThreeBodyDecays.jl](https://github.com/mmikhasenko/ThreeBodyDecays.jl), 
+- [SymbolicThreeBodyDecays.jl](https://github.com/mmikhasenko/SymbolicThreeBodyDecays.jl),
+- [ComPWA/ampform-dpd](https://github.com/ComPWA/ampform-dpd).
+Consistency of the `decayangle` framework with these appoaches is validated in the tests.
+
 ## License
 
 `decayangle` is distributed under the terms of the [Apache2.0](https://www.apache.org/licenses/LICENSE-2.0) license.
