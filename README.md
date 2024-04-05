@@ -125,7 +125,8 @@ topologies = [
 ```
 Here the ordering of the nodes inside a tuple is not relevant. Only the overall topology i.e. which particles form an intermediate state and how they decay.
 
-To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created.
+To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created. 
+More on sorting can be found in the [ordering](#ordering) section.
 
 ```python
 from decayangle.decay_topology import Topology
@@ -197,6 +198,7 @@ The code above will just leave the object as it comes. Thus applying no sorting.
 
 The default sorting scheme puts longest node first and then sorts by value.
 The maximum value for a final-state particle (or rather the integer representing it) is limited to 10000. This should be enough for all realistic use cases.
+
 To change the default sorting scheme one can use the config.
 
 ```python
