@@ -299,7 +299,8 @@ class Node:
     def align_with_daughter(
         self, momenta: Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0
     ) -> Dict[int, Union[np.array, jnp.array]]:
-        """Align the momenta with the nth daughter
+        """Align the momenta with the nth daughter. It is written in this way, to highlight, that one can only align with the direct daughters of a node.
+        This requires the momenta to be in the rest frame of the node.
 
         Args:
             momenta (dict): the momenta of the final state particles
@@ -579,7 +580,8 @@ class Topology:
     def align_with_daughter(
         self, momenta: Dict[int, Union[np.array, jnp.array]], node: Optional[Union[int, Node]]=None
     ) -> Dict[int, Union[np.array, jnp.array]]:
-        """Align the momenta with the nth daughter
+        """Align the momenta with the node passed as argument. If no node is passed, the first daughter is used.
+        If the node is not a daughter of the root node, a ValueError is raised.
 
         Args:
             momenta (dict): the momenta of the final state particles
@@ -592,11 +594,16 @@ class Topology:
             nth_daughter = 0
         else:
             node = Node.get_node(node)
-            nth_daughter, = [i for i, d in enumerate(self.root.daughters) if d.value == node.value]
+            node.ordering_function = self.ordering_function
+            try:
+                nth_daughter, = [i for i, d in enumerate(self.root.daughters) if d.value == node.value]
+            except ValueError:
+                raise ValueError(f"Node {node} is not a daughter of the root node {self.root}")
         return self.root.align_with_daughter(momenta, nth_daughter)
     
     def preorder(self) -> List[Node]:
-        """Get the nodes in the tree in preorder
+        """Get the nodes in the tree in preorder. This only calls the preorder function of the root node.
+        For more details see the preorder function of the Node class.
 
         Returns:
             list: the nodes in the tree in preorder
@@ -608,7 +615,7 @@ def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
     """
     Split a list of nodes into two lists of nodes.
     Parameters: nodes: List of nodes to split
-                split: Index at which to split the list
+                splitter: Bitmask to split the nodes 1 -> left, 0 -> right
     Returns: Tuple of lists of nodes
     """
     left = []
@@ -621,7 +628,7 @@ def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
     return tuple(left), tuple(right)
 
 
-def generate_tree_definitions(nodes: List[int]) -> List[Node]:
+def generate_topology_definitions(nodes: List[int]) -> List[Node]:
     """
     Generate all possible topology definitions for a given list of nodes.
     Parameters: nodes: List of nodes to generate topology definitions for
@@ -632,7 +639,7 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
         return [(None, None)]
     for i in range(1, 1 << len(nodes) - 1):
         left, right = split(nodes, i)
-        for l, r in generate_tree_definitions(left):
+        for l, r in generate_topology_definitions(left):
             if len(left) == 1:
                 l_node = Node(left[0])
             else:
@@ -640,7 +647,7 @@ def generate_tree_definitions(nodes: List[int]) -> List[Node]:
             if l is not None:
                 l_node.add_daughter(l)
                 l_node.add_daughter(r)
-            for l2, r2 in generate_tree_definitions(right):
+            for l2, r2 in generate_topology_definitions(right):
                 if len(right) == 1:
                     r_node = Node(right[0])
                 else:
@@ -734,7 +741,7 @@ class TopologyCollection:
         Returns:
             List[Topology]: all possible topologies for the given final state nodes
         """
-        topologies = generate_tree_definitions(self.final_state_nodes)
+        topologies = generate_topology_definitions(self.final_state_nodes)
         topologies_with_root_node = []
         for l, r in topologies:
             root = Node(self.start_node)

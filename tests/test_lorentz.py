@@ -66,7 +66,7 @@ def test_lotentz2(boost_definitions):
 
 
 
-@pytest.mark.parametrize('momenta', [np.random.rand(3, 3)] + [np.random.rand(3, 100, 3) for _ in range(10)])
+@pytest.mark.parametrize('momenta', [np.random.rand(3, 3)] + [np.random.rand(3, 1000, 3) for _ in range(10)])
 def test_daltiz_plot_decomposition(momenta):
 
     def Kallen(x, y, z):

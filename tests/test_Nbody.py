@@ -1,4 +1,4 @@
-from decayangle.decay_topology import generate_tree_definitions, Node, TopologyCollection
+from decayangle.decay_topology import generate_topology_definitions, Node, TopologyCollection
 from jax import numpy as jnp
 from jax import config as jax_cfg
 jax_cfg.update("jax_enable_x64", True)
