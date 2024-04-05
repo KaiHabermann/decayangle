@@ -36,7 +36,7 @@ def test_lotentz(boost_definitions):
         single_test(*boost_definition)
 
 def test_lotentz2(boost_definitions):
-
+    
     def test_single(definition1, definition2):
         trafo = LorentzTrafo(*definition1) @ LorentzTrafo(*definition2)
         psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_ = trafo.decode()
@@ -63,6 +63,38 @@ def test_lotentz2(boost_definitions):
 
     for i in range(len(boost_definitions) - 1):
         test_single(boost_definitions[i], boost_definitions[i+1])
+
+
+def test_lotentz_jax(boost_definitions):
+
+    def test_single(definition1, definition2):
+        trafo = LorentzTrafo(*definition1) @ LorentzTrafo(*definition2)
+        psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_ = trafo.decode()
+        assert np.isfinite(psi_)
+        assert np.isfinite(theta_)
+        assert np.isfinite(xi_)
+        assert np.isfinite(phi_rf_)
+        assert np.isfinite(theta_rf_)
+        assert np.isfinite(psi_rf_)
+
+        trafo = LorentzTrafo(*definition1) @ LorentzTrafo(*definition2).inverse()
+        psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_ = trafo.decode()
+        assert np.isfinite(psi_)
+        assert np.isfinite(theta_)
+        assert np.isfinite(xi_)
+        assert np.isfinite(phi_rf_)
+        assert np.isfinite(theta_rf_)
+        assert np.isfinite(psi_rf_)
+
+        assert np.allclose(
+            (LorentzTrafo(*definition1) @ LorentzTrafo(*definition2)).inverse().matrix_4x4,
+            (LorentzTrafo(*definition2).inverse() @ LorentzTrafo(*definition1).inverse()).matrix_4x4
+        )
+
+    cfg.backend = "jax"
+    for i in range(len(boost_definitions) - 1):
+        test_single(boost_definitions[i], boost_definitions[i+1])
+    cfg.backend = "numpy"
 
 
 

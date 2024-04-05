@@ -2,7 +2,7 @@ from decayangle.backend import jax_backend, numpy_backend
 
 
 class _cfg:
-    state = {
+    __state = {
         "backend": "numpy",
         "sorting": "value",
     }
@@ -18,19 +18,19 @@ class _cfg:
         Returns:
             module : The backend module
         """
-        if self.state["backend"] not in self.backend_map:
-            raise ValueError(f"Backend {self.state['backend']} not found")
-        return self.backend_map[self.state["backend"]]
+        if self.__state["backend"] not in self.backend_map:
+            raise ValueError(f"Backend {self.__state['backend']} not found")
+        return self.backend_map[self.__state["backend"]]
 
     @backend.setter
     def backend(self, value):
         if value not in self.backend_map:
             raise ValueError(f"Backend {value} not found")
-        self.state["backend"] = value
+        self.__state["backend"] = value
 
     @property
     def sorting(self):
-        return self.state["sorting"]
+        return self.__state["sorting"]
 
     @sorting.setter
     def sorting(self, value):
@@ -39,7 +39,7 @@ class _cfg:
                 f"Node sorting {value} not found"
                 "Only 'value' and 'off' are allowed for the time being"
             )
-        self.state["sorting"] = value
+        self.__state["sorting"] = value
 
     def __value_sorting_fun(self, value):
         """Sort the value by lenght of the tuple first and then by absolute value of the integers
