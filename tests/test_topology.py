@@ -22,8 +22,8 @@ def test_topology():
     topology_from_group, = tg.filter((1,2))
     assert str(topology) == str(topology_from_group)
 
-    tg.sorting_fun = process_plane_sorting
-    topology.sorting_fun = process_plane_sorting
+    tg.ordering_function = process_plane_sorting
+    topology.ordering_function = process_plane_sorting
     assert str(topology) == str(topology_from_group)
 
     for i, topology in enumerate(tg.topologies):

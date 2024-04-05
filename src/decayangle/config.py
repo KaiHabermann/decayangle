@@ -72,7 +72,7 @@ class _cfg:
         
         raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
 
-    def sorting_fun(self, value):
+    def ordering_function(self, value):
         if self.sorting == "value":
             return self.__value_sorting_fun(value)
         if self.sorting == "off":

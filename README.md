@@ -192,7 +192,7 @@ The schemes is specified by a function, which is <expected to take in integers o
 
 ```python
 tg = TopologyCollection(0, [1,2,3])
-tg.sorting_fun = lambda x: x
+tg.ordering_function = lambda x: x
 ```
 The code above will just leave the object as it comes. Thus applying no sorting.
 

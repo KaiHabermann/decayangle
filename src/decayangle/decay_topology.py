@@ -66,11 +66,11 @@ class Node:
             return value
         return cls(value)
 
-    def __init__(self, value: Union[Any, tuple], sorting_fun=None):
-        if sorting_fun is not None:
-            self.__sorting_fun = sorting_fun
+    def __init__(self, value: Union[Any, tuple], ordering_function=None):
+        if ordering_function is not None:
+            self.__sorting_fun = ordering_function
         else:
-            self.__sorting_fun = cfg.sorting_fun
+            self.__sorting_fun = cfg.ordering_function
 
         if isinstance(value, tuple):
             if len(value) == 0:
@@ -82,7 +82,7 @@ class Node:
                 # tuples are only for composites
                 self.value = value[0]
             else:
-                self.value = tuple(self.sorting_fun(value))
+                self.value = tuple(self.ordering_function(value))
         else:
             if not isinstance(value, int):
                 raise ValueError(
@@ -95,11 +95,11 @@ class Node:
                     "Node value has to be smaller than 10000 to ensure consistent sorting of daughters"
                 )
             self.value = value
-        self.__daughters = []
+        self.__daughters = tuple()
         self.parent = None
 
     @property
-    def sorting_fun(self):
+    def ordering_function(self):
         """Get the sorting key of the node.
         This is used to sort the daughters and make sure, that the order of the daughters is consistent.
 
@@ -108,8 +108,8 @@ class Node:
         """
         return self.__sorting_fun
 
-    @sorting_fun.setter
-    def sorting_fun(self, value):
+    @ordering_function.setter
+    def ordering_function(self, value):
         """
         Set the sorting function for the node and all daughters
         Sorting functions are epected to return the same data type as the input
@@ -129,17 +129,18 @@ class Node:
         self.__daughters = self.__sorted_daughters()
         
         if isinstance(self.value, tuple):
-            self.value = self.sorting_fun(self.value)
+            self.value = self.ordering_function(self.value)
         for d in self.__daughters:
-            d.sorting_fun = value
+            d.ordering_function = value
 
-    def __sorted_daughters(self):
+    def __sorted_daughters(self) -> Tuple["Node"]:
         """
-        Sort the daughters of the node
+        Sort the daughters of the node, by passing the values to the sorting function
+        Then return the daughters in the order of the sorted values
         """
         daughter_values = [d.value for d in self.__daughters]
-        sorted_values = self.sorting_fun(daughter_values)
-        return [self.__daughters[daughter_values.index(v)] for v in sorted_values]
+        sorted_values = self.ordering_function(daughter_values)
+        return tuple(self.__daughters[daughter_values.index(v)] for v in sorted_values)
 
     def add_daughter(self, daughter: "Node"):
         """Add a daughter to the node
@@ -147,7 +148,7 @@ class Node:
         Args:
             daughter (Node): the daughter to add
         """
-        self.__daughters.append(daughter)
+        self.__daughters = self.__daughters + (daughter,)
         self.__daughters = self.__sorted_daughters()
         daughter.parent = self
 
@@ -370,14 +371,14 @@ class Topology:
         self,
         root: Union[Node, int],
         decay_topology: Optional[List[Union[int, tuple]]] = None,
-        sorting_fun=None,
+        ordering_function=None,
     ):
         self.__root = Node.get_node(root)
-        if sorting_fun is not None:
-            self.__sorting_fun = sorting_fun
-            self.__root.sorting_fun = sorting_fun
+        if ordering_function is not None:
+            self.__sorting_fun = ordering_function
+            self.__root.ordering_function = ordering_function
         else:
-            self.__sorting_fun = cfg.sorting_fun
+            self.__sorting_fun = cfg.ordering_function
 
         if decay_topology is not None:
             if len(self.root.daughters) != 0:
@@ -406,7 +407,7 @@ class Topology:
         return [n for n in self.inorder() if n.final_state]
 
     @property
-    def sorting_fun(self):
+    def ordering_function(self):
         """The sorting key of the topology
 
         Returns:
@@ -414,8 +415,8 @@ class Topology:
         """
         return self.__sorting_fun
 
-    @sorting_fun.setter
-    def sorting_fun(self, value):
+    @ordering_function.setter
+    def ordering_function(self, value):
         if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
                 "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
@@ -426,7 +427,7 @@ class Topology:
             )
 
         self.__sorting_fun = value
-        self.__root.sorting_fun = value
+        self.__root.ordering_function = value
 
     def __repr__(self) -> str:
         return f"Topology: {self.root}"
@@ -441,7 +442,7 @@ class Topology:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
-        contained_node.sorting_fun = self.sorting_fun
+        contained_node.ordering_function = self.ordering_function
         return self.root.contains(contained_node)
 
     def to_rest_frame(self, momenta: dict):
@@ -668,7 +669,7 @@ class TopologyCollection:
         start_node: int = None,
         final_state_nodes: List[int] = None,
         topologies: List[Topology] = None,
-        sorting_fun=None,
+        ordering_function=None,
     ):
         if topologies is not None:
             self.__topologies = topologies
@@ -696,13 +697,13 @@ class TopologyCollection:
             )
 
         self.node_numbers = dict(enumerate([self.start_node] + self.final_state_nodes))
-        if sorting_fun is not None:
-            self.sorting_fun = sorting_fun
+        if ordering_function is not None:
+            self.ordering_function = ordering_function
         else:
-            self.sorting_fun = cfg.sorting_fun
+            self.ordering_function = cfg.ordering_function
 
     @property
-    def sorting_fun(self):
+    def ordering_function(self):
         """The sorting key of the topology, used to sort the daughters of the nodes and the values of the composite nodes
 
         Returns:
@@ -710,8 +711,8 @@ class TopologyCollection:
         """
         return self.__sorting_fun
 
-    @sorting_fun.setter
-    def sorting_fun(self, value):
+    @ordering_function.setter
+    def ordering_function(self, value):
         if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
                 "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
@@ -723,7 +724,7 @@ class TopologyCollection:
 
         self.__sorting_fun = value
         for topology in self.topologies:
-            topology.sorting_fun = value
+            topology.ordering_function = value
 
     def __generate_topologies(self) -> List[Topology]:
         """returns all possible topologies for the given final state nodes
@@ -739,7 +740,7 @@ class TopologyCollection:
             root.add_daughter(r)
             topologies_with_root_node.append(root)
         return [
-            Topology(node, sorting_fun=self.sorting_fun)
+            Topology(node, ordering_function=self.ordering_function)
             for node in topologies_with_root_node
         ]
 

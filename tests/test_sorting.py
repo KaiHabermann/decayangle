@@ -53,7 +53,7 @@ def test_circular():
         3: np.array([0, 0.3, 0.3, 1]),
     }
     momenta = topologies[0].to_rest_frame(momenta)
-    tc = TopologyCollection(topologies=topologies, sorting_fun = circlular_sorting)
+    tc = TopologyCollection(topologies=topologies, ordering_function = circlular_sorting)
     topologies = tc.topologies
 
     assert (1,2) in topologies[0].helicity_angles(momenta)
