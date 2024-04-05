@@ -115,6 +115,7 @@ For larger sets of final state nodes the amount of topologies, which would be ge
 Thus it is also possible to generate a `Topology` based on a root node and a decay descriptor. There the decay descriptor is a tuple of tuples 
 ```python
 from decayangle.decay_topology import Topology
+
 root = 0
 topologies = [
     Topology(root, decay_topology=((1, 2), 3)),
@@ -124,7 +125,22 @@ topologies = [
 ```
 Here the ordering of the nodes inside a tuple is not relevant. Only the overall topology i.e. which particles form an intermediate state and how they decay.
 
-Such a list of topologies can be fused into a `TopologyCollection` like
+To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created.
+
+```python
+from decayangle.decay_topology import Topology
+from decayangle.config import config as cfg
+cfg.sorting = "off"
+
+root = 0
+topologies = [
+    Topology(root, decay_topology=((1, 2), 3)),
+    Topology(root, decay_topology=((1, 3), 2)), 
+    Topology(root, decay_topology=((2, 3), 1)) 
+]
+```
+
+A list of topologies can be fused into a `TopologyCollection` like
 
 ```python
 tg = TopologyCollection(topologies=topologies)
@@ -171,17 +187,25 @@ A particular scheme is used to order daughters, and determine node names.
 Helicity angle are always calculated with respect to the first daughter.
 
 The ordering scheme can be customized at `TopologyCollection` level.
-The schemes is specified by a function, which is expected to take in integers or tuples and return an integer used to sort the daughters, and integers in the node name. 
+The schemes is specified by a function, which is <expected to take in integers or tuples and return an integer used to sort the daughters, and integers in the node name. 
 
 ```python
 tg = TopologyCollection(0, [1,2,3])
-tg.sorting_key = lambda x: x if not isinstance(x, tuple) else x[0]
+tg.sorting_fun = lambda x: x
 ```
-The code above will now sort by value or first value in the tuple if the given value is a tuple.
+The code above will just leave the object as it comes. Thus applying no sorting.
 
 The default sorting scheme puts longest node first and then sorts by value.
-The maximum value for a final-state particle (or rather the integer representing it) is limited to 10000. This should be enough for all realistic use cases though.
+The maximum value for a final-state particle (or rather the integer representing it) is limited to 10000. This should be enough for all realistic use cases.
+To change the default sorting scheme one can use the config.
 
+```python
+from decayangle.config import config as cfg
+cfg.sorting = "off" # turns sorting off
+cfg.sorting = "value" # default sorting
+
+```
+At this time only `"off"` and `"value"` are supported. For more sophisticated sorting algorithms the user has to write custom functions.
 ## Related projects
 
 Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.

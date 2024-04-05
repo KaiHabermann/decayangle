@@ -4,7 +4,7 @@ from decayangle.backend import jax_backend, numpy_backend
 class _cfg:
     state = {
         "backend": "numpy",
-        "node_sorting": "off",
+        "sorting": "value",
     }
     backend_map = {
         "jax": jax_backend,
@@ -29,17 +29,17 @@ class _cfg:
         self.state["backend"] = value
 
     @property
-    def node_sorting(self):
-        return self.state["node_sorting"]
+    def sorting(self):
+        return self.state["sorting"]
 
-    @node_sorting.setter
-    def node_sorting(self, value):
-        if value not in ["off", "value", "process_plane"]:
+    @sorting.setter
+    def sorting(self, value):
+        if value not in ["off", "value"]:
             raise ValueError(
                 f"Node sorting {value} not found"
-                "Only 'value' is allowed for the time being"
+                "Only 'value' and 'off' are allowed for the time being"
             )
-        self.state["node_sorting"] = value
+        self.state["sorting"] = value
 
     def __value_sorting_fun(self, value):
         """Sort the value by lenght of the tuple first and then by absolute value of the integers
@@ -60,7 +60,7 @@ class _cfg:
             raise ValueError(
                 f"Value {value} of type {type(value)} not understood for sorting"
             )
-            
+
         if isinstance(value, int):
             return value
         
@@ -73,12 +73,12 @@ class _cfg:
         raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
 
     def sorting_fun(self, value):
-        if self.node_sorting == "value":
+        if self.sorting == "value":
             return self.__value_sorting_fun(value)
-        if self.node_sorting == "off":
+        if self.sorting == "off":
             return value
 
-        raise ValueError(f"Node sorting {self.node_sorting} not found")
+        raise ValueError(f"Node sorting {self.sorting} not found")
 
 
 config = _cfg()
