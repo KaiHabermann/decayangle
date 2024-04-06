@@ -4,8 +4,8 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle) -->
 
 
-[![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://test.pypi.org/project/decayangle/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://test.pypi.org/project/decayangle/)
+[![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle/)
 -----
 
 **Table of Contents**
