@@ -30,3 +30,8 @@ jobs:
         run: pipx install hatch
       - name: Run tests
         run: hatch run test:cov
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: KaiHabermann/decayangle
