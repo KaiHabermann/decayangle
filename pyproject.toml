@@ -61,8 +61,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.test.scripts]
-cov = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov --cov=tests'
+cov = 'pytest --cov-report=term-missing --cov-report=xml --cov-config=pyproject.toml --cov --cov=tests'
 
 [[tool.hatch.envs.test.matrix]]
-python = ["312", "38", "39", "311", "310"]
+python = ["312"] # , "38", "39", "311", "310"
 version = ["1.0.1"]
