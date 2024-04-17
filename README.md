@@ -1,9 +1,5 @@
 # Welcome to the decayangle software Project
 
-<!-- [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle) -->
-
-
 [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![codecov](https://codecov.io/gh/KaiHabermann/decayangle/graph/badge.svg?token=KXBO8KEQ3V)](https://codecov.io/gh/KaiHabermann/decayangle)
