@@ -5,6 +5,7 @@ class _cfg:
     __state = {
         "backend": "numpy",
         "sorting": "value",
+        "numerical_safety_checks": True,
     }
     backend_map = {
         "jax": jax_backend,
@@ -40,6 +41,16 @@ class _cfg:
                 "Only 'value' and 'off' are allowed for the time being"
             )
         self.__state["sorting"] = value
+    
+    @property
+    def numerical_safety_checks(self):
+        return self.__state["numerical_safety_checks"]
+    
+    @numerical_safety_checks.setter
+    def numerical_safety_checks(self, value:bool):
+        if not isinstance(value, bool):
+            raise ValueError(f"Value {value} or type {type(value)} not understood for numerical_safety_checks")
+        self.__state["numerical_safety_checks"] = value
 
     def __value_sorting_fun(self, value):
         """Sort the value by lenght of the tuple first and then by absolute value of the integers
@@ -79,6 +90,10 @@ class _cfg:
             return value
 
         raise ValueError(f"Node sorting {self.sorting} not found")
+    
+    def raise_if_safety_on(self, exception: Exception):
+        if self.safety_checks:
+            raise exception
 
 
 config = _cfg()

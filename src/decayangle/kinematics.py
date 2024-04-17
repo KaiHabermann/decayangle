@@ -305,8 +305,10 @@ def decode_4_4(matrix, tol=1e-14):
     # for large deviations we will raise an exception
     gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < 1e-14), 1, gma)
     if cb.any(gma < 1):
-        raise ValueError(
-            f"gamma is {gma}, which is less than 1. This is not a valid Lorentz transformation"
+        cfg.raise_if_safety_on(
+             ValueError(
+                f"gamma is {gma}, which is less than 1. This is not a valid Lorentz transformation"
+            )
         )
 
     xi = cb.arccosh(gma)
@@ -374,12 +376,14 @@ def adjust_for_2pi_rotation(
         cb.all(cb.isclose(m_original_2x2, new_2x2, atol=3e-2), axis=-1), axis=-1
     )
     if cb.any(not_two_pi_shifted & two_pi_shifted):
-        raise ValueError(
-            f"The 2x2 matrix does not match the reconstruced parameters!"
-            f"This can happen due to numerical errors."
-            f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
-            f"Difference is {m_original_2x2 - new_2x2}"
-            f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
+        cfg.raise_if_safety_on(
+             ValueError(
+                f"The 2x2 matrix does not match the reconstruced parameters!"
+                f"This can happen due to numerical errors."
+                f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
+                f"Difference is {m_original_2x2 - new_2x2}"
+                f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
+            )
         )
 
     psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)

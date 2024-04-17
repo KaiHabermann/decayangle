@@ -282,8 +282,10 @@ class Node:
             cb.ones_like(akm.gamma(self.momentum(momenta))),
         ):
             gamma = akm.gamma(self.momentum(momenta))
-            raise ValueError(
-                f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+            cfg.raise_if_safety_on( 
+                ValueError(
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                )
             )
         target = Node.get_node(target)
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
@@ -362,9 +364,11 @@ class Node:
             cb.ones_like(akm.gamma(self.momentum(momenta))),
         ):
             gamma = akm.gamma(self.momentum(momenta))
-            raise ValueError(
-                f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
-            )
+            cfg.raise_if_safety_on(
+                ValueError(
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                )
+            ) 
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
