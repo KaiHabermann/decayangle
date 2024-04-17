@@ -1,9 +1,5 @@
 # Welcome to the decayangle software Project
 
-<!-- [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle) -->
-
-
 [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![codecov](https://codecov.io/gh/KaiHabermann/decayangle/graph/badge.svg?token=KXBO8KEQ3V)](https://codecov.io/gh/KaiHabermann/decayangle)
@@ -16,6 +12,7 @@
 - [Usage](#usage)
 - [On Topologies](#topologies)
 - [On Ordering](#ordering)
+- [Dealing with imperfect Data](#dealing-with-imperfect-data)
 - [Related projects](#related-projects)
 - [License](#license)
 
@@ -209,6 +206,18 @@ cfg.sorting = "value" # default sorting
 
 ```
 At this time only `"off"` and `"value"` are supported. For more sophisticated sorting algorithms the user has to write custom functions.
+
+## Dealing with imperfect Data
+
+When dealing with data, that has measurement uncertainty or other issues like backgrounds, it is sometimes easier to just process the data and remove all `inf` or `nan` values. 
+These values will usually trigger `ValueError` in `decayangle`. This behaviour can be disabled via the config as
+
+```python
+from decayangle.config import config as cfg
+cfg.numerical_safety_checks = False
+```
+Now `nan` and `inf` will be handeled only by `numpy` internally.
+
 ## Related projects
 
 Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.
