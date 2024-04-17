@@ -43,7 +43,7 @@ class _cfg:
         self.__state["sorting"] = value
     
     @property
-    def numerical_safety_checks(self):
+    def numerical_safety_checks(self) -> bool:
         return self.__state["numerical_safety_checks"]
     
     @numerical_safety_checks.setter
@@ -92,7 +92,7 @@ class _cfg:
         raise ValueError(f"Node sorting {self.sorting} not found")
     
     def raise_if_safety_on(self, exception: Exception):
-        if self.safety_checks:
+        if self.numerical_safety_checks:
             raise exception
 
 
