@@ -186,7 +186,7 @@ A particular scheme is used to order daughters, and determine node names.
 Helicity angle are always calculated with respect to the first daughter.
 
 The ordering scheme can be customized at `TopologyCollection` level.
-The schemes is specified by a function, which is <expected to take in integers or tuples and return an integer used to sort the daughters, and integers in the node name. 
+The schemes is specified by a function, which is to take in a list or tuple of node values (tuples of integers or integers) and return the sorted version of it.
 
 ```python
 tg = TopologyCollection(0, [1,2,3])
