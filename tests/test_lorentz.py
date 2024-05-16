@@ -283,7 +283,93 @@ def test_daltiz_plot_decomposition(momenta):
     theta_rf, psi_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
     assert np.allclose(dpd_value, np.cos(theta_rf))
 
+def test_4_body():
+    import numpy as np
+
+    chain_vars = {
+        "Kpi": {
+            "mkpisq": 1.3743747462964881,
+            "theta_Kst": 1.0468159811504423,
+            "phi_Kst": 1.3921357860994747,
+            "theta_K": 1.692234518478623,
+            "phi_K": 0.5466265769529981
+        },
+        "pK": {
+            "mkpsq": 2.756020646168232,
+            "theta_L": 2.6621627135924624,
+            "phi_L": 3.010596711405015,
+            "Ltheta_p": 1.861461784272743,
+            "Lphi_p": 1.3499280354237881
+        },
+        "pip": {
+            "mppisq": 2.2410542593352796,
+            "theta_D": 1.05685191949046,
+            "phi_D": -1.1654157065810633,
+            "theta_pi": 1.1669778470524175,
+            "phi_pi": 2.5984404692152796
+        }}
+
+    # Given values
+    # Lc -> p K pi
+    m1, m2, m3, m0 = 0.93827, 0.493677, 0.139570, 2.28646
+    m12 = 2.756020646168232**0.5
+    m23 = 1.3743747462964881**0.5
+    m31 = 2.2410542593352796**0.5
+
+    # Squared masses
+    m0sq, m1sq, m2sq, m3sq, m12sq, m23sq = [x**2 for x in [m0, m1, m2, m3, m12, m23]]
+
+    # Källén function
+    def Kallen(x, y, z):
+        return x**2 + y**2 + z**2 - 2*(x*y + x*z + y*z)
+
+    # Calculating missing mass squared using momentum conservation
+    print(m31**2 , m0sq + m1sq + m2sq + m3sq - m12sq - m23sq)
+    m31sq = m0sq + m1sq + m2sq + m3sq - m12sq - m23sq
+
+
+    # Momenta magnitudes
+    p1a = np.sqrt(Kallen(m23sq, m1sq, m0sq)) / (2*m0)
+    p2a = np.sqrt(Kallen(m31sq, m2sq, m0sq)) / (2*m0)
+    p3a = np.sqrt(Kallen(m12sq, m3sq, m0sq)) / (2*m0)
+
+    # Directions and components
+    cos_zeta_12_for0 = 1.0 # Placeholder for actual expression
+    p1z = -p1a
+    p2z = p2a * cos_zeta_12_for0
+    p2x = np.sqrt(p2a**2 - p2z**2)
+    p3z = -p2z - p1z
+    p3x = -p2x
+
+    # Energy calculations based on the relativistic energy-momentum relation
+    E1 = np.sqrt(p1z**2 + m1sq)
+    E2 = np.sqrt(p2z**2 + p2x**2 + m2sq)
+    E3 = np.sqrt(p3z**2 + p3x**2 + m3sq)
+
+    # Vectors
+    p1 = np.array([0, 0, p1z, E1])
+    p2 = np.array([p2x, 0, p2z, E2])
+    p3 = np.array([p3x, 0, p3z, E3])
+
+    # Mass squared function for a four-vector
+    def masssq(p):
+        return p[3]**2 - (p[0]**2 + p[1]**2 + p[2]**2)
+    print(masssq(p1), m1sq)
+    assert round(masssq(p1), 5) == round(m1sq, 5)
+    print(masssq(p2), m2sq)
+    assert round(masssq(p2), 5) == round(m2sq, 5)
+    print(masssq(p3), m3sq)
+    assert round(masssq(p3), 5) == round(m3sq, 5)
+    # Assertions to check calculations
+    print(p1 + p2,round(masssq(p1 + p2), 5) , round(m12sq, 5))
+    assert round(masssq(p1 + p2), 5) == round(m12sq, 5)
+    print(round(masssq(p2 + p3), 5) , round(m23sq, 5))
+    assert round(masssq(p2 + p3), 5) == round(m23sq, 5)
+    print(round(masssq(p3 + p1), 5) , round(m31sq, 5))
+    assert round(masssq(p3 + p2), 5) == round(m31sq, 5)
+
+
 if __name__ == "__main__":
     # test_lotentz(boost_definitions())
     # test_lotentz2(boost_definitions())
-    test_daltiz_plot_decomposition()
+    test_4_body()

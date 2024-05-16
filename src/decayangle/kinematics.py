@@ -54,7 +54,8 @@ def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
 
 
 def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
-    """Given a vector, rotate it to the z-axis
+    """Given a vector, calculate the angles to rotate it to the z-axis
+    This is done by rotating into the x-z plane (rotation around z axis by -psi_rf) and then into the z-axis (rotation around y axis by -theta_rf)
 
     Args:
         v (Union[jnp.array, np.array]): the 4 vector to be rotated
@@ -63,9 +64,9 @@ def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array
         Union[jnp.array, np.array]: the rotation angles around first z and then y axis
     """
     v = cb.array(v)
-    psi_rf = -cb.arctan2(y_component(v), x_component(v))
+    psi_rf = cb.arctan2(y_component(v), x_component(v))
     theta_rf = cb.arccos(z_component(v) / p(v))
-    return psi_rf, -theta_rf
+    return -psi_rf, -theta_rf
 
 
 @partial(cb.vectorize, signature="()->(2,2)")
