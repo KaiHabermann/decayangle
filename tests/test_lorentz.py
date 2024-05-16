@@ -369,7 +369,7 @@ def test_4_body():
     print(round(masssq(p2 + p3), 5) , round(m23sq, 5))
     assert round(masssq(p2 + p3), 5) == round(m23sq, 5)
     print(round(masssq(p3 + p1), 5) , round(m31sq, 5))
-    assert round(masssq(p3 + p2), 5) == round(m31sq, 5)
+    assert round(masssq(p3 + p1), 5) == round(m31sq, 5)
 
 
 if __name__ == "__main__":
