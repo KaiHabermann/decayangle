@@ -18,9 +18,11 @@ def test_numerical_safety_checks():
         pytest.raises(ValueError, topology.helicity_angles, momenta)
 
     cfg.numerical_safety_checks = False
-    cfg.sorting = "off"
+    old_sorting = cfg.sorting = "off"
     for topology in tc.topologies:
         topology.helicity_angles(momenta)
+    cfg.sorting = old_sorting
+    cfg.numerical_safety_checks = True
 
 
 if __name__ == "__main__":

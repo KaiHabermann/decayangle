@@ -297,7 +297,8 @@ def test_daltiz_plot_decomposition(momenta):
 
 def test_4_body():
     import numpy as np
-
+    # Make sure, the sorting is set to an expected value
+    cfg.sorting = "value"
     chain_vars = {
         "Kpi": {
             "mkpisq": 1.3743747462964881,
@@ -337,7 +338,6 @@ def test_4_body():
         return x**2 + y**2 + z**2 - 2 * (x * y + x * z + y * z)
 
     # Calculating missing mass squared using momentum conservation
-    print(m31**2, m0sq + m1sq + m2sq + m3sq - m12sq - m23sq)
     m31sq = m0sq + m1sq + m2sq + m3sq - m12sq - m23sq
 
     # Momenta magnitudes
@@ -398,7 +398,7 @@ def test_4_body():
     # direct outside rotations are not really supported, but possible via direct matrix multiplication or via the root node of a tree
     momenta = tree1.to_rest_frame(momenta)
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
-
+    print(tree1.helicity_angles(momenta_23_rotated))
     assert np.allclose(
         np.cos(tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].theta_rf),
         np.cos(chain_vars["Kpi"]["theta_Kst"]),
