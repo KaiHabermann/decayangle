@@ -357,19 +357,30 @@ def test_4_body():
     # Mass squared function for a four-vector
     def masssq(p):
         return p[3]**2 - (p[0]**2 + p[1]**2 + p[2]**2)
-    print(masssq(p1), m1sq)
-    assert round(masssq(p1), 5) == round(m1sq, 5)
-    print(masssq(p2), m2sq)
-    assert round(masssq(p2), 5) == round(m2sq, 5)
-    print(masssq(p3), m3sq)
-    assert round(masssq(p3), 5) == round(m3sq, 5)
+    
     # Assertions to check calculations
-    print(p1 + p2,round(masssq(p1 + p2), 5) , round(m12sq, 5))
+    assert round(masssq(p1), 5) == round(m1sq, 5)
+    assert round(masssq(p2), 5) == round(m2sq, 5)
+    assert round(masssq(p3), 5) == round(m3sq, 5)
     assert round(masssq(p1 + p2), 5) == round(m12sq, 5)
-    print(round(masssq(p2 + p3), 5) , round(m23sq, 5))
     assert round(masssq(p2 + p3), 5) == round(m23sq, 5)
-    print(round(masssq(p3 + p1), 5) , round(m31sq, 5))
     assert round(masssq(p3 + p1), 5) == round(m31sq, 5)
+
+    # Lorentz transformation
+    tc = TopologyCollection(0, [1, 2, 3])
+    momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
+    tree1, = tc.filter((2,3))
+    tree2, = tc.filter((1,3))
+    tree3, = tc.filter((1,2))
+    # momenta = tc.topologies[0].to_rest_frame(momenta)
+    momenta = tree1.align_with_daughter(momenta, (2, 3))
+    phi_rf = chain_vars["Kpi"]["phi_K"]
+    rotation = LorentzTrafo(0,0,0,phi_rf,0,0)
+    # direct outside rotations are not really supported, but possible via direct matrix multiplication or via the root node of a tree
+    momenta = tree1.to_rest_frame(momenta)
+    momenta_23_rotated = tree1.root.transform(rotation, momenta)
+    print(tree1.helicity_angles(momenta_23_rotated))
+
 
 
 if __name__ == "__main__":
