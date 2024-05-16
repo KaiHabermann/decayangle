@@ -297,6 +297,7 @@ def test_daltiz_plot_decomposition(momenta):
 
 def test_4_body():
     import numpy as np
+
     # Make sure, the sorting is turned off
     cfg.sorting = "off"
     chain_vars = {
@@ -384,9 +385,9 @@ def test_4_body():
 
     # Lorentz transformation
     momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
-    tree1 = Topology(root= 0, decay_topology=((2,3) , 1))
-    tree2 = Topology(root= 0, decay_topology=((3,1,) , 2))
-    tree3 = Topology(root= 0, decay_topology=((1,2) , 3))
+    tree1 = Topology(root=0, decay_topology=((2, 3), 1))
+    tree2 = Topology(root=0, decay_topology=((3, 1), 2))
+    tree3 = Topology(root=0, decay_topology=((1, 2), 3))
     # momenta = tc.topologies[0].to_rest_frame(momenta)
     momenta = tree1.align_with_daughter(momenta, (2, 3))
     phi_rf = chain_vars["Kpi"]["phi_Kst"]
