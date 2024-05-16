@@ -141,7 +141,7 @@ def test_daltiz_plot_decomposition(momenta):
         rest = msq[i] + msq[j] - sigmas[k]
     
         return (2*msq[k] * rest + EE4m1sq) / pp4m1sq
-    
+
 
     def cos_zeta_1_aligned_3_in_tree_1(M, m1, m2, m3, sigma1, sigma2, sigma3):
         """
@@ -338,8 +338,6 @@ def test_4_body():
     cos_zeta_12_for0_denominator  = np.sqrt(Kallen(m0sq, m2sq, m31sq)) * np.sqrt(Kallen(m0sq, m23sq, m1sq))
     cos_zeta_12_for0 = cos_zeta_12_for0_numerator / cos_zeta_12_for0_denominator
     
-    cos_theta_12 = numerator / denominator
-    return cos_theta_12
     p1z = -p1a
     p2z = -p2a * cos_zeta_12_for0
     p2x = np.sqrt(p2a**2 - p2z**2)
