@@ -334,9 +334,14 @@ def test_4_body():
     p3a = np.sqrt(Kallen(m12sq, m3sq, m0sq)) / (2*m0)
 
     # Directions and components
-    cos_zeta_12_for0 = 1.0 # Placeholder for actual expression
+    cos_zeta_12_for0_numerator = (m0sq + m1sq - m23sq) * (m0sq + m2sq - m31sq) - 2 * m0sq * (m12sq - m1sq - m2sq)
+    cos_zeta_12_for0_denominator  = np.sqrt(Kallen(m0sq, m2sq, m31sq)) * np.sqrt(Kallen(m0sq, m23sq, m1sq))
+    cos_zeta_12_for0 = cos_zeta_12_for0_numerator / cos_zeta_12_for0_denominator
+    
+    cos_theta_12 = numerator / denominator
+    return cos_theta_12
     p1z = -p1a
-    p2z = p2a * cos_zeta_12_for0
+    p2z = -p2a * cos_zeta_12_for0
     p2x = np.sqrt(p2a**2 - p2z**2)
     p3z = -p2z - p1z
     p3x = -p2x
