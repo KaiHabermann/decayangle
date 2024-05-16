@@ -5,7 +5,7 @@ from decayangle.kinematics import (
     mass_squared,
 )
 from decayangle.lorentz import LorentzTrafo
-from decayangle.decay_topology import TopologyCollection
+from decayangle.decay_topology import TopologyCollection, Topology
 from decayangle.config import config as cfg
 from jax import numpy as jnp
 import jax
@@ -297,8 +297,8 @@ def test_daltiz_plot_decomposition(momenta):
 
 def test_4_body():
     import numpy as np
-    # Make sure, the sorting is set to an expected value
-    cfg.sorting = "value"
+    # Make sure, the sorting is turned off
+    cfg.sorting = "off"
     chain_vars = {
         "Kpi": {
             "mkpisq": 1.3743747462964881,
@@ -383,11 +383,10 @@ def test_4_body():
     assert round(masssq(p3 + p1), 5) == round(m31sq, 5)
 
     # Lorentz transformation
-    tc = TopologyCollection(0, [1, 2, 3])
     momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
-    (tree1,) = tc.filter((2, 3))
-    (tree2,) = tc.filter((1, 3))
-    (tree3,) = tc.filter((1, 2))
+    tree1 = Topology(root= 0, decay_topology=((2,3) , 1))
+    tree2 = Topology(root= 0, decay_topology=((3,1,) , 2))
+    tree3 = Topology(root= 0, decay_topology=((1,2) , 3))
     # momenta = tc.topologies[0].to_rest_frame(momenta)
     momenta = tree1.align_with_daughter(momenta, (2, 3))
     phi_rf = chain_vars["Kpi"]["phi_Kst"]
@@ -418,20 +417,20 @@ def test_4_body():
     )
 
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[((1, 3), 2)].theta_rf),
+        np.cos(tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].theta_rf),
         np.cos(chain_vars["pip"]["theta_D"]),
     )
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[((1, 3), 2)].psi_rf),
+        np.cos(tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].psi_rf),
         np.cos(chain_vars["pip"]["phi_D"]),
     )
-    # ordering is different, so we need to shift by pi
+
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[(1, 3)].psi_rf - np.pi),
+        np.cos(tree2.helicity_angles(momenta_23_rotated)[(3, 1)].psi_rf),
         np.cos(chain_vars["pip"]["phi_pi"]),
     )
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[(1, 3)].theta_rf - np.pi),
+        np.cos(tree2.helicity_angles(momenta_23_rotated)[(3, 1)].theta_rf),
         np.cos(chain_vars["pip"]["theta_pi"]),
     )
 
