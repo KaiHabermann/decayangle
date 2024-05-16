@@ -486,6 +486,9 @@ class Topology:
             dict: the momenta in the rest frame of the root node
         """
         momentum = self.root.momentum(momenta)
+        gamma = akm.gamma(momentum)
+        if cb.allclose(gamma, cb.ones_like(gamma)):
+            return momenta
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
     def __build_boost_tree(self) -> Tuple[nx.DiGraph, Dict[int, Node]]:

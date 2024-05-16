@@ -618,11 +618,13 @@ def lorentz_boost(vector, boostvector):
     b2 = scalar_product(boost, boost)
     gma = 1.0 / cb.sqrt(1.0 - b2)
     gma2 = (gma - 1.0) / b2
+    gma2 = cb.where(cb.isclose(b2, 0), 0 , gma2)
     ve = time_component(vector)
     vp = spatial_components(vector)
     bp = scalar_product(vp, boost)
     vp2 = vp + scalar(gma2 * bp + gma * ve) * boost
     ve2 = gma * (ve + bp)
+    
     return lorentz_vector(vp2, ve2)
 
 
