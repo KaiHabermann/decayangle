@@ -397,7 +397,6 @@ def test_4_body():
     # direct outside rotations are not really supported, but possible via direct matrix multiplication or via the root node of a tree
     momenta = tree1.to_rest_frame(momenta)
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
-    print(tree1.helicity_angles(momenta_23_rotated))
     assert np.allclose(
         np.cos(tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].theta_rf),
         np.cos(chain_vars["Kpi"]["theta_Kst"]),
