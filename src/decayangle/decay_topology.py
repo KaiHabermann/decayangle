@@ -1,5 +1,5 @@
+from __future__ import annotations
 from typing import List, Tuple, Union, Any, Dict, Optional, Generator, Callable
-from functools import cached_property
 from collections import namedtuple
 import numpy as np
 from jax import numpy as jnp
@@ -43,7 +43,7 @@ class Node:
         ordering_function (function): function ordering the daughters and node values of the node
     """
     @staticmethod
-    def construct_topology(node: "Node", topology: Tuple[Union[int, tuple]]):
+    def construct_topology(node: Node, topology: Tuple[Union[int, tuple]]):
         """Construct a topology from a tuple of integers and tuples, in the form like the string representation of a topology
 
         i.e. ((1,2), 3)
@@ -63,7 +63,7 @@ class Node:
         Node.construct_topology(right, topology[1])
 
     @classmethod
-    def get_node(cls, value: Union[int, Tuple[int], "Node"]) -> "Node":
+    def get_node(cls, value: Union[int, Tuple[int], Node]) -> Node:
         """Get a node from a value or return the value if a node is given
 
         Args:
@@ -143,7 +143,7 @@ class Node:
         for d in self.__daughters:
             d.ordering_function = value
 
-    def __sorted_daughters(self) -> Tuple["Node"]:
+    def __sorted_daughters(self) -> Tuple[Node]:
         """
         Sort the daughters of the node, by passing the values to the sorting function
         Then return the daughters in the order of the sorted values
@@ -152,7 +152,7 @@ class Node:
         sorted_values = self.ordering_function(daughter_values)
         return tuple(self.__daughters[daughter_values.index(v)] for v in sorted_values)
 
-    def add_daughter(self, daughter: "Node"):
+    def add_daughter(self, daughter: Node):
         """Add a daughter to the node. 
         The daughter has to be of type Node, since this function should only be called when constructing a topology.
         No checks are made to ensure that the daughter is not already a daughter of the node.
@@ -169,7 +169,7 @@ class Node:
         daughter.parent = self
 
     @property
-    def daughters(self) -> Tuple["Node"]:
+    def daughters(self) -> Tuple[Node]:
         """Get the daughters of the node
 
         Returns:
@@ -196,7 +196,7 @@ class Node:
     def __str__(self):
         return self.__repr__()
 
-    def contains(self, contained_node: "Node") -> bool:
+    def contains(self, contained_node: Node) -> bool:
         """Check if a node is contained in the topology
 
         Args:
@@ -216,7 +216,7 @@ class Node:
                 return True
         return False
 
-    def preorder(self) -> List["Node"]:
+    def preorder(self) -> List[Node]:
         """Get the nodes in the tree in preorder. 
         This is a recursive function, which will return the nodes in the tree in the order of the preorder traversal.
         This means, root first, then daughters in the order they were added.
@@ -272,7 +272,7 @@ class Node:
             k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()
         }
 
-    def boost(self, target: Union["Node", int], momenta: dict) -> LorentzTrafo:
+    def boost(self, target: Union[Node, int], momenta: dict) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
@@ -348,7 +348,7 @@ class Node:
         return HelicityAngles(theta_rf, psi_rf)
 
     def rotate_to(
-        self, target: "Node", momenta: dict
+        self, target: Node, momenta: dict
     ) -> Tuple[LorentzTrafo, float, float]:
         """Get the rotation from this node to a target node
         The momenta dictionary will define the initial configuration.
@@ -463,7 +463,7 @@ class Topology:
     def __repr__(self) -> str:
         return f"Topology: {self.root}"
 
-    def contains(self, contained_node: Union["Node", int]) -> bool:
+    def contains(self, contained_node: Union[Node, int]) -> bool:
         """Check if a node is contained in the topology
 
         Args:
@@ -486,6 +486,9 @@ class Topology:
             dict: the momenta in the rest frame of the root node
         """
         momentum = self.root.momentum(momenta)
+        gamma = akm.gamma(momentum)
+        if cb.allclose(gamma, cb.ones_like(gamma)):
+            return momenta
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
     def __build_boost_tree(self) -> Tuple[nx.DiGraph, Dict[int, Node]]:
@@ -535,7 +538,7 @@ class Topology:
         return helicity_angles
 
     def boost(
-        self, target: Union["Node", int], momenta: dict, inverse: bool = False
+        self, target: Union[Node, int], momenta: dict, inverse: bool = False
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -569,7 +572,7 @@ class Topology:
         return trafo
 
     def rotate_between_topologies(
-        self, other: "Topology", target: Union["Node", int], momenta: dict
+        self, other: "Topology", target: Union[Node, int], momenta: dict
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
