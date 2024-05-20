@@ -64,19 +64,21 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     rotation = LorentzTrafo(0, 0, 0, phi_rf, theta_rf, psi_rf)
     # 
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
-    return tree1.relative_wigner_angles(tree2, momenta_23_rotated)
+    return tree1.relative_wigner_angles(tree3, momenta_23_rotated)
 
-x = np.arange(0, np.pi, 0.1)
-y = np.arange(0, np.pi, 0.1)
+x = np.arange(0, np.pi, 0.101)[1::]
+y = np.arange(0, np.pi, 0.101)[1::]
 X, Y = np.meshgrid(x, y)
-result_full = make_four_vectors(X, 1.7, Y)
+result_full = make_four_vectors(1.6, X, Y)
 
-result = result_full[1].psi_rf
+result_psi = result_full[1].psi_rf
+result_phi = result_full[1].phi_rf
+result = result_psi + result_phi
 
 img = plt.imshow(result, cmap='hot', origin='lower')
 
 plt.colorbar()
-plt.xlabel('Phi_rf')
+plt.xlabel('Theta_rf')
 plt.ylabel('Psi_rf')
-plt.title('Heatmap of Result')
+plt.title('psi_3(1)_for_1')
 plt.show()
