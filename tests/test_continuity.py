@@ -75,7 +75,8 @@ result_psi = result_full[1].psi_rf
 result_phi = result_full[1].phi_rf
 result = result_psi + result_phi
 
-img = plt.imshow(result, cmap='hot', origin='lower')
+img = plt.imshow(result, cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()])
 
 plt.colorbar()
 plt.xlabel('Theta_rf')
