@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 from functools import partial
 from jax import numpy as jnp
 import numpy as np
@@ -288,12 +288,15 @@ def decode_rotation_4x4(rotation_matrix: jnp.array) -> Tuple[float, float, float
     return phi, theta, psi
 
 
-def decode_4_4(matrix, tol=1e-14):
+def decode_4_4(matrix, tol:Optional[float]=None) -> Tuple[Union[float, np.array, jnp.array]]:
     r"""decode a 4x4 matrix into the 6 kinematic parameters
 
     Args:
         matrix (jax.numpy.ndarray): the 4x4 matrix
     """
+    if tol is None:
+        tol = cfg.gamma_tolerance
+
     m = 1.0
     v_0 = cb.array([0, 0, 0, m])
 
@@ -304,7 +307,7 @@ def decode_4_4(matrix, tol=1e-14):
 
     # gamma can be smaller than 1 due to numerical errors
     # for large deviations we will raise an exception
-    gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < cfg.gamma_tolerance), 1, gma)
+    gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < tol), 1, gma)
     if cb.any(gma < 1):
         cfg.raise_if_safety_on(
              ValueError(
@@ -369,11 +372,11 @@ def adjust_for_2pi_rotation(
     new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf)
 
     not_two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, new_2x2), axis=-1), axis=-1
+        cb.all(cb.isclose(m_original_2x2, new_2x2, rtol=cfg.shift_precision), axis=-1), axis=-1
     )
 
     two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, -new_2x2), axis=-1), axis=-1
+        cb.all(cb.isclose(m_original_2x2, -new_2x2, rtol=cfg.shift_precision), axis=-1), axis=-1
     )
     if cb.any(not_two_pi_shifted & two_pi_shifted):
         cfg.raise_if_safety_on(

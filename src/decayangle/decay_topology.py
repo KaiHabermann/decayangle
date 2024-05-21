@@ -280,6 +280,7 @@ class Node:
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
+            rtol=cfg.gamma_tolerance
         ):
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on( 
@@ -362,6 +363,7 @@ class Node:
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
+            rtol=cfg.gamma_tolerance
         ):
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
@@ -487,7 +489,7 @@ class Topology:
         """
         momentum = self.root.momentum(momenta)
         gamma = akm.gamma(momentum)
-        if cb.allclose(gamma, cb.ones_like(gamma)):
+        if cb.allclose(gamma, cb.ones_like(gamma), rtol=cfg.gamma_tolerance):
             return momenta
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
