@@ -368,13 +368,12 @@ def adjust_for_2pi_rotation(
     """
     new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf)
 
-    # TODO: is this amount of numerical tolerance maybe a little too much?
-    two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, -new_2x2, atol=3e-2), axis=-1), axis=-1
+    not_two_pi_shifted = cb.all(
+        cb.all(cb.isclose(m_original_2x2, new_2x2), axis=-1), axis=-1
     )
 
-    not_two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, new_2x2, atol=3e-2), axis=-1), axis=-1
+    two_pi_shifted = cb.all(
+        cb.all(cb.isclose(m_original_2x2, -new_2x2), axis=-1), axis=-1
     )
     if cb.any(not_two_pi_shifted & two_pi_shifted):
         cfg.raise_if_safety_on(
