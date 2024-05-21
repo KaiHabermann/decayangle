@@ -69,17 +69,41 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
 x = np.arange(0, np.pi, 0.101)[1::]
 y = np.arange(0, np.pi, 0.101)[1::]
 X, Y = np.meshgrid(x, y)
-result_full = make_four_vectors(1.6, X, Y)
+result_full = make_four_vectors(1.9, X, Y)
 
 result_psi = result_full[1].psi_rf
 result_phi = result_full[1].phi_rf
 result = result_psi + result_phi
 
-img = plt.imshow(result/np.pi, cmap='hot', origin='lower',
+
+img = plt.imshow(np.fmod(result/np.pi + 4,4), cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()])
+
+plt.colorbar(label="angle in multiples of pi")
+plt.xlabel('Theta_rf')
+plt.ylabel('Psi_rf')
+plt.title('psi_3(1)_for_1 + phi_3(1)_for_1')
+plt.savefig('test.png')
+plt.close('all')
+
+
+img = plt.imshow(result_phi/np.pi, cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()])
+
+plt.colorbar(label="angle in multiples of pi")
+plt.xlabel('Theta_rf')
+plt.ylabel('Psi_rf')
+plt.title('phi_3(1)_for_1')
+plt.savefig('test_phi.png')
+plt.close('all')
+
+
+img = plt.imshow(result_psi/np.pi, cmap='hot', origin='lower',
                  extent=[x.min(), x.max(), y.min(), y.max()])
 
 plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
 plt.ylabel('Psi_rf')
 plt.title('psi_3(1)_for_1')
-plt.savefig('test.png')
+plt.savefig('test_psi.png')
+plt.close('all')
