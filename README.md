@@ -218,8 +218,23 @@ cfg.numerical_safety_checks = False
 ```
 Now `nan` and `inf` will be handeled only by `numpy` internally.
 
-## Related projects
+## Further configuration options
+- The required precision for comparisons of $\gamma$. This controlls, which deviation of $\gamma$ from 1 is accepted before an exception is thrown. Thie default value should usually not be touched. In special cases, this may be useful though, if the decay topology is very complicated.
 
+```{python}
+from decayangle.config import config as cfg
+cfg.gamma_tolerance = 1e-8 # the absolute tolerance of gamma around 1
+# this is checked at numerous places in the code
+```
+
+- The required precision for a shift of $2 \pi$. This is checked to determine if the $2 \pi$ rotation needs to be applied. I.e. if the SU(2) matrix, which is build from the decoded angles is in the range of +- `cfg.shift_precision` of the matrix, which is produced during the consecutive boosts, then no $2 \pi$ shift is applied. If the negative of the SU(2) matrix, which is build from the decoded angles is in the range of +- `cfg.shift_precision` of the matrix, which is produced during the consecutive boosts, then a $2 \pi$ shift is applied. If both are true, then an error is thrown. Thus in rare cases the precision may have to be adjusted or the `cfg.numerical_safety_checks` config option has to be turned off. The exception is in place to warn the user of cases, where an ambiguity due to numerical imprecision may happen.
+
+```{python}
+from decayangle.config import config as cfg
+cfg.shift_precision = 1e-6
+```
+
+## Related projects
 Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.
 However, there are a few projects addressing these rotations explicitly using analytic expressions in [DPD paper](https://inspirehep.net/literature/1758460), derived for three-body decays:
 - [ThreeBodyDecays.jl](https://github.com/mmikhasenko/ThreeBodyDecays.jl), 
