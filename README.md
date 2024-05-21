@@ -134,7 +134,7 @@ cfg.sorting = "off"
 root = 0
 topologies = [
     Topology(root, decay_topology=((1, 2), 3)),
-    Topology(root, decay_topology=((1, 3), 2)), 
+    Topology(root, decay_topology=((3, 1), 2)), 
     Topology(root, decay_topology=((2, 3), 1)) 
 ]
 ```
