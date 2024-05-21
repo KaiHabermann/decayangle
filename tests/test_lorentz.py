@@ -17,10 +17,11 @@ jax.config.update("jax_enable_x64", True)
 
 @pytest.fixture
 def boost_definitions():
-    np.random.seed(0)
+    np.random.seed(123456)
     definitions = []
-    for i in range(20):
+    for i in range(100):
         args = np.random.rand(6) * np.pi
+        definitions.append(args.copy())
         args[-1] = args[-1] + 2 * np.pi
         definitions.append(args)
     return definitions

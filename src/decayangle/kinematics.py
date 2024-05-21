@@ -304,7 +304,7 @@ def decode_4_4(matrix, tol=1e-14):
 
     # gamma can be smaller than 1 due to numerical errors
     # for large deviations we will raise an exception
-    gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < 1e-14), 1, gma)
+    gma = cb.where((abs(gma) < 1) & (abs(gma - 1) < cfg.gamma_tolerance), 1, gma)
     if cb.any(gma < 1):
         cfg.raise_if_safety_on(
              ValueError(
