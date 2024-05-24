@@ -32,7 +32,7 @@ def flat(l) -> Generator:
 
 class Node:
     """
-    Class to represent a node in a decay topology. The node can have daughters, which are also nodes. 
+    Class to represent a node in a decay topology. The node can have daughters, which are also nodes.
     The value of a node is either an integer or a tuple of integers. A tuple implies that the node will finally decay into the particles given in the tuple.
     The ordering function is used to sort the daughters and the values of the composite nodes.
 
@@ -42,6 +42,7 @@ class Node:
         daughters (Tuple[Node]): the daughters of the node
         ordering_function (function): function ordering the daughters and node values of the node
     """
+
     @staticmethod
     def construct_topology(node: Node, topology: Tuple[Union[int, tuple]]):
         """Construct a topology from a tuple of integers and tuples, in the form like the string representation of a topology
@@ -137,7 +138,7 @@ class Node:
 
         self.__sorting_fun = value
         self.__daughters = self.__sorted_daughters()
-        
+
         if isinstance(self.value, tuple):
             self.value = self.ordering_function(self.value)
         for d in self.__daughters:
@@ -153,11 +154,11 @@ class Node:
         return tuple(self.__daughters[daughter_values.index(v)] for v in sorted_values)
 
     def add_daughter(self, daughter: Node):
-        """Add a daughter to the node. 
+        """Add a daughter to the node.
         The daughter has to be of type Node, since this function should only be called when constructing a topology.
         No checks are made to ensure that the daughter is not already a daughter of the node.
         Daughters are re-sorted after adding a new daughter.
-        
+
         Args:
             daughter (Node): the daughter to add
         """
@@ -206,7 +207,7 @@ class Node:
             bool: True if the node is contained in the topology, False otherwise
         """
         contained_node = Node.get_node(contained_node)
-        if isinstance(self.value, int): 
+        if isinstance(self.value, int):
             if self.value == contained_node.value:
                 return True
         elif set(self.value) == set(contained_node.value):
@@ -217,7 +218,7 @@ class Node:
         return False
 
     def preorder(self) -> List[Node]:
-        """Get the nodes in the tree in preorder. 
+        """Get the nodes in the tree in preorder.
         This is a recursive function, which will return the nodes in the tree in the order of the preorder traversal.
         This means, root first, then daughters in the order they were added.
 
@@ -258,7 +259,9 @@ class Node:
         """
         return akm.mass(self.momentum(momenta))
 
-    def transform(self, trafo: LorentzTrafo, momenta: Dict[str, Union[np.array, jnp.array]]) -> Dict[int, Union[np.array, jnp.array]]:
+    def transform(
+        self, trafo: LorentzTrafo, momenta: Dict[str, Union[np.array, jnp.array]]
+    ) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta of the final state particles
 
         Args:
@@ -272,7 +275,12 @@ class Node:
             k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()
         }
 
-    def boost(self, target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> LorentzTrafo:
+    def boost(
+        self,
+        target: Union[Node, int],
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
+    ) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
@@ -288,10 +296,10 @@ class Node:
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
-            rtol=tol
+            rtol=tol,
         ):
             gamma = akm.gamma(self.momentum(momenta))
-            cfg.raise_if_safety_on( 
+            cfg.raise_if_safety_on(
                 ValueError(
                     f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
                 )
@@ -318,7 +326,10 @@ class Node:
         return boost @ rotation
 
     def align_with_daughter(
-        self, momenta: Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0, tol: Optional[float]=None
+        self,
+        momenta: Dict[int, Union[np.array, jnp.array]],
+        nth_daughter: int = 0,
+        tol: Optional[float] = None,
     ) -> Dict[int, Union[np.array, jnp.array]]:
         """Align the momenta with the nth daughter. It is written in this way, to highlight, that one can only align with the direct daughters of a node.
         This requires the momenta to be in the rest frame of the node.
@@ -338,10 +349,14 @@ class Node:
         rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta, tol=tol)
         return self.transform(rotation, momenta)
 
-    def helicity_angles(self, momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> HelicityAngles:
+    def helicity_angles(
+        self,
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
+    ) -> HelicityAngles:
         """
         Get the helicity angles for the daughters of this node.
-        The angles are with respect to the first daughter. 
+        The angles are with respect to the first daughter.
         Here the ordering scheme can be important.
 
         Parameters:
@@ -359,9 +374,15 @@ class Node:
         return HelicityAngles(theta_rf, psi_rf)
 
     def rotate_to(
-        self, target: Node, momenta: Dict[str, Union[np.array, jnp.array]],
-        tol: Optional[float]=None
-    ) -> Tuple[LorentzTrafo, Union[float, np.array, jnp.array], Union[float, np.array, jnp.array]]:
+        self,
+        target: Node,
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
+    ) -> Tuple[
+        LorentzTrafo,
+        Union[float, np.array, jnp.array],
+        Union[float, np.array, jnp.array],
+    ]:
         """Get the rotation from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
@@ -382,14 +403,14 @@ class Node:
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
-            rtol=tol
+            rtol=tol,
         ):
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
                 ValueError(
                     f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
                 )
-            ) 
+            )
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
@@ -407,7 +428,7 @@ class Node:
 
 
 class Topology:
-    """ A class to represent a decay topology as a tree of nodes.
+    """A class to represent a decay topology as a tree of nodes.
     The tree is constructed from a root node, which has daughters, which can have daughters and so on.
     The final state nodes are the nodes without daughters.
     The ordering function is used to sort the daughters of the nodes and the values of the composite nodes.
@@ -416,7 +437,7 @@ class Topology:
         root (Node): the root node of the topology
         final_state_nodes (List[Node]): the final state nodes of the topology
         ordering_function (function): function ordering the daughters and node values of the topology
-    
+
     """
 
     def __init__(
@@ -497,7 +518,11 @@ class Topology:
         contained_node.ordering_function = self.ordering_function
         return self.root.contains(contained_node)
 
-    def to_rest_frame(self, momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> Dict[int, Union[np.array, jnp.array]]:
+    def to_rest_frame(
+        self,
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
+    ) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta to the rest frame of the root node
 
         Args:
@@ -536,7 +561,11 @@ class Topology:
         """
         return {n.value: n for n in self.preorder()}
 
-    def helicity_angles(self, momenta: Dict[str, Union[np.array, jnp.array]], tol:Optional[float]=None) -> Dict[Tuple[Union[tuple ,int], Union[tuple ,int]], HelicityAngles]:
+    def helicity_angles(
+        self,
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
+    ) -> Dict[Tuple[Union[tuple, int], Union[tuple, int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
 
@@ -565,7 +594,11 @@ class Topology:
         return helicity_angles
 
     def boost(
-        self, target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], inverse: bool = False, tol: Optional[float]=None
+        self,
+        target: Union[Node, int],
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        inverse: bool = False,
+        tol: Optional[float] = None,
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -600,7 +633,11 @@ class Topology:
         return trafo
 
     def rotate_between_topologies(
-        self, other: "Topology", target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None
+        self,
+        other: "Topology",
+        target: Union[Node, int],
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
@@ -617,10 +654,13 @@ class Topology:
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(target, momenta, inverse=True, tol=tol)
         boost2 = other.boost(target, momenta, tol=tol)
-        return (boost2 @ boost1_inv)
+        return boost2 @ boost1_inv
 
     def relative_wigner_angles(
-        self, other: "Topology", momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None
+        self,
+        other: "Topology",
+        momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float] = None,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -634,12 +674,16 @@ class Topology:
             Dict of the relative Wigner angles with the final state node as key
         """
         return {
-            target.value: self.rotate_between_topologies(other, target, momenta, tol=tol).wigner_angles()
+            target.value: self.rotate_between_topologies(
+                other, target, momenta, tol=tol
+            ).wigner_angles()
             for target in self.final_state_nodes
         }
 
     def align_with_daughter(
-        self, momenta: Dict[int, Union[np.array, jnp.array]], node: Optional[Union[int, Node]]=None
+        self,
+        momenta: Dict[int, Union[np.array, jnp.array]],
+        node: Optional[Union[int, Node]] = None,
     ) -> Dict[int, Union[np.array, jnp.array]]:
         """Align the momenta with the node passed as argument. If no node is passed, the first daughter is used.
         If the node is not a daughter of the root node, a ValueError is raised.
@@ -657,11 +701,17 @@ class Topology:
             node = Node.get_node(node)
             node.ordering_function = self.ordering_function
             try:
-                nth_daughter, = [i for i, d in enumerate(self.root.daughters) if d.value == node.value]
+                (nth_daughter,) = [
+                    i
+                    for i, d in enumerate(self.root.daughters)
+                    if d.value == node.value
+                ]
             except ValueError:
-                raise ValueError(f"Node {node} is not a daughter of the root node {self.root}")
+                raise ValueError(
+                    f"Node {node} is not a daughter of the root node {self.root}"
+                )
         return self.root.align_with_daughter(momenta, nth_daughter)
-    
+
     def preorder(self) -> List[Node]:
         """Get the nodes in the tree in preorder. This only calls the preorder function of the root node.
         For more details see the preorder function of the Node class.
@@ -718,6 +768,7 @@ def generate_topology_definitions(nodes: List[int]) -> List[Node]:
                     r_node.add_daughter(r2)
                 topologies.append((l_node, r_node))
     return topologies
+
 
 class TopologyCollection:
     """
