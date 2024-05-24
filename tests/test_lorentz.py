@@ -296,7 +296,7 @@ def test_daltiz_plot_decomposition(momenta):
     assert np.allclose(dpd_value, np.cos(theta_rf))
 
 
-def test_4_body():
+def test_helicity_angles():
     import numpy as np
 
     # Make sure, the sorting is turned off
