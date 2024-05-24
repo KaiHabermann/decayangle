@@ -8,8 +8,7 @@ from decayangle.numerics_helpers import save_arccos
 cb = cfg.backend
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
+def boost_matrix_2_2_x(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the x-direction
     Args:
@@ -18,13 +17,14 @@ def boost_matrix_2_2_x(xi: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the 2x2 boost matrix with shape (...,2,2)
     """
-    sigma_x = cb.array([[0, 1], [1, 0]])
-    eye = cb.eye(2)
-    return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x
+    zero = cb.zeros_like(xi)
+    one = cb.ones_like(xi)
+    sigma_x = cb.array([[zero, one], [one, zero]])
+    eye = cb.array([[one, zero], [zero, one]])
+    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
+def boost_matrix_2_2_y(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the y-direction
     Args:
@@ -33,13 +33,14 @@ def boost_matrix_2_2_y(xi: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the 2x2 boost matrix with shape (...,2,2)
     """
-    sigma_y = cb.array([[0, -1j], [1j, 0]])
-    eye = cb.eye(2)
-    return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y
+    zero = cb.zeros_like(xi)
+    one = cb.ones_like(xi)
+    sigma_y = cb.array([[zero, -1j * one], [1j * one, zero]])
+    eye = cb.array([[one, zero], [zero, one]])
+    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
+def boost_matrix_2_2_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""
     Build a 2x2 boost matrix in the z-direction
     Args:
@@ -48,9 +49,11 @@ def boost_matrix_2_2_z(xi: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the 2x2 boost matrix with shape (...,2,2)
     """
-    sigma_z = cb.array([[1, 0], [0, -1]])
-    eye = cb.eye(2)
-    return cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z
+    zero = cb.zeros_like(xi)
+    one = cb.ones_like(xi)
+    eye = cb.array([[one, zero], [zero, one]])
+    sigma_z = cb.array([[one, zero], [zero, -one]])
+    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z).swapaxes(1, -1).swapaxes(0, -2)
 
 
 def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -69,8 +72,7 @@ def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array
     return -psi_rf, -theta_rf
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
+def rotation_matrix_2_2_x(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the x-axis
 
     Args:
@@ -79,13 +81,14 @@ def rotation_matrix_2_2_x(theta: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the rotation matrix with shape (...,2,2)
     """
-    eye = cb.eye(2)
-    sgma_x = cb.array([[0, 1], [1, 0]])
-    return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x
+    zero = cb.zeros_like(theta)
+    one = cb.ones_like(theta)
+    eye = cb.array([[one, zero], [zero, one]])    
+    sgma_x = cb.array([[zero, one], [one, zero]])
+    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
+def rotation_matrix_2_2_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the y-axis
 
     Args:
@@ -94,13 +97,14 @@ def rotation_matrix_2_2_y(theta: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the rotation matrix with shape (...,2,2)
     """
-    eye = cb.eye(2)
-    sgma_y = cb.array([[0, -1j], [1j, 0]])
-    return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y
+    zero = cb.zeros_like(theta)
+    one = cb.ones_like(theta)
+    eye = cb.array([[one, zero], [zero, one]])
+    sgma_y = cb.array([[zero, -1j * one], [1j * one, zero]])
+    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(2,2)")
-def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
+def rotation_matrix_2_2_z(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Build a 2x2 rotation matrix around the z-axis
 
     Args:
@@ -109,13 +113,14 @@ def rotation_matrix_2_2_z(theta: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the rotation matrix with shape (...,2,2)
     """
-    eye = cb.eye(2)
-    sgma_z = cb.array([[1, 0], [0, -1]])
-    return cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z
+    zero = cb.zeros_like(theta)
+    one = cb.ones_like(theta)
+    eye = cb.array([[one, zero], [zero, one]])
+    sgma_z = cb.array([[one, zero], [zero, -one]])
+    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(4,4)")
-def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
+def boost_matrix_4_4_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""Build a 4x4 boost matrix in the z-direction
 
     Args:
@@ -124,40 +129,41 @@ def boost_matrix_4_4_z(xi: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the 4x4 boost matrix with shape (...,4,4)
     """
+    zero = cb.zeros_like(xi)
+    one = cb.ones_like(xi)
     gma = cb.cosh(xi)
     beta_gamma = cb.sinh(xi)
     return cb.array(
         [
             [
-                1,
-                0,
-                0,
-                0,
+                one,
+                zero,
+                zero,
+                zero,
             ],
             [
-                0,
-                1,
-                0,
-                0,
+                zero,
+                one,
+                zero,
+                zero,
             ],
             [
-                0,
-                0,
+                zero,
+                zero,
                 gma,
                 beta_gamma,
             ],
             [
-                0,
-                0,
+                zero,
+                zero,
                 beta_gamma,
                 gma,
             ],
         ]
-    )
+    ).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(4,4)")
-def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
+def rotation_matrix_4_4_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Build a 4x4 rotation matrix around the y-axis
 
     Args:
@@ -166,34 +172,35 @@ def rotation_matrix_4_4_y(theta: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jnp.array, np.array]: the rotation matrix with shape (...,4,4)
     """
+    zero = cb.zeros_like(theta)
+    one = cb.ones_like(theta)
     return cb.array(
         [
             [
                 cb.cos(theta),
-                0,
+                zero,
                 cb.sin(theta),
-                0,
+                zero,
             ],
             [
-                0,
-                1,
-                0,
-                0,
+                zero,
+                one,
+                zero,
+                zero,
             ],
             [
                 -cb.sin(theta),
-                0,
+                zero,
                 cb.cos(theta),
-                0,
+                zero,
             ],
-            [0, 0, 0, 1],
+            [zero, zero, zero, one],
         ]
-    )
+    ).swapaxes(1, -1).swapaxes(0, -2)
 
 
-@partial(cb.vectorize, signature="()->(4,4)")
 def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
-    """Build a 4x4 rotation matrix around the z-axis^
+    """Build a 4x4 rotation matrix around the z-axis
 
     Args:
         theta (float): the rotation angle
@@ -201,32 +208,32 @@ def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
     Returns:
         Union[jax.numpy.ndarray, np.array]: the rotation matrix with shape (...,4,4)
     """
+    zero = cb.zeros_like(theta)
+    one = cb.ones_like(theta)
     return cb.array(
         [
             [
                 cb.cos(theta),
                 -cb.sin(theta),
-                0,
-                0,
+                zero,
+                zero,
             ],
             [
                 cb.sin(theta),
                 cb.cos(theta),
-                0,
-                0,
+                zero,
+                zero,
             ],
             [
-                0,
-                0,
-                1,
-                0,
+                zero,
+                zero,
+                one,
+                zero,
             ],
-            [0, 0, 0, 1],
+            [zero, zero, zero, one],
         ]
-    )
+    ).swapaxes(1, -1).swapaxes(0, -2)
 
-
-@partial(cb.vectorize, signature="(), (), (), (), (), ()->(2,2)")
 def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 2x2 matrix from the 6 kinematic parameters
 
@@ -251,7 +258,6 @@ def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     )
 
 
-@partial(cb.vectorize, signature="(), (), (), (), (), ()->(4,4)")
 def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 4x4 matrix from the 6 kinematic parameters
 
