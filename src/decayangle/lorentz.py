@@ -23,7 +23,7 @@ class LorentzTrafo:
 
     The 4x4 matrix is used to perfrom the Lorentz transformation on a 4-vector and to decode the parameters of the transformation up to a rotation of 2 pi.
     The 2x2 matrix can then be used to determine if a rotation of 2 pi has been performed, as this implies matrix_2x2(decoded params) = -matrix_2x2(original params).
-    This is important information for fermions. 
+    This is important information for fermions.
     """
 
     def __init__(self, *args, **kwargs):
@@ -49,7 +49,9 @@ class LorentzTrafo:
             )
         raise ValueError("Only LorentzTrafo can be multiplied with LorentzTrafo")
 
-    def decode(self, two_pi_aware=True, tol:Optional[float]=None) -> Tuple[Union[np.array, jnp.array]]:
+    def decode(
+        self, two_pi_aware=True, tol: Optional[float] = None
+    ) -> Tuple[Union[np.array, jnp.array]]:
         """Decode the parameters of the Lorentz transformation
 
         Args:

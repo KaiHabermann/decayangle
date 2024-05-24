@@ -2,6 +2,7 @@ from decayangle.backend import jax_backend, numpy_backend
 from types import ModuleType
 from typing import Tuple, List, Union
 
+
 class _cfg:
     __state = {
         "backend": "numpy",
@@ -48,23 +49,25 @@ class _cfg:
         old_value = self.__state["sorting"]
         self.__state["sorting"] = value
         return old_value
-    
+
     @property
     def numerical_safety_checks(self) -> bool:
         return self.__state["numerical_safety_checks"]
-    
+
     @numerical_safety_checks.setter
-    def numerical_safety_checks(self, value:bool) -> bool:
+    def numerical_safety_checks(self, value: bool) -> bool:
         if not isinstance(value, bool):
-            raise ValueError(f"Value {value} or type {type(value)} not understood for numerical_safety_checks")
+            raise ValueError(
+                f"Value {value} or type {type(value)} not understood for numerical_safety_checks"
+            )
         old_value = self.__state["numerical_safety_checks"]
         self.__state["numerical_safety_checks"] = value
         return old_value
-    
+
     @property
     def gamma_tolerance(self) -> float:
         return self.__state["gamma_tolerance"]
-    
+
     @gamma_tolerance.setter
     def gamma_tolerance(self, new_value: float) -> float:
         old_value = self.gamma_tolerance
@@ -74,21 +77,23 @@ class _cfg:
     @property
     def shift_precision(self) -> float:
         return self.__state["shift_precision"]
-    
+
     @shift_precision.setter
     def shift_precision(self, new_value) -> float:
         old_value = self.shift_precision
         self.__state["shift_precision"] = new_value
         return old_value
 
-
-    def __value_sorting_fun(self, value: Union[int, tuple, list]) -> Union[int, tuple, list]:
+    def __value_sorting_fun(
+        self, value: Union[int, tuple, list]
+    ) -> Union[int, tuple, list]:
         """Sort the value by lenght of the tuple first and then by absolute value of the integers
         Two tuples of the same length are sorted by the first element
 
         Returns:
             the sorted value
         """
+
         def key(value):
             if isinstance(value, tuple):
                 # this is a hack to make sure, that the order of the daughters is consistent
@@ -104,14 +109,16 @@ class _cfg:
 
         if isinstance(value, int):
             return value
-        
+
         if isinstance(value, tuple):
             return tuple(sorted(value, key=key))
-        
+
         if isinstance(value, list):
             return sorted(value, key=key)
-        
-        raise ValueError(f"Value {value} of type {type(value)} not understood for sorting")
+
+        raise ValueError(
+            f"Value {value} of type {type(value)} not understood for sorting"
+        )
 
     def ordering_function(self, value):
         if self.sorting == "value":
@@ -120,7 +127,7 @@ class _cfg:
             return value
 
         raise ValueError(f"Node sorting {self.sorting} not found")
-    
+
     def raise_if_safety_on(self, exception: Exception):
         if self.numerical_safety_checks:
             raise exception
