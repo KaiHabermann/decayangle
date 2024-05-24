@@ -64,7 +64,7 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     rotation = LorentzTrafo(0, 0, 0, phi_rf, theta_rf, psi_rf)
     # 
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
-    return tree1.relative_wigner_angles(tree3, momenta_23_rotated)
+    return tree1.relative_wigner_angles(tree2, momenta_23_rotated)
 
 
 x = np.linspace(1e-5, np.pi - 1e-5, 1000)
@@ -74,6 +74,7 @@ X, Y = np.meshgrid(x, y)
 result_full = make_four_vectors(1.5, X, Y)
 result_psi = result_full[1].psi_rf
 result_phi = result_full[1].phi_rf
+result_theta = result_full[1].theta_rf
 result = result_psi + result_phi
 
 def fmod_4(val):
@@ -82,10 +83,10 @@ def fmod_4(val):
 img = plt.imshow(fmod_4(result), cmap='hot', origin='lower',
                  extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
-plt.colorbar(label="angle in multiples of pi")
-plt.xlabel('Theta_rf')
-plt.ylabel('Psi_rf')
-plt.title('psi_3(1)_for_1 + phi_3(1)_for_1')
+plt.colorbar(label=r"$\psi_{3}^(1)(1) + \phi_{3}^(1)(1)$ in multiples of $\pi$")
+plt.xlabel(r'\theta_{rf}')
+plt.ylabel(r'\psi_{rf}')
+plt.title(r"$\psi_{3}^(1)(1) + \phi_{3}^(1)(1)$")
 plt.savefig('test.png', dpi = 1200)
 plt.close('all')
 
@@ -93,20 +94,19 @@ plt.close('all')
 img = plt.imshow(fmod_4(result_phi), cmap='hot', origin='lower',
                  extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
-plt.colorbar(label="angle in multiples of pi")
-plt.xlabel('Theta_rf')
-plt.ylabel('Psi_rf')
-plt.title('phi_3(1)_for_1')
+plt.colorbar(label=r"$\phi_{3}^(1)(1) in multiples of $\pi$")
+plt.xlabel(r'\theta_{rf}')
+plt.ylabel(r'\psi_{rf}')
+plt.title(r"$\phi_{3}^(1)(1)$")
 plt.savefig('test_phi.png', dpi = 1200)
 plt.close('all')
-
 
 img = plt.imshow(fmod_4(result_psi), cmap='hot', origin='lower',
                  extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
-plt.colorbar(label="angle in multiples of pi")
-plt.xlabel('Theta_rf')
-plt.ylabel('Psi_rf')
-plt.title('psi_3(1)_for_1')
+plt.colorbar(label=r"$\psi_{3}^(1)(1)$ in multiples of $\pi$")
+plt.xlabel(r'\theta_{rf}')
+plt.ylabel(r'\psi_{rf}')
+plt.title(r"$\psi_{3}^(1)(1)$")
 plt.savefig('test_psi.png', dpi = 1200)
 plt.close('all')
