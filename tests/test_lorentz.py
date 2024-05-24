@@ -458,4 +458,4 @@ def test_helicity_angles():
 if __name__ == "__main__":
     # test_lotentz(boost_definitions())
     # test_lotentz2(boost_definitions())
-    test_4_body()
+    test_helicity_angles()
