@@ -393,7 +393,7 @@ def adjust_for_2pi_rotation(
             )
         )
 
-    psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)
+    phi_rf = cb.where(two_pi_shifted, phi_rf + 2 * cb.pi, phi_rf)
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
