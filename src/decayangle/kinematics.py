@@ -276,11 +276,14 @@ def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     )
 
 
-def decode_rotation_4x4(rotation_matrix: jnp.array) -> Tuple[float, float, float]:
+def decode_rotation_4x4(rotation_matrix: Union[jnp.array, np.array]) -> Tuple[float, float, float]:
     r"""decode a 4x4 rotation matrix into the 3 rotation angles
 
     Args:
-        matrix (_type_): _description_
+        matrix (jax.numpy.ndarray): the 4x4 rotation matrix
+    
+    Returns:
+        Tuple[float, float, float]: the 3 rotation angles (phi, theta, psi)
     """
     phi = cb.arctan2(rotation_matrix[..., 1, 2], rotation_matrix[..., 0, 2])
     theta = save_arccos(rotation_matrix[..., 2, 2])
@@ -293,6 +296,7 @@ def decode_4_4(matrix, tol:Optional[float]=None) -> Tuple[Union[float, np.array,
 
     Args:
         matrix (jax.numpy.ndarray): the 4x4 matrix
+        tol (float, optional): the tolerance for the gamma factor. When not given the default value from the config ('gamma_tolerance') will be used.
     """
     if tol is None:
         tol = cfg.gamma_tolerance
@@ -558,62 +562,72 @@ def rapidity(momentum):
     return 0.5 * cb.log((b + 1) / (1 - b))
 
 
-def norm(vec):
+def norm(vec: Union[jnp.array, np.array]):
     """
     Calculate norm of 3-vector
 
-    :param vec: Input 3-vector
-    :returns: Scalar norm
+    Args:
+        vec (Union[jnp.array, np.array]): 3-vector
+    Returns:
+        Union[jnp.array, np.array]: norm of the 3-vector
 
     """
     return cb.sqrt(cb.sum(vec * vec, -1))
 
 
-def p(vector):
+def p(vector: Union[jnp.array, np.array]):
     """
     Calculate absolute value of the 4-momentum
 
-    :param vector: Input 4-momentum vector
-    :returns: Absolute momentum (scalar)
+    Args:
+        vector (Union[jnp.array, np.array]): 4-momentum vector
+    Returns:
+        Union[jnp.array, np.array]: absolute value of the 4-momentum
 
     """
     return norm(spatial_components(vector))
 
 
-def scalar_product(vec1, vec2):
+def scalar_product(vec1: Union[jnp.array, np.array], vec2: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Calculate scalar product of two 3-vectors
 
-    :param vec1: First 3-vector
-    :param vec2: Secont 3-vector
-    :returns: Scalar product
+    Args:
+        vec1 (Union[jnp.array, np.array]): first 3-vector
+        vec2 (Union[jnp.array, np.array]): second 3-vector
+
+    Returns:
+        Union[jnp.array, np.array]: scalar product of the two vectors
 
     """
     return cb.sum(vec1 * vec2, -1)
 
 
-def scalar(x):
+def scalar(x: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Create a scalar (array with only one component in last index) which can be used
     to e.g. scale a vector.
 
-    :param x: Initial value
-    :returns: Scalar value
+    Args:
+        x (Union[jnp.array, np.array]): input array
+    Returns:
+        Union[jnp.array, np.array]: scalar array
 
     """
     return cb.stack([x], axis=-1)
 
 
-def lorentz_boost(vector, boostvector):
+def lorentz_boost(vector: Union[jnp.array, np.array], boostvector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Perform Lorentz boost of the 4-vector vector using boost vector boostvector.
     We do not use the matrices here, to make things a little easier
 
-    :param vector: 4-vector to be boosted
-    :param boostvector: boost vector.
-                        Can be either 3-vector or 4-vector
-                        (only spatial components are used)
-    :returns: Boosted 4-vector
+    Args:
+        vector (Union[jnp.array, np.array]): 4-vector to be boosted
+        boostvector (Union[jnp.array, np.array]): Boost momentum 4-vector in the same frame as vector
+                        (should have nonzero mass!)
+    Returns:
+        Union[jnp.array, np.array]: 4-vector boosted to the boostvector frame
 
     """
     boost = spatial_components(boostvector)
@@ -630,15 +644,17 @@ def lorentz_boost(vector, boostvector):
     return lorentz_vector(vp2, ve2)
 
 
-def boost_to_rest(vector, boostvector):
+def boost_to_rest(vector: Union[jnp.array, np.array], boostvector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Perform Lorentz boost to the rest frame of the
     4-vector boostvector.
 
-    :param vector: 4-vector to be boosted
-    :param boostvector: Boost momentum 4-vector in the same frame as vector
+    Args:
+        vector (Union[jnp.array, np.array]): 4-vector to be boosted
+        boostvector (Union[jnp.array, np.array]): Boost momentum 4-vector in the same frame as vector
                         (should have nonzero mass!)
-    :returns: 4-vector boosed to boostvector rest frame
+    Returns:
+        Union[jnp.array, np.array]: 4-vector boosted to the rest frame of boostvector
 
     """
     boost = -spatial_components(boostvector) / scalar(time_component(boostvector))

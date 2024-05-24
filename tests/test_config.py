@@ -25,7 +25,6 @@ def test_numerical_safety_checks():
     cfg.sorting = old_sorting
     cfg.numerical_safety_checks = True
 
-@pytest.mark.order("first")
 def test_numerical_precision():
     cfg.numerical_safety_checks = True
 
