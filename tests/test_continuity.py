@@ -67,11 +67,11 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     return tree1.relative_wigner_angles(tree3, momenta_23_rotated)
 
 
-x = np.linspace(1e-5, np.pi - 1e-5, 100)
-y = np.linspace(-np.pi + 1e-5, np.pi - 1e-5, 100)
+x = np.linspace(1e-5, np.pi - 1e-5, 1000)
+y = np.linspace(-np.pi + 1e-5, np.pi - 1e-5, 1000)
 
 X, Y = np.meshgrid(x, y)
-result_full = make_four_vectors(0, X, Y)
+result_full = make_four_vectors(1.5, X, Y)
 
 result_psi = result_full[1].psi_rf
 result_phi = result_full[1].phi_rf
@@ -87,7 +87,7 @@ plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
 plt.ylabel('Psi_rf')
 plt.title('psi_3(1)_for_1 + phi_3(1)_for_1')
-plt.savefig('test.png')
+plt.savefig('test.pdf')
 plt.close('all')
 
 
@@ -98,7 +98,7 @@ plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
 plt.ylabel('Psi_rf')
 plt.title('phi_3(1)_for_1')
-plt.savefig('test_phi.png')
+plt.savefig('test_phi.pdf')
 plt.close('all')
 
 
@@ -109,5 +109,5 @@ plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
 plt.ylabel('Psi_rf')
 plt.title('psi_3(1)_for_1')
-plt.savefig('test_psi.png')
+plt.savefig('test_psi.pdf')
 plt.close('all')
