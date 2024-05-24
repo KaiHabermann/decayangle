@@ -19,9 +19,10 @@ jax.config.update("jax_enable_x64", True)
 def boost_definitions():
     np.random.seed(123456)
     definitions = []
-    for i in range(100):
+    for i in range(20):
         args = np.random.rand(6) * np.pi
-        args[-1] = args[-1] + 2 * np.pi
+        definitions.append(args.copy())
+        args[-3] = args[-3] + 2 * np.pi
         definitions.append(args)
     return definitions
 
@@ -457,4 +458,4 @@ def test_helicity_angles():
 if __name__ == "__main__":
     # test_lotentz(boost_definitions())
     # test_lotentz2(boost_definitions())
-    test_4_body()
+    test_helicity_angles()
