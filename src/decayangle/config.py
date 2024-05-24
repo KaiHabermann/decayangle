@@ -7,6 +7,8 @@ class _cfg:
         "backend": "numpy",
         "sorting": "value",
         "numerical_safety_checks": True,
+        "gamma_tolerance": 1e-10,
+        "shift_precision": 1e-10,
     }
     backend_map = {
         "jax": jax_backend,
@@ -58,6 +60,27 @@ class _cfg:
         old_value = self.__state["numerical_safety_checks"]
         self.__state["numerical_safety_checks"] = value
         return old_value
+    
+    @property
+    def gamma_tolerance(self) -> float:
+        return self.__state["gamma_tolerance"]
+    
+    @gamma_tolerance.setter
+    def gamma_tolerance(self, new_value: float) -> float:
+        old_value = self.gamma_tolerance
+        self.__state["gamma_tolerance"] = new_value
+        return old_value
+
+    @property
+    def shift_precision(self) -> float:
+        return self.__state["shift_precision"]
+    
+    @shift_precision.setter
+    def shift_precision(self, new_value) -> float:
+        old_value = self.shift_precision
+        self.__state["shift_precision"] = new_value
+        return old_value
+
 
     def __value_sorting_fun(self, value: Union[int, tuple, list]) -> Union[int, tuple, list]:
         """Sort the value by lenght of the tuple first and then by absolute value of the integers

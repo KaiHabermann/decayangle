@@ -122,7 +122,7 @@ class Node:
     def ordering_function(self, value):
         """
         Set the sorting function for the node and all daughters
-        Sorting functions are epected to return the same data type as the input
+        Sorting functions are expected to return the same data type as the input
         They need to accept lists, tuples and integers as input
         """
 
@@ -177,7 +177,7 @@ class Node:
         """
         return self.__daughters
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if len(self.daughters) == 0:
             return str(self.value)
         return (
@@ -193,7 +193,7 @@ class Node:
         """
         return len(self.daughters) == 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
     def contains(self, contained_node: Node) -> bool:
@@ -258,7 +258,7 @@ class Node:
         """
         return akm.mass(self.momentum(momenta))
 
-    def transform(self, trafo: LorentzTrafo, momenta: dict) -> Dict[int, Union[np.array, jnp.array]]:
+    def transform(self, trafo: LorentzTrafo, momenta: Dict[str, Union[np.array, jnp.array]]) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta of the final state particles
 
         Args:
@@ -272,14 +272,23 @@ class Node:
             k: matrix_vector_product(trafo.matrix_4x4, v) for k, v in momenta.items()
         }
 
-    def boost(self, target: Union[Node, int], momenta: dict) -> LorentzTrafo:
+    def boost(self, target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
+
+        Args:
+            target (Union[Node, int]): the target node to boost to
+            momenta (dict): the momenta of the final state particles
+            tol (float, optional): tolerance for the gamma check. Defaults to the value in the config.
         """
+
+        if tol is None:
+            tol = cfg.gamma_tolerance
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
+            rtol=tol
         ):
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on( 
@@ -299,7 +308,7 @@ class Node:
             )
 
         # rotate so that the target momentum is aligned with the
-        rotation, _, _ = self.rotate_to(target, momenta)
+        rotation, _, _ = self.rotate_to(target, momenta, tol=tol)
         rotated_momenta = self.transform(rotation, momenta)
 
         # boost to the rest frame of the target
@@ -309,7 +318,7 @@ class Node:
         return boost @ rotation
 
     def align_with_daughter(
-        self, momenta: Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0
+        self, momenta: Dict[int, Union[np.array, jnp.array]], nth_daughter: int = 0, tol: Optional[float]=None
     ) -> Dict[int, Union[np.array, jnp.array]]:
         """Align the momenta with the nth daughter. It is written in this way, to highlight, that one can only align with the direct daughters of a node.
         This requires the momenta to be in the rest frame of the node.
@@ -317,6 +326,7 @@ class Node:
         Args:
             momenta (dict): the momenta of the final state particles
             nth_daughter (int, optional): the daughter to align with. Defaults to 0.
+            tol (float, optional): tolerance for the gamma check. Defaults to the value in the config.
 
         Returns:
             dict: the aligned momenta
@@ -325,10 +335,10 @@ class Node:
             raise ValueError(
                 f"Node {self} does not have a daughter with index {nth_daughter}"
             )
-        rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta)
+        rotation, _, _ = self.rotate_to(self.daughters[nth_daughter], momenta, tol=tol)
         return self.transform(rotation, momenta)
 
-    def helicity_angles(self, momenta: dict) -> HelicityAngles:
+    def helicity_angles(self, momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> HelicityAngles:
         """
         Get the helicity angles for the daughters of this node.
         The angles are with respect to the first daughter. 
@@ -336,6 +346,7 @@ class Node:
 
         Parameters:
             momenta: Dictionary of momenta for the final state particles
+            tol: Tolerance for the gamma check
 
         Returns:
             Helicity angles for the final state particles
@@ -344,24 +355,34 @@ class Node:
 
         # define the daughter for which the momentum should be aligned with the positive z after the rotation
         positive_z = self.daughters[0]
-        _, theta_rf, psi_rf = self.rotate_to(positive_z, momenta)
+        _, theta_rf, psi_rf = self.rotate_to(positive_z, momenta, tol=tol)
         return HelicityAngles(theta_rf, psi_rf)
 
     def rotate_to(
-        self, target: Node, momenta: dict
-    ) -> Tuple[LorentzTrafo, float, float]:
+        self, target: Node, momenta: Dict[str, Union[np.array, jnp.array]],
+        tol: Optional[float]=None
+    ) -> Tuple[LorentzTrafo, Union[float, np.array, jnp.array], Union[float, np.array, jnp.array]]:
         """Get the rotation from this node to a target node
         The momenta dictionary will define the initial configuration.
         It is expected, that the momenta are jax or numpy compatible and that the momenta are given in the rest frame of this node.
 
+        Args:
+            target (Node): the target node to rotate to
+            momenta (dict): the momenta of the final state particles
+            tol (float, optional): tolerance for the gamma check. Defaults to the value in the config.
+
         Returns:
-            rotation: The rotation to align the target momentum with the z-axis
-            psi_rf: The angle of the target momentum in the rest frame of this node
-            theta_rf: The angle of the target momentum in the rest frame of this node
+            rotation (LorentzTrafo): the rotation to apply
+            theta_rf (Union[float, np.array, jnp.array]): the polar angle of the rotation
+            psi_rf (Union[float, np.array, jnp.array]): the azimuthal angle of the rotation
         """
+
+        if tol is None:
+            tol = cfg.gamma_tolerance
         if not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
+            rtol=tol
         ):
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
@@ -476,18 +497,22 @@ class Topology:
         contained_node.ordering_function = self.ordering_function
         return self.root.contains(contained_node)
 
-    def to_rest_frame(self, momenta: dict) -> Dict[int, Union[np.array, jnp.array]]:
+    def to_rest_frame(self, momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None) -> Dict[int, Union[np.array, jnp.array]]:
         """Transform the momenta to the rest frame of the root node
 
         Args:
             momenta (dict): the momenta of the final state particles
+            tol (float, optional): tolerance for the gamma check. Defaults to the value in the config. When the original gamma is close to 1, the momenta are assumed to be in the rest frame of the root node.
 
         Returns:
             dict: the momenta in the rest frame of the root node
         """
+        if tol is None:
+            tol = cfg.gamma_tolerance
+
         momentum = self.root.momentum(momenta)
         gamma = akm.gamma(momentum)
-        if cb.allclose(gamma, cb.ones_like(gamma)):
+        if cb.allclose(gamma, cb.ones_like(gamma), rtol=tol):
             return momenta
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
@@ -511,12 +536,14 @@ class Topology:
         """
         return {n.value: n for n in self.preorder()}
 
-    def helicity_angles(self, momenta: dict) -> Dict[Tuple[Union[tuple ,int], Union[tuple ,int]], HelicityAngles]:
+    def helicity_angles(self, momenta: Dict[str, Union[np.array, jnp.array]], tol:Optional[float]=None) -> Dict[Tuple[Union[tuple ,int], Union[tuple ,int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
 
         Parameters:
-            momenta: Dictionary of momenta for the final state particles
+            momenta(Dictionary): Dictionary of momenta for the final state particles
+            tol(float): Tolerance for the gamma check. Defaults to the value in the config.
+
 
         Returns:
             Helicity angles for the final state particles
@@ -538,7 +565,7 @@ class Topology:
         return helicity_angles
 
     def boost(
-        self, target: Union[Node, int], momenta: dict, inverse: bool = False
+        self, target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], inverse: bool = False, tol: Optional[float]=None
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -547,6 +574,7 @@ class Topology:
             target: Node to boost to
             momenta: Dictionary of momenta for the final state particles
             inverse: If True, return the inverse of the boost
+            tol: Tolerance for the gamma check. Defaults to the value in the config.
 
         Returns:
             Boost from the root node to the target node
@@ -555,11 +583,11 @@ class Topology:
         target = Node.get_node(target)
         boost_tree, node_dict = self.__build_boost_tree()
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
-        trafo = self.root.boost(node_dict[path[0]], momenta)
+        trafo = self.root.boost(node_dict[path[0]], momenta, tol=tol)
         momenta = self.root.transform(trafo, momenta)
         trafos = [trafo]
         for i in range(1, len(path)):
-            boost = node_dict[path[i - 1]].boost(node_dict[path[i]], momenta)
+            boost = node_dict[path[i - 1]].boost(node_dict[path[i]], momenta, tol=tol)
             momenta = node_dict[path[i - 1]].transform(boost, momenta)
             trafo = boost @ trafo
             trafos.append(boost)
@@ -572,7 +600,7 @@ class Topology:
         return trafo
 
     def rotate_between_topologies(
-        self, other: "Topology", target: Union[Node, int], momenta: dict
+        self, other: "Topology", target: Union[Node, int], momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
@@ -580,18 +608,19 @@ class Topology:
             other: Topology to compare to
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
+            tol: Tolerance for the gamma check. Defaults to the value in the config.
 
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
         """
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
-        boost1_inv = self.boost(target, momenta, inverse=True)
-        boost2 = other.boost(target, momenta)
+        boost1_inv = self.boost(target, momenta, inverse=True, tol=tol)
+        boost2 = other.boost(target, momenta, tol=tol)
         return (boost2 @ boost1_inv)
 
     def relative_wigner_angles(
-        self, other: "Topology", momenta: dict
+        self, other: "Topology", momenta: Dict[str, Union[np.array, jnp.array]], tol: Optional[float]=None
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -599,12 +628,13 @@ class Topology:
             other: Topology to compare to
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
+            tol: Tolerance for the gamma check. Defaults to the value in the config.
 
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
         return {
-            target.value: self.rotate_between_topologies(other, target, momenta).wigner_angles()
+            target.value: self.rotate_between_topologies(other, target, momenta, tol=tol).wigner_angles()
             for target in self.final_state_nodes
         }
 
