@@ -388,7 +388,8 @@ def adjust_for_2pi_rotation(
 
     print(f"NShifted: {cb.sum(two_pi_shifted)}/{cb.array(phi).size} N Unshifted: {cb.sum(not_two_pi_shifted)}/{cb.array(phi).size}  Total: {cb.sum(two_pi_shifted) + cb.sum(not_two_pi_shifted)}/{cb.array(phi).size}")
 
-    psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)
+    # psi_rf = cb.where(two_pi_shifted, psi_rf + 2 * cb.pi, psi_rf)
+    phi_rf = cb.where(two_pi_shifted, phi_rf + 2 * cb.pi, phi_rf)
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 

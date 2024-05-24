@@ -66,18 +66,22 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
     return tree1.relative_wigner_angles(tree3, momenta_23_rotated)
 
-x = np.arange(0, np.pi, 0.101)[1::]
-y = np.arange(0, np.pi, 0.101)[1::]
+
+x = np.linspace(1e-5, np.pi - 1e-5, 100)
+y = np.linspace(-np.pi + 1e-5, np.pi - 1e-5, 100)
+
 X, Y = np.meshgrid(x, y)
-result_full = make_four_vectors(1.9, X, Y)
+result_full = make_four_vectors(0, X, Y)
 
 result_psi = result_full[1].psi_rf
 result_phi = result_full[1].phi_rf
 result = result_psi + result_phi
 
+def fmod_4(val):
+    return np.fmod(val/np.pi + 4,4)
 
-img = plt.imshow(np.fmod(result/np.pi + 4,4), cmap='hot', origin='lower',
-                 extent=[x.min(), x.max(), y.min(), y.max()])
+img = plt.imshow(fmod_4(result), cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
 plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
@@ -87,8 +91,8 @@ plt.savefig('test.png')
 plt.close('all')
 
 
-img = plt.imshow(result_phi/np.pi, cmap='hot', origin='lower',
-                 extent=[x.min(), x.max(), y.min(), y.max()])
+img = plt.imshow(fmod_4(result_phi), cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
 plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
@@ -98,8 +102,8 @@ plt.savefig('test_phi.png')
 plt.close('all')
 
 
-img = plt.imshow(result_psi/np.pi, cmap='hot', origin='lower',
-                 extent=[x.min(), x.max(), y.min(), y.max()])
+img = plt.imshow(fmod_4(result_psi), cmap='hot', origin='lower',
+                 extent=[x.min(), x.max(), y.min(), y.max()], aspect='auto')
 
 plt.colorbar(label="angle in multiples of pi")
 plt.xlabel('Theta_rf')
