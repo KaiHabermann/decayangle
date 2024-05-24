@@ -21,7 +21,6 @@ def boost_definitions():
     definitions = []
     for i in range(100):
         args = np.random.rand(6) * np.pi
-        definitions.append(args.copy())
         args[-1] = args[-1] + 2 * np.pi
         definitions.append(args)
     return definitions

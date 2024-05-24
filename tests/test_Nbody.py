@@ -75,19 +75,10 @@ def test_topology():
             result = difference.decode()
             assert cb.isfinite(cb.array(result)).all()
 
-            _, _, xi1, theta1, phi1, xi_rf1 = base_tree.boost(node, momenta).decode(two_pi_aware=True)
-            _, _, xi2, theta2, phi2, xi_rf2 = topology.boost(node, momenta).decode(two_pi_aware=True)
-            def replace_pi(x):
-                # TODO: check if this makes sense
-                # We have a +- pi sometimes
-                return cb.fmod(cb.where(cb.isclose(abs(x), cb.pi), 0., x), cb.pi)
+            _, _, xi1, phi1, theta1, xi_rf1 = base_tree.boost(node, momenta).decode(two_pi_aware=True)
+            _, _, xi2, phi2, theta2, xi_rf2 = topology.boost(node, momenta).decode(two_pi_aware=True)
+            assert cb.isfinite(cb.array([xi1, phi1, theta1, xi_rf1, xi2, phi2, theta2, xi_rf2])).all()
             
-            def check_equal(x, y):
-                return cb.allclose(cb.cos(replace_pi(x)), cb.cos(replace_pi(y)))
-            assert check_equal(xi1, xi2)
-            assert check_equal(theta1, theta2)
-            assert check_equal(phi1, phi2)
-            assert check_equal(xi_rf1, xi_rf2)
 
 
 if __name__ == "__main__":

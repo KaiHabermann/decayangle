@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 from collections import namedtuple
 import numpy as np
 import jax.numpy as jnp
@@ -49,16 +49,17 @@ class LorentzTrafo:
             )
         raise ValueError("Only LorentzTrafo can be multiplied with LorentzTrafo")
 
-    def decode(self, two_pi_aware=True) -> Tuple[Union[np.array, jnp.array]]:
+    def decode(self, two_pi_aware=True, tol:Optional[float]=None) -> Tuple[Union[np.array, jnp.array]]:
         """Decode the parameters of the Lorentz transformation
 
         Args:
             two_pi_aware (bool, optional): If true the check for a roation of 2 pi will be made. Defaults to True.
+            tol (Optional[float], optional): The tolerance for the check of a 2 pi rotation. If None the default tolerance of the config will be used. Defaults to None.
 
         Returns:
             Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
         """
-        params = decode_4_4(self.matrix_4x4)
+        params = decode_4_4(self.matrix_4x4, tol=tol)
         if two_pi_aware:
             params = adjust_for_2pi_rotation(self.matrix_2x2, *params)
         return params
