@@ -80,7 +80,7 @@ def test_kinematics():
     assert np.allclose(psi_rf, psi_rf_)
 
 def test_vectorized():
-    phi, theta, xi, phi_rf, theta_rf,  psi_rf = np.random.uniform(high=np.pi, low = 0,size=(6,10))
+    phi, theta, xi, phi_rf, theta_rf,  psi_rf = np.random.uniform(high=np.pi, low = 0,size=(6,10,10,7))
     # M = np.array(
     #     [build_4_4(phi[i], theta[i], xi[i], phi_rf[i], theta_rf[i],  psi_rf[i]) for i, _ in enumerate(phi)]
     # )

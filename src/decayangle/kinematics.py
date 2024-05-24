@@ -21,7 +21,7 @@ def boost_matrix_2_2_x(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array
     one = cb.ones_like(xi)
     sigma_x = cb.array([[zero, one], [one, zero]])
     eye = cb.array([[one, zero], [zero, one]])
-    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_x),[0,1], [-2, -1])
 
 
 def boost_matrix_2_2_y(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -37,7 +37,7 @@ def boost_matrix_2_2_y(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array
     one = cb.ones_like(xi)
     sigma_y = cb.array([[zero, -1j * one], [1j * one, zero]])
     eye = cb.array([[one, zero], [zero, one]])
-    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_y),[0,1], [-2, -1])
 
 
 def boost_matrix_2_2_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -53,7 +53,7 @@ def boost_matrix_2_2_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array
     one = cb.ones_like(xi)
     eye = cb.array([[one, zero], [zero, one]])
     sigma_z = cb.array([[one, zero], [zero, -one]])
-    return (cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cosh(xi / 2) * eye + cb.sinh(xi / 2) * sigma_z),[0,1], [-2, -1])
 
 
 def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -85,7 +85,7 @@ def rotation_matrix_2_2_x(theta: Union[float, jnp.array, np.array]) -> Union[jnp
     one = cb.ones_like(theta)
     eye = cb.array([[one, zero], [zero, one]])    
     sgma_x = cb.array([[zero, one], [one, zero]])
-    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_x),[0,1], [-2, -1])
 
 
 def rotation_matrix_2_2_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -101,7 +101,7 @@ def rotation_matrix_2_2_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp
     one = cb.ones_like(theta)
     eye = cb.array([[one, zero], [zero, one]])
     sgma_y = cb.array([[zero, -1j * one], [1j * one, zero]])
-    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_y),[0,1], [-2, -1])
 
 
 def rotation_matrix_2_2_z(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -117,7 +117,7 @@ def rotation_matrix_2_2_z(theta: Union[float, jnp.array, np.array]) -> Union[jnp
     one = cb.ones_like(theta)
     eye = cb.array([[one, zero], [zero, one]])
     sgma_z = cb.array([[one, zero], [zero, -one]])
-    return (cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z).swapaxes(1, -1).swapaxes(0, -2)
+    return cb.moveaxis((cb.cos(theta / 2) * eye - 1j * cb.sin(theta / 2) * sgma_z),[0,1], [-2, -1])
 
 
 def boost_matrix_4_4_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -133,7 +133,7 @@ def boost_matrix_4_4_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array
     one = cb.ones_like(xi)
     gma = cb.cosh(xi)
     beta_gamma = cb.sinh(xi)
-    return cb.array(
+    return cb.moveaxis(cb.array(
         [
             [
                 one,
@@ -160,7 +160,7 @@ def boost_matrix_4_4_z(xi: Union[float, jnp.array, np.array]) -> Union[jnp.array
                 gma,
             ],
         ]
-    ).swapaxes(1, -1).swapaxes(0, -2)
+    ), [0,1], [-2, -1])
 
 
 def rotation_matrix_4_4_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp.array, np.array]:
@@ -174,7 +174,7 @@ def rotation_matrix_4_4_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp
     """
     zero = cb.zeros_like(theta)
     one = cb.ones_like(theta)
-    return cb.array(
+    return cb.moveaxis(cb.array(
         [
             [
                 cb.cos(theta),
@@ -196,7 +196,7 @@ def rotation_matrix_4_4_y(theta: Union[float, jnp.array, np.array]) -> Union[jnp
             ],
             [zero, zero, zero, one],
         ]
-    ).swapaxes(1, -1).swapaxes(0, -2)
+    ),[0,1], [-2, -1])
 
 
 def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
@@ -210,7 +210,7 @@ def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
     """
     zero = cb.zeros_like(theta)
     one = cb.ones_like(theta)
-    return cb.array(
+    return cb.moveaxis(cb.array(
         [
             [
                 cb.cos(theta),
@@ -232,7 +232,7 @@ def rotation_matrix_4_4_z(theta: float) -> Union[jnp.array, np.array]:
             ],
             [zero, zero, zero, one],
         ]
-    ).swapaxes(1, -1).swapaxes(0, -2)
+    ),[0,1], [-2, -1])
 
 def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     r"""Build a 2x2 matrix from the 6 kinematic parameters
