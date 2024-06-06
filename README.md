@@ -3,7 +3,8 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![codecov](https://codecov.io/gh/KaiHabermann/decayangle/graph/badge.svg?token=KXBO8KEQ3V)](https://codecov.io/gh/KaiHabermann/decayangle)
------
+
+---
 
 **Table of Contents**
 
@@ -26,22 +27,26 @@ pip install decayangle
 
 The software project `decayangle` provides a Python library for computing helicity angles and Wigner rotations in hadron physics, facilitating the analysis of particle decay processes. It enables the generation and manipulation of decay topologies, calculation of relative angles between different topologies. It supports amplitude analyses involving non-zero spin of final-state particles, while not being limited to three-body decays.
 
-
 ## Usage
+
 First we define the decay we are working with. For example, we can define the decay of a particle 0 into particles 1, 2, and 3. We can then generate all possible decay topologies for this decay. We can then filter the topologies based on the intermediate states we are interested in. Finally, we can calculate the relative Wigner angles between the different topologies resulting from different rotations when boosting along different configurations.
 
 Lets start with defining the decay and generating the decay topologies.
+
 ```python
 from decayangle.decay_topology import TopologyCollection
 
 tg = TopologyCollection(0, [1, 2, 3]) # generate all decay topologies for 0 -> 1 2 3
 tg.topologies # list of all decay topologies
 ```
-```tg.topologies``` now contains all possible decay topologies for the decay 0 -> 1 2 3. Each topology acts as a descriptor for the consecutive decays into intermediate states, until the final state is reached. For a three-body decay these are
+
+`tg.topologies` now contains all possible decay topologies for the decay 0 -> 1 2 3. Each topology acts as a descriptor for the consecutive decays into intermediate states, until the final state is reached. For a three-body decay these are
+
 ```python
 for topology in tg.topologies:
     print(topology)
 ```
+
 ```console
 ( 0 -> ( (2, 3) -> 2, 3 ), 1 )
 ( 0 -> ( (1, 3) -> 1, 3 ), 2 )
@@ -50,18 +55,21 @@ for topology in tg.topologies:
 
 We get three topologies, where each topology contains a unique intermediate state.
 To select specific topologies we can use the filter option of the `TopologyCollection` class. For example, we can filter for topologies where the intermediate state (2, 3) is present.
-```python	
-topology1, = tg.filter((2, 3)) # we filter for topologies where the state (2, 3) is present 
+
+```python
+topology1, = tg.filter((2, 3)) # we filter for topologies where the state (2, 3) is present
 topology2, = tg.filter((1, 3)) # we filter for topologies where the state (1, 3) is present
 topology3, = tg.filter((1, 2)) # we filter for topologies where the state (1, 2) is present
 ```
 
-Finally, we can calculate the relative Wigner angles between the different topologies. For example, we can calculate the relative Wigner angles between `topology1` and `topology2` for the final-state particle 1. Only for this last step 4 momenta are needed. 
+Finally, we can calculate the relative Wigner angles between the different topologies. For example, we can calculate the relative Wigner angles between `topology1` and `topology2` for the final-state particle 1. Only for this last step 4 momenta are needed.
 The function expects these momenta to be in the form of an array of 4 vectors, where the last (index 3) element is the time component. The momenta variable is then a dict of the form `{particle: momentum}`. For example, for a 3 body decay we can define the momenta as
-```python	
+
+```python
 import numpy as np
 momenta = {1: np.array([-1, 0, 0, 2]), 2: np.array([0, 2, 0, 4]), 3: np.array([0, 0, 0.3, 2])}
 ```
+
 where the momentum of the initial state is [0, 0, 0, 0], the momentum of the final-state particles are [1, 0, 0, 1], [0, 1, 0, 1], and [0, 0, 1, 1]. Then, the relative Wigner angles can be calculated as
 
 ```python
@@ -78,7 +86,9 @@ Topologies are the central type of object for the generation of angles.
 Topologies can be generated in two ways.
 
 ### Topologies from TopologyCollections
+
 The easiest way to produce topologies is from a `TopologyCollection`
+
 ```python
 from decayangle.decay_topology import TopologyCollection
 
@@ -93,6 +103,7 @@ topology, = tg.filter((1, 2))
 # one can pass multiple nodes
 topology, = tg.filter((1, 2), 1) # the same since every topology includes one
 ```
+
 The output of `filter` is a list of all topologies, which include the given nodes. A composite node is represented by a tuple. The order of the values in the tuple can be arbitrary. Tuples are sorted (see [ordering](#ordering)) before the search to ensure consistency. When multiple arguments are passed, only topologies that include all provided nodes are returned.
 
 ```python
@@ -101,6 +112,7 @@ topologies = tg.filter((2, 1))
 for topology in topologies:
     print(topology)
 ```
+
 ```
 Topology: ( 0 -> ( (1, 2) -> 1, 2 ), ( (3, 4) -> 3, 4 ) )
 Topology: ( 0 -> ( (1, 2, 4) -> ( (1, 2) -> 1, 2 ), 4 ), 3 )
@@ -110,20 +122,22 @@ Topology: ( 0 -> ( (1, 2, 3) -> ( (1, 2) -> 1, 2 ), 3 ), 4 )
 ### Topologies from decay descriptions
 
 For larger sets of final state nodes the amount of topologies, which would be generated by the `TopologyCollection` may be very large.
-Thus it is also possible to generate a `Topology` based on a root node and a decay descriptor. There the decay descriptor is a tuple of tuples 
+Thus it is also possible to generate a `Topology` based on a root node and a decay descriptor. There the decay descriptor is a tuple of tuples
+
 ```python
 from decayangle.decay_topology import Topology
 
 root = 0
 topologies = [
     Topology(root, decay_topology=((1, 2), 3)),
-    Topology(root, decay_topology=((1, 3), 2)), 
-    Topology(root, decay_topology=((2, 3), 1)) 
+    Topology(root, decay_topology=((1, 3), 2)),
+    Topology(root, decay_topology=((2, 3), 1))
 ]
 ```
+
 Here the ordering of the nodes inside a tuple is not relevant. Only the overall topology i.e. which particles form an intermediate state and how they decay.
 
-To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created. 
+To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created.
 More on sorting can be found in the [ordering](#ordering) section.
 
 ```python
@@ -134,8 +148,8 @@ cfg.sorting = "off"
 root = 0
 topologies = [
     Topology(root, decay_topology=((1, 2), 3)),
-    Topology(root, decay_topology=((3, 1), 2)), 
-    Topology(root, decay_topology=((2, 3), 1)) 
+    Topology(root, decay_topology=((3, 1), 2)),
+    Topology(root, decay_topology=((2, 3), 1))
 ]
 ```
 
@@ -148,7 +162,7 @@ tg = TopologyCollection(topologies=topologies)
 ### Angles from Topologies
 
 The angles are calculated from four-vectors of the particles by rotating them and boosting throughout the topology tree.
-The input momenta are expected to be in the mother particle rest frame and have the time component as the last (index 3) element. 
+The input momenta are expected to be in the mother particle rest frame and have the time component as the last (index 3) element.
 The code is fully vectorized, so the only requirement for the shape of momenta arrays is, that they all have the same shape and the last dimension is of size 4.
 
 The `Topology` class has two main methods to determine relevant angles.
@@ -158,10 +172,10 @@ The values of the dictionary returned by the `helicity_angles` are named tuples 
 ```python
 topology = topologies[0]
 
-# `momenta` is a dict of particle momenta with 
+# `momenta` is a dict of particle momenta with
 #  - key:  the final-state particle number
 #  - value: np.ndarray or jax.numpy.ndarray with shape
-# (..., 4) 
+# (..., 4)
 angles = topology.helicity_angles(momenta)
 ```
 
@@ -176,11 +190,11 @@ relative_angles = reference.relative_wigner_angles(other, momenta)
 
 ## Ordering
 
-Final-state particles are supposed to be represented as integers. 
-Support for other data types may be added in the future, but for the time being integers are the most stable and easy to implement solution. 
+Final-state particles are supposed to be represented as integers.
+Support for other data types may be added in the future, but for the time being integers are the most stable and easy to implement solution.
 
 Intermediate node is written as tuples of the particles they consist of.
-Each intermediate state is represented by a `Node` object, which holds the information on the daughters of said state as well as its value (the aforementioned tuple). 
+Each intermediate state is represented by a `Node` object, which holds the information on the daughters of said state as well as its value (the aforementioned tuple).
 
 A particular scheme is used to order daughters, and determine node names.
 Helicity angle are always calculated with respect to the first daughter.
@@ -192,6 +206,7 @@ The schemes is specified by a function, which is to take in a list or tuple of n
 tg = TopologyCollection(0, [1,2,3])
 tg.ordering_function = lambda x: x
 ```
+
 The code above will just leave the object as it comes. Thus applying no sorting.
 
 The default sorting scheme puts longest node first and then sorts by value.
@@ -205,21 +220,24 @@ cfg.sorting = "off" # turns sorting off
 cfg.sorting = "value" # default sorting
 
 ```
+
 At this time only `"off"` and `"value"` are supported. For more sophisticated sorting algorithms the user has to write custom functions.
 
 ## Dealing with imperfect Data
 
-When dealing with data, that has measurement uncertainty or other issues like backgrounds, it is sometimes easier to just process the data and remove all `inf` or `nan` values. 
+When dealing with data, that has measurement uncertainty or other issues like backgrounds, it is sometimes easier to just process the data and remove all `inf` or `nan` values.
 These values will usually trigger `ValueError` in `decayangle`. This behaviour can be disabled via the config as
 
 ```python
 from decayangle.config import config as cfg
 cfg.numerical_safety_checks = False
 ```
-Now `nan` and `inf` will be handeled only by `numpy` internally.
+
+Now `nan` and `inf` will be handled only by `numpy` internally.
 
 ## Further configuration options
-- The required precision for comparisons of $\gamma$. This controlls, which deviation of $\gamma$ from 1 is accepted before an exception is thrown. Thie default value should usually not be touched. In special cases, this may be useful though, if the decay topology is very complicated.
+
+- The required precision for comparisons of $\gamma$. This controls, which deviation of $\gamma$ from 1 is accepted before an exception is thrown. The default value should usually not be touched. In special cases, this may be useful though, if the decay topology is very complicated.
 
 ```{python}
 from decayangle.config import config as cfg
@@ -235,12 +253,14 @@ cfg.shift_precision = 1e-6
 ```
 
 ## Related projects
+
 Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.
 However, there are a few projects addressing these rotations explicitly using analytic expressions in [DPD paper](https://inspirehep.net/literature/1758460), derived for three-body decays:
-- [ThreeBodyDecays.jl](https://github.com/mmikhasenko/ThreeBodyDecays.jl), 
+
+- [ThreeBodyDecays.jl](https://github.com/mmikhasenko/ThreeBodyDecays.jl),
 - [SymbolicThreeBodyDecays.jl](https://github.com/mmikhasenko/SymbolicThreeBodyDecays.jl),
 - [ComPWA/ampform-dpd](https://github.com/ComPWA/ampform-dpd).
-Consistency of the `decayangle` framework with these appoaches is validated in the tests.
+  Consistency of the `decayangle` framework with these appoaches is validated in the tests.
 
 ## License
 
