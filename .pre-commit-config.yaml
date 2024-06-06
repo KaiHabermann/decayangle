@@ -25,10 +25,10 @@ repos:
       - id: prettier
 
   - repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
       - id: interrogate
-        args: [--fail-under=40, --verbose]
+        args: [--fail-under=80, --verbose]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v1.16.0
