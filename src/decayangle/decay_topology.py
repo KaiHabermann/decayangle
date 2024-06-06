@@ -690,7 +690,7 @@ class Topology:
 
         Args:
             momenta (dict): the momenta of the final state particles
-            node (int, optional): the daughter to align with. Defaults to the first daugher.
+            node (int, optional): the daughter to align with. Defaults to the first daughter.
 
         Returns:
             dict: the aligned momenta

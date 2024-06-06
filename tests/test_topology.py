@@ -1,6 +1,7 @@
 import pytest
 from decayangle.decay_topology import TopologyCollection, Node, Topology
 
+
 def test_topology():
     tg = TopologyCollection(0, [1, 2, 3])
 
@@ -12,14 +13,17 @@ def test_topology():
     representations = []
     for topology in tg.topologies:
         representations.append(str(topology))
-        assert any( [topology.root.contains((1, 2)), 
-                    topology.root.contains((2, 3)),
-                    topology.root.contains((1, 3))
-                     ] )
+        assert any(
+            [
+                topology.root.contains((1, 2)),
+                topology.root.contains((2, 3)),
+                topology.root.contains((1, 3)),
+            ]
+        )
 
     root = 0
-    topology = Topology(root, decay_topology=((1,2), 3))   
-    topology_from_group, = tg.filter((1,2))
+    topology = Topology(root, decay_topology=((1, 2), 3))
+    (topology_from_group,) = tg.filter((1, 2))
     assert str(topology) == str(topology_from_group)
 
     tg.ordering_function = process_plane_sorting

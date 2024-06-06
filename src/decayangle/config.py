@@ -87,7 +87,7 @@ class _cfg:
     def __value_sorting_fun(
         self, value: Union[int, tuple, list]
     ) -> Union[int, tuple, list]:
-        """Sort the value by lenght of the tuple first and then by absolute value of the integers
+        """Sort the value by length of the tuple first and then by absolute value of the integers
         Two tuples of the same length are sorted by the first element
 
         Returns:
