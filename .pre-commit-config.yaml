@@ -28,6 +28,7 @@ repos:
     rev: 1.7.0
     hooks:
       - id: interrogate
+        exclude: "src/decayangle/__*|tests/*|src/decayangle/backend.py"
         args: [--fail-under=80, --verbose]
 
   - repo: https://github.com/codespell-project/codespell

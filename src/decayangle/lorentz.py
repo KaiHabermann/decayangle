@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Tuple, Union, Optional
 from collections import namedtuple
 import numpy as np
@@ -27,6 +28,37 @@ class LorentzTrafo:
     """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the Lorentz transformation with either 6 values or 2 matrices.
+        The matrices are the 2x2 SU(2) matrix and the 4x4 O(3) matrix.
+        The 6 values are the parameters of the Lorentz transformation in the order phi, theta, xi, phi_rf, theta_rf, psi_rf.
+        These parameters correspont to the following chain of transformations:
+        1. Rotation around the z-axis by phi
+        2. Rotation around the y-axis by theta
+        3. Boost along the z-axis by xi
+        4. Rotation around the z-axis by phi_rf
+        5. Rotation around the y-axis by theta_rf
+        6. Rotation around the z-axis by psi_rf
+
+        Args:
+            *args: The parameters of the Lorentz transformation in the order phi, theta, xi, phi_rf, theta_rf, psi_rf
+            **kwargs: The matrices of the Lorentz transformation
+
+        Raises:
+            ValueError: If the Lorentz transformation is not initialized with either 6 values or 2 matrices
+
+        Examples:
+        ```python
+        # Initialize with 6 values
+        LorentzTrafo(0.1, 0.2, 0.3, 0.4, 0.5, 0.6)
+        # Initialize with matrices
+
+        matrix_2x2 = np.array([[1, 0], [0, 1]])
+        matrix_4x4 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        LorentzTrafo(matrix_2x2=matrix_2x2, matrix_4x4=matrix_4x4)
+        ```
+        """
+
         if len(args) > 0:
             phi, theta, xi, phi_rf, theta_rf, psi_rf = args
             self.matrix_4x4 = build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf)
@@ -41,7 +73,17 @@ class LorentzTrafo:
                 "LorentzTrafo must be initialized with either 6 values or 2 matrices"
             )
 
-    def __matmul__(self, other):
+    def __matmul__(self, other: LorentzTrafo) -> LorentzTrafo:
+        """
+        Multiply two Lorentz transformations together. This is equivalent to applying the transformations in sequence.
+        Overloads the @ operator.
+
+        Args:
+            other (LorentzTrafo): The other Lorentz transformation
+
+        Returns:
+            LorentzTrafo: The result of the multiplication
+        """
         if isinstance(other, LorentzTrafo):
             return LorentzTrafo(
                 matrix_2x2=self.matrix_2x2 @ other.matrix_2x2,
@@ -66,7 +108,13 @@ class LorentzTrafo:
             params = adjust_for_2pi_rotation(self.matrix_2x2, *params)
         return params
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """
+        String representation of the Lorentz transformation. It shows the SU(2) and O(3,1) matrices.
+
+        Returns:
+            str: The string representation of the Lorentz transformation
+        """
         return (
             "LorentzTrafo"
             + "\n SU(2): \n"
@@ -75,7 +123,7 @@ class LorentzTrafo:
             + f"{self.matrix_4x4}"
         )
 
-    def inverse(self):
+    def inverse(self) -> LorentzTrafo:
         """Inverse of the Lorentz transformation
 
         Returns:
