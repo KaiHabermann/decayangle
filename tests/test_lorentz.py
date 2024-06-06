@@ -288,7 +288,7 @@ def test_daltiz_plot_decomposition(momenta):
 
     # we will now test the theta hat angles from dpd
     # the issue here is, that we will need specific aligned topologies for that
-    # dpd aligns to the reference topology alog the negative axis of the k-th particle
+    # dpd aligns to the reference topology along the negative axis of the k-th particle
     # for tree1 this is particle 1 and the negative direction is the combined momentum of particle 2 and 3
     tree1_aligned_momenta = tree1.align_with_daughter(momenta, (2, 3))
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)

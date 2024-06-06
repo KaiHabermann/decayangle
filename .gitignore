@@ -5,3 +5,4 @@ dist/
 *.xml
 *.png
 *.pdf
+node_modules/

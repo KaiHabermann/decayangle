@@ -628,7 +628,7 @@ def norm(vec: Union[jnp.array, np.array]):
     return cb.sqrt(cb.sum(vec * vec, -1))
 
 
-def p(vector: Union[jnp.array, np.array]):
+def p(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Calculate absolute value of the 4-momentum
 
@@ -639,6 +639,16 @@ def p(vector: Union[jnp.array, np.array]):
 
     """
     return norm(spatial_components(vector))
+
+
+def psi(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
+    """Return azimuthal angle component of the input Lorentz or 3-vector
+
+    :param vector: input vector (Lorentz or 3-vector)
+    :returns: vector of azimuthal angle components
+
+    """
+    return cb.arctan2(y_component(vector), x_component(vector))
 
 
 def scalar_product(

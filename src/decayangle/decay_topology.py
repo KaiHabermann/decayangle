@@ -446,6 +446,28 @@ class Topology:
         decay_topology: Optional[List[Union[int, tuple]]] = None,
         ordering_function=None,
     ):
+        """
+        Constructor for the Topology class
+        Topologies can be constructed from a root node and a decay topology. Or only be initialized with the root node.
+        A tree then has to be construced via adding daughters to the root node.
+
+        Args:
+            root (Union[Node, int]): the root node of the topology
+            decay_topology (Optional[List[Union[int, tuple]]], optional): the decay topology of the root node. Defaults to None.
+            ordering_function ([type], optional): the ordering function for the nodes in the topology. Defaults to None.
+
+        Raises:
+            ValueError: If the root node already has daughters and a decay topology is given
+
+        Examples:
+        ```python
+        # Initialize a topology with a root node and a decay topology
+        topology = Topology(0, decay_topology=((1, 2), 3))
+        # Initialize a topology with a root node
+        topology = Topology(0)
+        topology.root.add_daughter(Node(1))
+        ```
+        """
         self.__root = Node.get_node(root)
         if ordering_function is not None:
             self.__sorting_fun = ordering_function
@@ -542,6 +564,13 @@ class Topology:
         return {k: akm.boost_to_rest(v, momentum) for k, v in momenta.items()}
 
     def __build_boost_tree(self) -> Tuple[nx.DiGraph, Dict[int, Node]]:
+        """Build a boost tree from the topology
+
+        Returns:
+            nx.DiGraph: the boost tree as a directed graph
+            Dict[int, Node]: a dictionary of the nodes with the node value as key
+        """
+
         boost_tree = nx.DiGraph()
         node_dict = {}
         for node in self.preorder():
@@ -690,7 +719,7 @@ class Topology:
 
         Args:
             momenta (dict): the momenta of the final state particles
-            node (int, optional): the daughter to align with. Defaults to the first daugher.
+            node (int, optional): the daughter to align with. Defaults to the first daughter.
 
         Returns:
             dict: the aligned momenta
@@ -799,6 +828,33 @@ class TopologyCollection:
         topologies: List[Topology] = None,
         ordering_function=None,
     ):
+        """
+        Initialize the topology collection with either a list of topologies or a start node and final state nodes.
+        If topologies are given, the start node and final state nodes are taken from the first topology.
+        If start node and final state nodes are given, the topologies are generated from the final state nodes.
+
+        Args:
+            start_node (int): the start node of the topologies
+            final_state_nodes (list): the final state nodes of the topologies
+            topologies (list): the topologies of the collection
+            ordering_function (function): function ordering the daughters and node values of the topologies
+
+        Raises:
+            ValueError: if neither topologies nor start_node and final_state_nodes are given
+            ValueError: if the topologies have different start nodes. Only applies if a list of topologies is given.
+
+        Examples:
+
+        ```python
+        from decayangle.decay_topology import Topology, TopologyCollection
+        # Create a topology collection from a list of topologies
+        topologies = [Topology(start_node=0, (1, (2, 3))), Topology((start_node=0, (2, (1, 3)))]
+        collection = TopologyCollection(topologies=topologies)
+
+        # Create a topology collection from a start node and final state nodes
+        collection = TopologyCollection(start_node=0, final_state_nodes=[2, 3])
+        ```
+        """
         if topologies is not None:
             self.__topologies = topologies
             self.start_node = topologies[0].root.value
@@ -840,7 +896,19 @@ class TopologyCollection:
         return self.__sorting_fun
 
     @ordering_function.setter
-    def ordering_function(self, value):
+    def ordering_function(self, value: Callable):
+        """
+        Set the sorting function for the TopologyCollection and all topologies in the collection
+        Sorting functions are expected to return the same data type as the input
+        They need to accept lists, tuples and integers as input
+
+        Args:
+            value (Callable): the sorting function with the signature (Union[int, Tuple[int]]) -> Union[int, Tuple[int]]
+
+        Raises:
+            ValueError: if the sorting function does not have the correct signature
+        """
+
         if not isinstance(value((1, 2, 3)), tuple):
             raise ValueError(
                 "Sorting function has to be a function returning the sorted value of the same datatype and accepting tupels and lists of integers"
