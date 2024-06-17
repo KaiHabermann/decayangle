@@ -515,6 +515,12 @@ class Topology:
 
     @property
     def tuple(self):
+        """
+        Tuple representation of the topology. When called on the root node of a tree, the result can be used to reconstruct the tree.
+
+        Returns:
+            tuple: the tuple representation of the topology root node
+        """
         return self.root.tuple
 
     @property
