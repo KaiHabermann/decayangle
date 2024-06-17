@@ -34,5 +34,12 @@ def test_topology():
         assert str(topology) != representations[i]
 
 
+def test_tuple():
+    topo = Topology(0, ((1, 2), 3))
+    tuple_rep = topo.tuple
+    assert tuple_rep == ((1, 2), 3)
+    assert tuple_rep == Topology(0, tuple_rep).tuple
+
+
 if __name__ == "__main__":
-    test_topology()
+    test_tuple()
