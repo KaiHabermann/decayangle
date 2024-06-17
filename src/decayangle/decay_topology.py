@@ -119,6 +119,18 @@ class Node:
         """
         return self.__sorting_fun
 
+    @property
+    def tuple(self):
+        """
+        Tuple representation of the node. When called on the root node of a tree, the result can be used to reconstruct the tree.
+
+        Returns:
+            tuple: the tuple representation of the node
+        """
+        if self.final_state:
+            return self.value
+        return tuple((d.tuple for d in self.daughters))
+
     @ordering_function.setter
     def ordering_function(self, value):
         """
@@ -500,6 +512,16 @@ class Topology:
             List[Node]: the final state nodes of the topology
         """
         return [n for n in self.preorder() if n.final_state]
+
+    @property
+    def tuple(self):
+        """
+        Tuple representation of the topology. When called on the root node of a tree, the result can be used to reconstruct the tree.
+
+        Returns:
+            tuple: the tuple representation of the topology root node
+        """
+        return self.root.tuple
 
     @property
     def ordering_function(self) -> Callable:
