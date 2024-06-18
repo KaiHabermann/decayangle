@@ -494,6 +494,13 @@ def test_conventions(momenta):
                 or not np.allclose(helicity.theta_rf, minus_phi.theta_rf)
                 or not np.allclose(canonical.theta_rf, minus_phi.theta_rf)
             )
+    pytest.raises(
+        ValueError,
+        reference_tree.relative_wigner_angles,
+        tg.topologies[0],
+        momenta,
+        convention="invalid",
+    )
 
 
 if __name__ == "__main__":
