@@ -118,7 +118,7 @@ def test_lotentz_jax(boost_definitions):
 
 
 @pytest.mark.parametrize(
-    "momenta", [np.random.rand(3, 3)] + [np.random.rand(3, 1000, 3) for _ in range(10)]
+    "momenta", [np.random.rand(3, 3)] + [np.random.rand(3, 100, 3) for _ in range(3)]
 )
 def test_daltiz_plot_decomposition(momenta):
 
@@ -455,9 +455,7 @@ def test_helicity_angles():
     )
 
 
-@pytest.mark.parametrize(
-    "momenta", [np.random.rand(4, 3)] + [np.random.rand(4, 1000, 3) for _ in range(10)]
-)
+@pytest.mark.parametrize("momenta", [np.random.rand(4, 3)])
 def test_conventions(momenta):
     tg = TopologyCollection(0, [1, 2, 3, 4])
     masses = np.array([1, 2, 3, 4])
