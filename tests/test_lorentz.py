@@ -479,9 +479,12 @@ def test_conventions(momenta):
             topology, momenta, convention="minus_phi"
         )
 
-        for helicity, canonical, minus_phi in zip(
-            args.values(), args_canonical.values(), args_minus_phi.values()
+        for (i, helicity), canonical, minus_phi in zip(
+            args.items(), args_canonical.values(), args_minus_phi.values()
         ):
+            if reference_tree.path_to(i)[0] == topology.path_to(i)[0]:
+                # We may have different trees, but the relevant subtree is the same
+                continue
             assert (
                 not np.allclose(helicity.phi_rf, canonical.phi_rf)
                 or not np.allclose(helicity.phi_rf, minus_phi.phi_rf)

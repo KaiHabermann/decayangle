@@ -621,6 +621,24 @@ class Topology:
                 boost_tree.add_edge(node.value, d.value)
         return boost_tree, node_dict
 
+    def path_to(
+        self, target: Union[Node, int]
+    ) -> Tuple[Union[tuple, int], Dict[int, Node]]:
+        """Get the path to a target node
+
+        Args:
+            target (Union[Node, int]): the target node to get the path to
+
+        Returns:
+            list: the path to the target node
+        """
+        target = Node.get_node(target)
+        boost_tree, node_dict = self.__build_boost_tree()
+        return (
+            nx.shortest_path(boost_tree, source=self.root.value, target=target.value),
+            node_dict,
+        )
+
     @property
     def nodes(self) -> Dict[Union[tuple, int], Node]:
         """nodes of the tree
@@ -689,8 +707,7 @@ class Topology:
 
         """
         target = Node.get_node(target)
-        boost_tree, node_dict = self.__build_boost_tree()
-        path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
+        path, node_dict = self.path_to(target)
         trafo = self.root.boost(
             node_dict[path[0]], momenta, tol=tol, convention=convention
         )
