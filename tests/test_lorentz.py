@@ -210,7 +210,7 @@ def test_daltiz_plot_decomposition(momenta):
         return cos_theta_hat_3_canonical_1(M, m3, m1, m2, sigma3, sigma1, sigma2)
 
     np.random.seed(0)
-    momenta = np.random.rand(3, 2, 3)
+    # momenta = np.random.rand(3, 2, 3)
     masses = np.array([1, 2, 3])
     momenta = {
         i + 1: from_mass_and_momentum(mass, momentum)
@@ -223,7 +223,7 @@ def test_daltiz_plot_decomposition(momenta):
         mass_squared(momenta[1] + momenta[2]),
     ]
     mothermass2 = mass_squared(momenta[1] + momenta[2] + momenta[3])
-    assert all(abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10)
+    assert np.all(abs(sum(sigmas) - sum(masses**2) - mothermass2) < 1e-10)
     tg = TopologyCollection(0, [1, 2, 3])
     momenta = tg.topologies[0].to_rest_frame(momenta)
 
@@ -455,7 +455,48 @@ def test_helicity_angles():
     )
 
 
+@pytest.mark.parametrize(
+    "momenta", [np.random.rand(4, 3)] + [np.random.rand(4, 1000, 3) for _ in range(10)]
+)
+def test_conventions(momenta):
+    tg = TopologyCollection(0, [1, 2, 3, 4])
+    masses = np.array([1, 2, 3, 4])
+    momenta = {
+        i + 1: from_mass_and_momentum(mass, momentum)
+        for i, (mass, momentum) in enumerate(zip(masses, momenta))
+    }
+    momenta = tg.topologies[0].to_rest_frame(momenta)
+    reference_tree = tg.topologies[0]
+
+    # topology 1 is the reference topology
+    for topology in tg.topologies[1:]:
+        # first simple test to check, that we can compute everything without exception
+        args = reference_tree.relative_wigner_angles(topology, momenta)
+        args_canonical = reference_tree.relative_wigner_angles(
+            topology, momenta, convention="canonical"
+        )
+        args_minus_phi = reference_tree.relative_wigner_angles(
+            topology, momenta, convention="minus_phi"
+        )
+
+        for helicity, canonical, minus_phi in zip(
+            args.values(), args_canonical.values(), args_minus_phi.values()
+        ):
+            assert (
+                not np.allclose(helicity.phi_rf, canonical.phi_rf)
+                or not np.allclose(helicity.phi_rf, minus_phi.phi_rf)
+                or not np.allclose(canonical.phi_rf, minus_phi.phi_rf)
+                or not np.allclose(helicity.psi_rf, canonical.psi_rf)
+                or not np.allclose(helicity.psi_rf, minus_phi.psi_rf)
+                or not np.allclose(canonical.psi_rf, minus_phi.psi_rf)
+                or not np.allclose(helicity.theta_rf, canonical.theta_rf)
+                or not np.allclose(helicity.theta_rf, minus_phi.theta_rf)
+                or not np.allclose(canonical.theta_rf, minus_phi.theta_rf)
+            )
+
+
 if __name__ == "__main__":
     # test_lotentz(boost_definitions())
     # test_lotentz2(boost_definitions())
-    test_helicity_angles()
+    # test_helicity_angles()
+    test_conventions(np.random.rand(4, 3))

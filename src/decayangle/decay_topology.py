@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Tuple, Union, Any, Dict, Optional, Generator, Callable
+from typing import List, Tuple, Union, Any, Dict, Optional, Generator, Callable, Literal
 from collections import namedtuple
 import numpy as np
 from jax import numpy as jnp
@@ -292,6 +292,7 @@ class Node:
         target: Union[Node, int],
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
+        convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
     ) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
@@ -301,6 +302,8 @@ class Node:
             target (Union[Node, int]): the target node to boost to
             momenta (dict): the momenta of the final state particles
             tol (float, optional): tolerance for the gamma check. Defaults to the value in the config.
+            convention (Literal["helicity", "minus_phi", "canonical"], optional): the convention to use for the boost. Defaults to "helicity".
+                helicity: R_z(theta) R_y(phi)
         """
 
         if tol is None:
@@ -328,14 +331,29 @@ class Node:
             )
 
         # rotate so that the target momentum is aligned with the
-        rotation, _, _ = self.rotate_to(target, momenta, tol=tol)
+        rotation, theta_rf, psi_rf = self.rotate_to(target, momenta, tol=tol)
         rotated_momenta = self.transform(rotation, momenta)
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
-        return boost @ rotation
+        if convention == "helicity":
+            full_transformation = boost @ rotation
+        elif convention == "minus_phi":
+            full_transformation = (
+                LorentzTrafo(zero, zero, zero, zero, zero, -psi_rf) @ boost @ rotation
+            )
+        elif convention == "canonical":
+            full_transformation = (
+                LorentzTrafo(zero, zero, zero, zero, -theta_rf, zero) @ boost @ rotation
+            )
+        else:
+            raise ValueError(
+                f"Convention {convention} not supported. Use 'helicity', 'minus_phi' or 'canonical'."
+            )
+
+        return full_transformation
 
     def align_with_daughter(
         self,
@@ -616,6 +634,7 @@ class Topology:
         self,
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
+        convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
     ) -> Dict[Tuple[Union[tuple, int], Union[tuple, int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
@@ -634,7 +653,10 @@ class Topology:
         for node in self.root.preorder():
             if not node.final_state:
                 if node != self.root:
-                    boost_to_node = self.boost(node, momenta)
+                    # TODO: this is a slow, but clean approach, where we only arrive in internal node frames vial the boost method. Maybe we could speed this up by not boosting from the root all the time
+                    boost_to_node = self.boost(
+                        node, momenta, tol=tol, convention=convention
+                    )
                     momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
                 else:
                     momenta_in_node_frame = momenta
@@ -650,6 +672,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         inverse: bool = False,
         tol: Optional[float] = None,
+        convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -659,6 +682,7 @@ class Topology:
             momenta: Dictionary of momenta for the final state particles
             inverse: If True, return the inverse of the boost
             tol: Tolerance for the gamma check. Defaults to the value in the config.
+            convention: The convention to use for the boost. Defaults to "helicity".
 
         Returns:
             Boost from the root node to the target node
@@ -667,11 +691,15 @@ class Topology:
         target = Node.get_node(target)
         boost_tree, node_dict = self.__build_boost_tree()
         path = nx.shortest_path(boost_tree, self.root.value, target.value)[1:]
-        trafo = self.root.boost(node_dict[path[0]], momenta, tol=tol)
+        trafo = self.root.boost(
+            node_dict[path[0]], momenta, tol=tol, convention=convention
+        )
         momenta = self.root.transform(trafo, momenta)
         trafos = [trafo]
         for i in range(1, len(path)):
-            boost = node_dict[path[i - 1]].boost(node_dict[path[i]], momenta, tol=tol)
+            boost = node_dict[path[i - 1]].boost(
+                node_dict[path[i]], momenta, tol=tol, convention=convention
+            )
             momenta = node_dict[path[i - 1]].transform(boost, momenta)
             trafo = boost @ trafo
             trafos.append(boost)
@@ -689,6 +717,7 @@ class Topology:
         target: Union[Node, int],
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
+        convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
@@ -703,8 +732,10 @@ class Topology:
         """
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
-        boost1_inv = self.boost(target, momenta, inverse=True, tol=tol)
-        boost2 = other.boost(target, momenta, tol=tol)
+        boost1_inv = self.boost(
+            target, momenta, inverse=True, tol=tol, convention=convention
+        )
+        boost2 = other.boost(target, momenta, tol=tol, convention=convention)
         return boost2 @ boost1_inv
 
     def relative_wigner_angles(
@@ -712,6 +743,7 @@ class Topology:
         other: "Topology",
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
+        convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -726,7 +758,7 @@ class Topology:
         """
         return {
             target.value: self.rotate_between_topologies(
-                other, target, momenta, tol=tol
+                other, target, momenta, tol=tol, convention=convention
             ).wigner_angles()
             for target in self.final_state_nodes
         }
@@ -793,8 +825,12 @@ def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
 def generate_topology_definitions(nodes: List[int]) -> List[Node]:
     """
     Generate all possible topology definitions for a given list of nodes.
-    Parameters: nodes: List of nodes to generate topology definitions for
-    Returns: List of topology definitions
+
+    Parameters:
+        nodes: List of nodes to generate topology definitions for
+
+    Returns:
+        List of topology definitions
     """
     topologies = []
     if len(nodes) == 1:
