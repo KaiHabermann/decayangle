@@ -696,6 +696,7 @@ class Topology:
         inverse: bool = False,
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        last_boost: bool = True,
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -705,12 +706,21 @@ class Topology:
             momenta: Dictionary of momenta for the final state particles
             inverse: If True, return the inverse of the boost
             tol: Tolerance for the gamma check. Defaults to the value in the config.
-            convention: The convention to use for the boost. Defaults to "helicity".
+            convention (Literal["helicity", "minus_phi", "canonical"], optional): the convention to use for the boost. Defaults to "helicity".
+                helicity: we just rotate to be aligned with the target and boost
+                minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
+                canonical: We rotate, boost and rotate back. Thus the action is a pure boost
+            last_boost: If False the last boost to the target will not be performed and only the alignment rotation will be done. last_boost can only be False for the helicity convention
 
         Returns:
             Boost from the root node to the target node
 
         """
+        if last_boost is False and convention != "helicity":
+            raise ValueError(
+                f"The variable last_boost can only be False when the conveintion is 'helicity' and not "
+                f"{convention}. last_boost = False is intended for massless particles, which should be dealt with in helicity basis."
+            )
         target = Node.get_node(target)
         path, node_dict = self.path_to(target)
         trafo = self.root.boost(
@@ -722,6 +732,10 @@ class Topology:
             boost = node_dict[path[i - 1]].boost(
                 node_dict[path[i]], momenta, tol=tol, convention=convention
             )
+            if last_boost is False and i == len(path) - 1:
+                boost, _, _ = node_dict[path[i - 1]].rotate_to(
+                    node_dict[path[i]], momenta, tol=tol
+                )
             momenta = node_dict[path[i - 1]].transform(boost, momenta)
             trafo = boost @ trafo
             trafos.append(boost)
@@ -740,6 +754,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        last_boost: bool = True,
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
@@ -748,6 +763,11 @@ class Topology:
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
             tol: Tolerance for the gamma check. Defaults to the value in the config.
+            convention (Literal["helicity", "minus_phi", "canonical"], optional): the convention to use for the boost. Defaults to "helicity".
+                helicity: we just rotate to be aligned with the target and boost
+                minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
+                canonical: We rotate, boost and rotate back. Thus the action is a pure boost
+            last_boost: If False the last boost to the target will not be performed and only the alignment rotation will be done. last_boost can only be False for the helicity convention
 
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
@@ -755,9 +775,16 @@ class Topology:
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(
-            target, momenta, inverse=True, tol=tol, convention=convention
+            target,
+            momenta,
+            inverse=True,
+            tol=tol,
+            convention=convention,
+            last_boost=last_boost,
         )
-        boost2 = other.boost(target, momenta, tol=tol, convention=convention)
+        boost2 = other.boost(
+            target, momenta, tol=tol, convention=convention, last_boost=last_boost
+        )
         return boost2 @ boost1_inv
 
     def relative_wigner_angles(
@@ -766,6 +793,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        has_massless_particle: bool = False,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -774,13 +802,29 @@ class Topology:
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
             tol: Tolerance for the gamma check. Defaults to the value in the config.
+            convention (Literal["helicity", "minus_phi", "canonical"], optional): the convention to use for the boost. Defaults to "helicity".
+                helicity: we just rotate to be aligned with the target and boost
+                minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
+                canonical: We rotate, boost and rotate back. Thus the action is a pure boost
+            has_massless_particle: If True, the final boosts of the transformation into the rest frame of the targets will be omitted. This is not a valid thing to do for any convention other than 'heliticy'.
 
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
+
+        if has_massless_particle and convention != "helicity":
+            raise ValueError(
+                f"A massless particle can only be treated in 'helicity' convention and not in {convention} convention. Please change convention or disable the 'has_massless_particle' flag, if none of your final state particle is massless."
+            )
+
         return {
             target.value: self.rotate_between_topologies(
-                other, target, momenta, tol=tol, convention=convention
+                other,
+                target,
+                momenta,
+                tol=tol,
+                convention=convention,
+                last_boost=not has_massless_particle,
             ).wigner_angles()
             for target in self.final_state_nodes
         }

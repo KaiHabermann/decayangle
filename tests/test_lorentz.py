@@ -503,6 +503,62 @@ def test_conventions(momenta):
     )
 
 
+@pytest.mark.parametrize("momenta_array", [np.random.rand(4, 100, 3)])
+def test_massless_particle(momenta_array):
+
+    tg = TopologyCollection(0, [1, 2, 3, 4])
+    masses_zero_mass = np.array([0, 2, 3, 4])
+    masses = np.array([1, 2, 3, 4])
+
+    momenta = {
+        i + 1: from_mass_and_momentum(mass, momentum)
+        for i, (mass, momentum) in enumerate(zip(masses, momenta_array))
+    }
+    momenta_zero_mass = {
+        i + 1: from_mass_and_momentum(mass, momentum)
+        for i, (mass, momentum) in enumerate(zip(masses_zero_mass, momenta_array))
+    }
+    momenta = tg.topologies[0].to_rest_frame(momenta)
+    momenta_zero_mass = tg.topologies[0].to_rest_frame(momenta_zero_mass)
+    reference_tree = tg.topologies[0]
+
+    # topology 1 is the reference topology
+    for topology in tg.topologies[1:]:
+        # first simple test to check, that we can compute everything without exception
+        args = reference_tree.relative_wigner_angles(
+            topology, momenta_zero_mass, has_massless_particle=True
+        )
+        assert all(np.all(np.isfinite(v)) for v in args)
+
+        args_with = reference_tree.relative_wigner_angles(
+            topology, momenta, has_massless_particle=True
+        )
+        args_without = reference_tree.relative_wigner_angles(
+            topology, momenta, has_massless_particle=False
+        )
+        assert all(np.all(np.isfinite(v)) for v in args_with)
+        assert all(np.all(np.isfinite(v)) for v in args_without)
+        assert all(np.allclose(v1, v2) for v1, v2 in zip(args_with, args_without))
+
+    pytest.raises(
+        ValueError,
+        reference_tree.relative_wigner_angles,
+        tg.topologies[0],
+        momenta,
+        has_massless_particle=True,
+        convention="canonical",
+    )
+
+    pytest.raises(
+        ValueError,
+        reference_tree.relative_wigner_angles,
+        tg.topologies[0],
+        momenta,
+        has_massless_particle=True,
+        convention="minus_phi",
+    )
+
+
 if __name__ == "__main__":
     # test_lotentz(boost_definitions())
     # test_lotentz2(boost_definitions())
