@@ -303,7 +303,9 @@ class Node:
             momenta (dict): the momenta of the final state particles
             tol (float, optional): tolerance for the gamma check. Defaults to the value in the config.
             convention (Literal["helicity", "minus_phi", "canonical"], optional): the convention to use for the boost. Defaults to "helicity".
-                helicity: R_z(theta) R_y(phi)
+                helicity: we just rotate to be aligned with the target and boost
+                minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
+                canonical: We rotate, boost and rotate back. Thus the action is a pure boost
         """
 
         if tol is None:
@@ -345,9 +347,7 @@ class Node:
                 LorentzTrafo(zero, zero, zero, zero, zero, -psi_rf) @ boost @ rotation
             )
         elif convention == "canonical":
-            full_transformation = (
-                LorentzTrafo(zero, zero, zero, zero, -theta_rf, zero) @ boost @ rotation
-            )
+            full_transformation = rotation.inverse() @ boost @ rotation
         else:
             raise ValueError(
                 f"Convention {convention} not supported. Use 'helicity', 'minus_phi' or 'canonical'."
@@ -660,6 +660,11 @@ class Topology:
         Parameters:
             momenta(Dictionary): Dictionary of momenta for the final state particles
             tol(float): Tolerance for the gamma check. Defaults to the value in the config.
+            convention(Literal["helicity", "minus_phi", "canonical"]): the convention to use.
+            Defaults to "helicity".
+                helicity: we just rotate to be aligned with the target and boost
+                minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
+                canonical: We rotate, boost and rotate back. Thus the action is a pure boost
 
 
         Returns:
