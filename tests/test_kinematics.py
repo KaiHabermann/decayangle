@@ -81,6 +81,7 @@ def test_kinematics():
 
 
 def test_vectorized():
+    np.random.seed(485728)
     phi, theta, xi, phi_rf, theta_rf, psi_rf = np.random.uniform(
         high=np.pi, low=0, size=(6, 10, 10, 7)
     )
