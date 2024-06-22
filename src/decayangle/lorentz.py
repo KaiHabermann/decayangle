@@ -108,6 +108,26 @@ class LorentzTrafo:
             params = adjust_for_2pi_rotation(self.matrix_2x2, *params)
         return params
 
+    def decode_other(self):
+        x = self.matrix_2x2
+        cosbeta = cb.real(x[..., 0, 0] * x[..., 1, 1] + x[..., 0, 1] * x[..., 1, 0])
+        cosbeta = cb.clip(cosbeta, -1, 1)
+        zeros = cb.zeros_like(cosbeta)
+        beta = cb.arccos(cosbeta)
+        m_1 = cb.abs(x[..., 0, 0])
+        m_2 = cb.abs(x[..., 0, 1])
+        # alpha_p_gamma = tf.math.imag(
+        #     tf.math.log(x[1][1] / tf.complex(m_1, zeros))
+        # )
+        alpha_p_gamma = cb.angle(x[..., 1, 1])
+        alpha_m_gamma = -cb.angle(x[..., 1, 0])
+        # -tf.math.imag(
+        #    tf.math.log(x[1][0] / tf.complex(m_2, zeros))
+        # )
+        alpha = alpha_p_gamma + alpha_m_gamma
+        gamma = alpha_p_gamma - alpha_m_gamma
+        return WignerAngles(gamma, beta, alpha)
+
     def __repr__(self) -> str:
         """
         String representation of the Lorentz transformation. It shows the SU(2) and O(3,1) matrices.

@@ -712,6 +712,7 @@ class Topology:
         other: "Topology",
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
+        use_other=False,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -724,6 +725,13 @@ class Topology:
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
+        if use_other:
+            return {
+                target.value: self.rotate_between_topologies(
+                    other, target, momenta, tol=tol
+                ).decode_other()
+                for target in self.final_state_nodes
+            }
         return {
             target.value: self.rotate_between_topologies(
                 other, target, momenta, tol=tol
