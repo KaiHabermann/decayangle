@@ -323,7 +323,6 @@ class Node:
             )
         target = Node.get_node(target)
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
-        one = cb.ones_like(zero)
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
 
@@ -338,6 +337,14 @@ class Node:
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(rotated_momenta))
+        if not cb.all(cb.isfinite(xi)):
+            cfg.raise_if_safety_on(
+                ValueError(
+                    f"Rapidity is not finite for the target {target} in the rest frame of the mother {self}."
+                    f"This is likely due to a massless particle in the final state."
+                    f"If you expect massless particles, you should use the has_massless_particle option in the relative_wigner_angles method."
+                )
+            )
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
         if convention == "helicity":
