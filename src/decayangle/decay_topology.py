@@ -736,12 +736,13 @@ class Topology:
         momenta = self.root.transform(trafo, momenta)
         trafos = [trafo]
         for i in range(1, len(path)):
-            boost = node_dict[path[i - 1]].boost(
-                node_dict[path[i]], momenta, tol=tol, convention=convention
-            )
             if last_boost is False and i == len(path) - 1:
                 boost, _, _ = node_dict[path[i - 1]].rotate_to(
                     node_dict[path[i]], momenta, tol=tol
+                )
+            else:
+                boost = node_dict[path[i - 1]].boost(
+                    node_dict[path[i]], momenta, tol=tol, convention=convention
                 )
             momenta = node_dict[path[i - 1]].transform(boost, momenta)
             trafo = boost @ trafo
