@@ -40,6 +40,7 @@ repos:
         entry: codespell README.md
         language: python
         types: [text]
+        exclude: "notebooks/*"
 
   - repo: https://github.com/psf/black
     rev: 24.4.2
