@@ -7,9 +7,8 @@ import numpy as np
 
 def test_particle2():
     cfg.sorting = "off"
-    root = 0
-    topo1 = Topology(root, (1, (2, 3)))
-    topo2 = Topology(root, (1, (3, 2)))
+    topo1 = Topology(0, (1, (2, 3)))
+    topo2 = Topology(0, (1, (3, 2)))
     print("Topology 1:", topo1)
     print("Topology 2:", topo2)
 
