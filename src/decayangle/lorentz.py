@@ -6,8 +6,11 @@ import jax.numpy as jnp
 from decayangle.kinematics import (
     build_4_4,
     build_2_2,
-    decode_4_4,
-    adjust_for_2pi_rotation,
+    decode_4_4_boost,
+    decode_su2_rotation,
+    rotation_matrix_2_2_y,
+    boost_matrix_2_2_z,
+    rotation_matrix_2_2_z,
 )
 from decayangle.config import config as cfg
 
@@ -103,10 +106,19 @@ class LorentzTrafo:
         Returns:
             Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
         """
-        params = decode_4_4(self.matrix_4x4, tol=tol)
-        if two_pi_aware:
-            params = adjust_for_2pi_rotation(self.matrix_2x2, *params)
-        return params
+        phi, theta, xi = decode_4_4_boost(self.matrix_4x4, tol=tol)
+        su2_rot = (
+            boost_matrix_2_2_z(-xi)
+            @ rotation_matrix_2_2_y(-theta)
+            @ rotation_matrix_2_2_z(-phi)
+            @ self.matrix_2x2
+        )
+        # check for the special case of no absolute boost
+        phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_su2_rotation(
+            su2_rot
+        )
+
+        return phi, theta, xi, phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost
 
     def __repr__(self) -> str:
         """
