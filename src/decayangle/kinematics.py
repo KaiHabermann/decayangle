@@ -458,13 +458,29 @@ def adjust_for_2pi_rotation(
     Returns:
         tuple: the adjusted rotation angles
     """
-    su2_rot = (
-        boost_matrix_2_2_z(-xi)
-        @ rotation_matrix_2_2_y(-theta)
-        @ rotation_matrix_2_2_z(-phi)
-        @ m_original_2x2
+    new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf)
+
+    not_two_pi_shifted = cb.all(
+        cb.all(cb.isclose(m_original_2x2, new_2x2, rtol=cfg.shift_precision), axis=-1),
+        axis=-1,
     )
-    phi_rf, theta_rf, psi_rf = decode_su2_rotation(su2_rot)
+
+    two_pi_shifted = cb.all(
+        cb.all(cb.isclose(m_original_2x2, -new_2x2, rtol=cfg.shift_precision), axis=-1),
+        axis=-1,
+    )
+    if cb.any(not_two_pi_shifted & two_pi_shifted):
+        cfg.raise_if_safety_on(
+            ValueError(
+                f"The 2x2 matrix does not match the reconstruced parameters!"
+                f"This can happen due to numerical errors."
+                f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
+                f"Difference is {m_original_2x2 - new_2x2}"
+                f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
+            )
+        )
+
+    phi_rf = cb.where(two_pi_shifted, phi_rf + 2 * cb.pi, phi_rf)
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
