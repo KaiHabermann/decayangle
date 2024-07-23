@@ -407,6 +407,24 @@ def decode_4_4(
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
+def decode_su2_rotation(
+    matrix_2x2: jnp.array,
+) -> Tuple[jnp.array, jnp.array, jnp.array]:
+
+    cosbeta = cb.real(
+        matrix_2x2[..., 0, 0] * matrix_2x2[..., 1, 1]
+        + matrix_2x2[..., 0, 1] * matrix_2x2[..., 1, 0]
+    )
+    cosbeta = cb.clip(cosbeta, -1, 1)
+    beta = cb.arccos(cosbeta)
+    alpha_p_gamma = cb.angle(matrix_2x2[..., 1, 1])
+    alpha_m_gamma = -cb.angle(matrix_2x2[..., 1, 0])
+
+    alpha = alpha_p_gamma + alpha_m_gamma
+    gamma = alpha_p_gamma - alpha_m_gamma
+    return gamma, beta, alpha
+
+
 def adjust_for_2pi_rotation(
     m_original_2x2, phi, theta, xi, phi_rf, theta_rf, psi_rf
 ) -> Tuple[Union[jnp.array, np.array]]:
@@ -424,29 +442,13 @@ def adjust_for_2pi_rotation(
     Returns:
         tuple: the adjusted rotation angles
     """
-    new_2x2 = build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf)
-
-    not_two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, new_2x2, rtol=cfg.shift_precision), axis=-1),
-        axis=-1,
+    su2_rot = (
+        boost_matrix_2_2_z(-xi)
+        @ rotation_matrix_2_2_y(-theta)
+        @ rotation_matrix_2_2_z(-phi)
+        @ m_original_2x2
     )
-
-    two_pi_shifted = cb.all(
-        cb.all(cb.isclose(m_original_2x2, -new_2x2, rtol=cfg.shift_precision), axis=-1),
-        axis=-1,
-    )
-    if cb.any(not_two_pi_shifted & two_pi_shifted):
-        cfg.raise_if_safety_on(
-            ValueError(
-                f"The 2x2 matrix does not match the reconstruced parameters!"
-                f"This can happen due to numerical errors."
-                f"The original matrix is {m_original_2x2} and the reconstructed matrix is {new_2x2}"
-                f"Difference is {m_original_2x2 - new_2x2}"
-                f"Parameters are {phi}, {theta}, {xi}, {theta_rf}, {phi_rf}, {psi_rf}"
-            )
-        )
-
-    phi_rf = cb.where(two_pi_shifted, phi_rf + 2 * cb.pi, phi_rf)
+    phi_rf, theta_rf, psi_rf = decode_su2_rotation(su2_rot)
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 

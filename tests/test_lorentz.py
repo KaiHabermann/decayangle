@@ -37,9 +37,9 @@ def test_lotentz(boost_definitions):
         assert np.allclose(psi, psi_)
         assert np.allclose(theta, theta_)
         assert np.allclose(xi, xi_)
-        assert np.allclose(phi_rf, phi_rf_)
-        assert np.allclose(theta_rf, theta_rf_)
-        assert np.allclose(psi_rf, psi_rf_)
+        assert np.allclose(
+            matrix_2x2, build_2_2(psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_)
+        )
 
     for boost_definition in boost_definitions:
         single_test(*boost_definition)
@@ -504,7 +504,7 @@ def test_conventions(momenta):
 
 
 if __name__ == "__main__":
-    # test_lotentz(boost_definitions())
-    # test_lotentz2(boost_definitions())
+    test_lotentz(boost_definitions())
+    test_lotentz2(boost_definitions())
     # test_helicity_angles()
-    test_conventions(np.random.rand(4, 3))
+    # test_conventions(np.random.rand(4, 3))

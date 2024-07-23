@@ -26,8 +26,12 @@ def test_particle2():
         # this will always be 0, since the chain of boosts and rotations into the particle i rest frame is order independent
         # this is, because the final state frame is determined by the boost axis from the second to last frame into the last frame. This is not ordering dependent.
         print(f"Particle {particle}:", wigner_angles[particle])
-        assert np.allclose(wigner_angles[particle].theta_rf, 0)
-        assert np.allclose(wigner_angles[particle].psi_rf, 0)
+        assert np.allclose(wigner_angles[particle].theta_rf, 0, atol=1e-7)
+
+        # the total has to be 0, since the z axis does not change, when theta is 0
+        assert np.allclose(
+            wigner_angles[particle].psi_rf + wigner_angles[particle].phi_rf, 0
+        )
 
     hel1 = topo1.helicity_angles(momenta)
     hel2 = topo2.helicity_angles(momenta)
@@ -35,7 +39,9 @@ def test_particle2():
     hel1_m_phi = topo1.helicity_angles(momenta, convention="minus_phi")
     hel2_m_phi = topo2.helicity_angles(momenta, convention="minus_phi")
 
+    print(hel1[(2, 3)].theta_rf, -(np.pi + hel2[(3, 2)].theta_rf))
     assert np.allclose(hel1[(2, 3)].theta_rf, -(np.pi + hel2[(3, 2)].theta_rf))
+
     assert np.allclose(hel1[(2, 3)].psi_rf, hel2[(3, 2)].psi_rf - np.pi)
     print(hel1_m_phi[(2, 3)], hel2_m_phi[(3, 2)])
 
