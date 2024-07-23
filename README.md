@@ -13,6 +13,7 @@
 - [Usage](#usage)
 - [On Topologies](#topologies)
 - [On Ordering](#ordering)
+- [On Conventions](#conventions)
 - [Dealing with imperfect Data](#dealing-with-imperfect-data)
 - [Related projects](#related-projects)
 - [License](#license)
@@ -222,6 +223,25 @@ cfg.sorting = "value" # default sorting
 ```
 
 At this time only `"off"` and `"value"` are supported. For more sophisticated sorting algorithms the user has to write custom functions.
+
+## Conventions
+
+Different conventions can be used to perform the transformation from one intermediate frame into another. `decayangle` implements three of these conventions.
+
+- `helicity`: $\Lambda = R_y(\theta) R_z(\phi) B_z(\xi)$
+- `minus_phi`: $\Lambda = R_y(\theta) R_z(\phi) B_z(\xi) R_z(-\phi)$
+- `canonical`: $\Lambda = R_y(\theta) R_z(\phi) B_z(\xi) R_z(-\phi)R_y(-\theta)$
+
+The notebooks in the [GitHub](https://github.com/KaiHabermann/decayangle/tree/master/notebooks) go into more detail on the effects the different conventions have on the anuglar structure. The important thing to note is, that the final amplitude will be the same using any of the above conventions.
+
+The conventions can be given as a flag in the angle computing functions with the default being `helicity`
+
+```{python}
+
+rotation1_2_3 = topology1.relative_wigner_angles(topology2, momenta, convention="helicity")
+helicity_angles = topology1.helicity_angles(momenta, convention="helicity")
+
+```
 
 ## Dealing with imperfect Data
 
