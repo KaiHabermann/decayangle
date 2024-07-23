@@ -420,6 +420,13 @@ def decode_4_4(matrix: Union[jnp.array, np.array], tol: Optional[float] = None):
     theta_rf = cb.where(xi < tol, theta_rf_no_boost, theta_rf)
     psi_rf = cb.where(xi < tol, psi_rf_no_boost, psi_rf)
 
+    is_unity = cb.all(cb.all(cb.isclose(matrix, cb.eye(4)), axis=-1), axis=-1)
+
+    def check_unity(val):
+        return cb.where(is_unity, 0, val)
+
+    # replace the values with 0 if the matrix is unity
+    phi_rf, theta_rf, psi_rf = [check_unity(val) for val in [phi_rf, theta_rf, psi_rf]]
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, Literal
 from collections import namedtuple
 import numpy as np
 import jax.numpy as jnp
@@ -7,10 +7,12 @@ from decayangle.kinematics import (
     build_4_4,
     build_2_2,
     decode_4_4_boost,
+    decode_4_4,
     decode_su2_rotation,
     rotation_matrix_2_2_y,
     boost_matrix_2_2_z,
     rotation_matrix_2_2_z,
+    adjust_for_2pi_rotation,
 )
 from decayangle.config import config as cfg
 
@@ -95,7 +97,10 @@ class LorentzTrafo:
         raise ValueError("Only LorentzTrafo can be multiplied with LorentzTrafo")
 
     def decode(
-        self, two_pi_aware=True, tol: Optional[float] = None
+        self,
+        two_pi_aware=True,
+        tol: Optional[float] = None,
+        method: Literal["flip", "su2_decode"] = "flip",
     ) -> Tuple[Union[np.array, jnp.array]]:
         """Decode the parameters of the Lorentz transformation
 
@@ -106,19 +111,30 @@ class LorentzTrafo:
         Returns:
             Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
         """
-        phi, theta, xi = decode_4_4_boost(self.matrix_4x4, tol=tol)
-        su2_rot = (
-            boost_matrix_2_2_z(-xi)
-            @ rotation_matrix_2_2_y(-theta)
-            @ rotation_matrix_2_2_z(-phi)
-            @ self.matrix_2x2
-        )
-        # check for the special case of no absolute boost
-        phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_su2_rotation(
-            su2_rot
-        )
+        if method == "flip":
+            phi, theta, xi, phi_rf, theta_rf, psi_rf = decode_4_4(
+                self.matrix_4x4, tol=tol
+            )
+            if two_pi_aware:
+                phi, theta, xi, phi_rf, theta_rf, psi_rf = adjust_for_2pi_rotation(
+                    self.matrix_2x2, phi, theta, xi, phi_rf, theta_rf, psi_rf
+                )
+            return phi, theta, xi, phi_rf, theta_rf, psi_rf
+        if method == "su2_decode":
+            phi, theta, xi = decode_4_4_boost(self.matrix_4x4, tol=tol)
+            su2_rot = (
+                boost_matrix_2_2_z(-xi)
+                @ rotation_matrix_2_2_y(-theta)
+                @ rotation_matrix_2_2_z(-phi)
+                @ self.matrix_2x2
+            )
+            # check for the special case of no absolute boost
+            phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_su2_rotation(
+                su2_rot
+            )
+            return phi, theta, xi, phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost
 
-        return phi, theta, xi, phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost
+        raise ValueError(f"Invalid method for decoding: {method}")
 
     def __repr__(self) -> str:
         """
