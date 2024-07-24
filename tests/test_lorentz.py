@@ -521,10 +521,3 @@ def test_conventions(momenta):
         momenta,
         convention="invalid",
     )
-
-
-if __name__ == "__main__":
-    test_lotentz(boost_definitions())
-    test_lotentz2(boost_definitions())
-    # test_helicity_angles()
-    # test_conventions(np.random.rand(4, 3))
