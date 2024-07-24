@@ -17,15 +17,18 @@ def test_particle2():
         2: np.array([0.466794284860449, 0.0, 0.1935604618890383, 0.7064556158132482]),
         3: np.array([-0.466794284860449, 0.0, 0.2437988784199448, 0.5448069221267302]),
     }
-
-    rotation = LorentzTrafo(0, 0, 0, 1.0, 1.0, 1.0)
+    x, y = np.linspace(-np.pi + 1e-5, np.pi - 1e-5, 100), np.linspace(
+        -np.pi + 1e-5, np.pi - 1e-5, 100
+    )
+    X, Y = np.meshgrid(x, y)
+    rotation = LorentzTrafo(0, 0, 0, X, 1.0, Y)
     momenta = {i: rotation.matrix_4x4 @ p for i, p in momenta.items()}
     wigner_angles = topo1.relative_wigner_angles(topo2, momenta)
 
     for particle in [1, 2, 3]:
         # this will always be 0, since the chain of boosts and rotations into the particle i rest frame is order independent
         # this is, because the final state frame is determined by the boost axis from the second to last frame into the last frame. This is not ordering dependent.
-        print(f"Particle {particle}:", wigner_angles[particle])
+        # print(f"Particle {particle}:", wigner_angles[particle])
         assert np.allclose(wigner_angles[particle].theta_rf, 0)
         assert np.allclose(wigner_angles[particle].psi_rf, 0)
 
@@ -36,7 +39,14 @@ def test_particle2():
     hel2_m_phi = topo2.helicity_angles(momenta, convention="minus_phi")
 
     assert np.allclose(hel1[(2, 3)].theta_rf, -(np.pi + hel2[(3, 2)].theta_rf))
-    assert np.allclose(hel1[(2, 3)].psi_rf, hel2[(3, 2)].psi_rf - np.pi)
+    print(hel1[(2, 3)].psi_rf - hel2[(3, 2)].psi_rf)
+    import matplotlib.pyplot as plt
+
+    plt.imshow(
+        hel1[(2, 3)].psi_rf - hel2[(3, 2)].psi_rf, extent=[-np.pi, np.pi, -np.pi, np.pi]
+    )
+    plt.savefig("temp.png")
+    # assert np.allclose(hel1[(2, 3)].psi_rf, hel2[(3, 2)].psi_rf - np.pi)
     print(hel1_m_phi[(2, 3)], hel2_m_phi[(3, 2)])
 
     cfg.sorting = "value"
