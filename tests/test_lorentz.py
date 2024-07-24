@@ -45,6 +45,26 @@ def test_lotentz(boost_definitions):
         single_test(*boost_definition)
 
 
+def test_lotentz_su_2_direct(boost_definitions):
+    def single_test(psi, theta, xi, theta_rf, phi_rf, psi_rf):
+        M = build_4_4(psi, theta, xi, theta_rf, phi_rf, psi_rf)
+        matrix_2x2 = build_2_2(psi, theta, xi, theta_rf, phi_rf, psi_rf)
+        trafo = LorentzTrafo(psi, theta, xi, theta_rf, phi_rf, psi_rf)
+        psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_ = trafo.decode(
+            method="su2_decode"
+        )
+        assert np.allclose(M, build_4_4(psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_))
+        assert np.allclose(psi, psi_)
+        assert np.allclose(theta, theta_)
+        assert np.allclose(xi, xi_)
+        assert np.allclose(
+            matrix_2x2, build_2_2(psi_, theta_, xi_, theta_rf_, phi_rf_, psi_rf_)
+        )
+
+    for boost_definition in boost_definitions:
+        single_test(*boost_definition)
+
+
 def test_lotentz2(boost_definitions):
 
     def test_single(definition1, definition2):
