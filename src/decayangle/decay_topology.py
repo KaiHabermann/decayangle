@@ -337,12 +337,13 @@ class Node:
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
         if convention == "helicity":
-            # rotate so that the target momentum is aligned with the
+            # rotate so that the target momentum is aligned with the z axis of daughter 1
             rotation_daughter1, minus_theta_rf, minus_psi_rf = self.rotate_to(
                 self.daughters[0], momenta, tol=tol
             )
             rotation = rotation_daughter1
             if target != self.daughters[0]:
+                # if the target is daughter 2, we have to turn around before boosting
                 rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, -cb.pi) @ rotation_daughter1
             full_transformation = boost @ rotation
         elif convention == "minus_phi":
