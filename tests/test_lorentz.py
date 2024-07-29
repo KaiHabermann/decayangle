@@ -420,57 +420,57 @@ def test_helicity_angles():
     momenta = tree1.to_rest_frame(momenta)
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
     assert np.allclose(
-        np.cos(tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].theta_rf),
-        np.cos(chain_vars["Kpi"]["theta_Kst"]),
+        tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].theta_rf,
+        chain_vars["Kpi"]["theta_Kst"],
     )
     assert np.allclose(
-        np.cos(tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].psi_rf),
-        np.cos(chain_vars["Kpi"]["phi_Kst"]),
+        tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].psi_rf,
+        chain_vars["Kpi"]["phi_Kst"],
     )
     assert np.allclose(
-        np.cos(tree1.helicity_angles(momenta_23_rotated)[(2, 3)].psi_rf),
-        np.cos(chain_vars["Kpi"]["phi_K"]),
+        tree1.helicity_angles(momenta_23_rotated)[(2, 3)].psi_rf,
+        chain_vars["Kpi"]["phi_K"],
     )
     assert np.allclose(
-        np.cos(tree1.helicity_angles(momenta_23_rotated)[(2, 3)].theta_rf),
-        np.cos(chain_vars["Kpi"]["theta_K"]),
+        tree1.helicity_angles(momenta_23_rotated)[(2, 3)].theta_rf,
+        chain_vars["Kpi"]["theta_K"],
         1e-4,
     )
 
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].theta_rf),
-        np.cos(chain_vars["pip"]["theta_D"]),
+        tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].theta_rf,
+        chain_vars["pip"]["theta_D"],
     )
     assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].psi_rf),
-        np.cos(chain_vars["pip"]["phi_D"]),
-    )
-
-    assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[(3, 1)].psi_rf),
-        np.cos(chain_vars["pip"]["phi_pi"]),
-    )
-    assert np.allclose(
-        np.cos(tree2.helicity_angles(momenta_23_rotated)[(3, 1)].theta_rf),
-        np.cos(chain_vars["pip"]["theta_pi"]),
+        tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].psi_rf,
+        chain_vars["pip"]["phi_D"],
     )
 
     assert np.allclose(
-        np.cos(tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].theta_rf),
-        np.cos(chain_vars["pK"]["theta_L"]),
+        tree2.helicity_angles(momenta_23_rotated)[(3, 1)].psi_rf,
+        chain_vars["pip"]["phi_pi"],
     )
     assert np.allclose(
-        np.cos(tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].psi_rf),
-        np.cos(chain_vars["pK"]["phi_L"]),
+        tree2.helicity_angles(momenta_23_rotated)[(3, 1)].theta_rf,
+        chain_vars["pip"]["theta_pi"],
+    )
+
+    assert np.allclose(
+        tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].theta_rf,
+        chain_vars["pK"]["theta_L"],
     )
     assert np.allclose(
-        np.cos(tree3.helicity_angles(momenta_23_rotated)[(1, 2)].psi_rf),
-        np.cos(chain_vars["pK"]["Lphi_p"]),
+        tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].psi_rf,
+        chain_vars["pK"]["phi_L"],
+    )
+    assert np.allclose(
+        tree3.helicity_angles(momenta_23_rotated)[(1, 2)].psi_rf,
+        chain_vars["pK"]["Lphi_p"],
         1e-4,
     )
     assert np.allclose(
-        np.cos(tree3.helicity_angles(momenta_23_rotated)[(1, 2)].theta_rf),
-        np.cos(chain_vars["pK"]["Ltheta_p"]),
+        tree3.helicity_angles(momenta_23_rotated)[(1, 2)].theta_rf,
+        chain_vars["pK"]["Ltheta_p"],
         1e-4,
     )
 
@@ -521,3 +521,11 @@ def test_conventions(momenta):
         momenta,
         convention="invalid",
     )
+
+
+if __name__ == "__main__":
+    test_lotentz(boost_definitions())
+    test_lotentz2(boost_definitions())
+    test_helicity_angles()
+    test_conventions(np.random.rand(4, 3))
+    test_daltiz_plot_decomposition([np.random.rand(3, 100, 3) for _ in range(3)])
