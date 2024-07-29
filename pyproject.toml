@@ -13,7 +13,7 @@ packages = ["src/decayangle"]
 [project]
 name = "decayangle"
 description = 'A tool for wigner rotations in n-body decays'
-version = '1.0.4'
+version = '1.0.5'
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
@@ -65,4 +65,4 @@ cov = 'pytest --cov-report=term-missing --cov-report=xml --cov-config=pyproject.
 
 [[tool.hatch.envs.test.matrix]]
 python = ["312", "311", "310", "39", "38"] 
-version = ["1.0.4"]
+version = ["1.0.5"]
