@@ -11,7 +11,7 @@ from decayangle.config import config as cfg
 
 cb = cfg.backend
 
-HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
+HelicityAngles = namedtuple("HelicityAngles", ["phi_rf", "theta_rf"])
 
 
 def flat(l) -> Generator:
@@ -331,12 +331,8 @@ class Node:
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
 
-        # rotate so that the target momentum is aligned with the
-        rotation, theta_rf, psi_rf = self.rotate_to(target, momenta, tol=tol)
-        rotated_momenta = self.transform(rotation, momenta)
-
         # boost to the rest frame of the target
-        xi = -akm.rapidity(target.momentum(rotated_momenta))
+        xi = -akm.rapidity(target.momentum(momenta))
         if not cb.all(cb.isfinite(xi)):
             cfg.raise_if_safety_on(
                 ValueError(
@@ -348,12 +344,28 @@ class Node:
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
         if convention == "helicity":
+            # rotate so that the target momentum is aligned with the z axis of daughter 1
+            rotation_daughter1, minus_theta_rf, minus_psi_rf = self.rotate_to(
+                self.daughters[0], momenta, tol=tol
+            )
+            rotation = rotation_daughter1
+            if target != self.daughters[0]:
+                # if the target is daughter 2, we have to turn around before boosting
+                rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, -cb.pi) @ rotation_daughter1
             full_transformation = boost @ rotation
         elif convention == "minus_phi":
+            rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
+                target, momenta, tol=tol
+            )
             full_transformation = (
-                LorentzTrafo(zero, zero, zero, zero, zero, -psi_rf) @ boost @ rotation
+                LorentzTrafo(zero, zero, zero, zero, zero, minus_psi_rf)
+                @ boost
+                @ rotation
             )
         elif convention == "canonical":
+            rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
+                target, momenta, tol=tol
+            )
             full_transformation = rotation.inverse() @ boost @ rotation
         else:
             raise ValueError(
@@ -407,8 +419,11 @@ class Node:
 
         # define the daughter for which the momentum should be aligned with the positive z after the rotation
         positive_z = self.daughters[0]
-        _, theta_rf, psi_rf = self.rotate_to(positive_z, momenta, tol=tol)
-        return HelicityAngles(theta_rf, psi_rf)
+        _, minus_theta_rf, minus_phi_rf = self.rotate_to(positive_z, momenta, tol=tol)
+        return HelicityAngles(
+            -minus_phi_rf,
+            -minus_theta_rf,
+        )
 
     def rotate_to(
         self,
@@ -458,10 +473,10 @@ class Node:
             )
 
         # rotate so that the target momentum is aligned with the z axis
-        psi_rf, theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
-        rotation = LorentzTrafo(zero, zero, zero, zero, theta_rf, psi_rf)
+        minus_phi_rf, minus_theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
+        rotation = LorentzTrafo(zero, zero, zero, zero, minus_theta_rf, minus_phi_rf)
 
-        return rotation, theta_rf, psi_rf
+        return rotation, minus_theta_rf, minus_phi_rf
 
 
 class Topology:
