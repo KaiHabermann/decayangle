@@ -351,7 +351,7 @@ class Node:
                 target, momenta, tol=tol
             )
             full_transformation = (
-                LorentzTrafo(zero, zero, zero, zero, zero, minus_psi_rf)
+                LorentzTrafo(zero, zero, zero, zero, zero, -minus_psi_rf)
                 @ boost
                 @ rotation
             )
