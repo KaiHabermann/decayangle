@@ -31,7 +31,7 @@ def test_particle2():
     assert np.allclose(hel1[(2, 3)].theta_rf, (np.pi - hel2[(3, 2)].theta_rf))
 
     assert np.allclose(
-        hel1[(2, 3)].psi_rf - hel2[(3, 2)].psi_rf + wigner_angles[2].phi_rf, np.pi
+        hel1[(2, 3)].phi_rf - hel2[(3, 2)].phi_rf + wigner_angles[2].phi_rf, np.pi
     )
 
     cfg.sorting = "value"

@@ -271,19 +271,19 @@ def test_daltiz_plot_decomposition(momenta):
 
     dpd_helicity_2 = cos_theta_12(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree3.helicity_angles(momenta)
-    theta_rf, psi_rf = hel_angles[(1, 2)]
+    phi_rf, theta_rf = hel_angles[(1, 2)]
     assert np.allclose(dpd_helicity_2, np.cos(theta_rf))
 
     dpd_helicity_2 = cos_theta_31(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree2.helicity_angles(momenta)
-    theta_rf, psi_rf = hel_angles[(1, 3)]
+    phi_rf, theta_rf = hel_angles[(1, 3)]
     # dpd defines the angle to particle 3, but we chose the angle to particle 1
     # so we need to invert the angle
     assert np.allclose(dpd_helicity_2, np.cos(np.pi - theta_rf))
 
     dpd_helicity_2 = cos_theta_23(mothermass2**0.5, *masses, *sigmas)
     hel_angles = tree1.helicity_angles(momenta)
-    theta_rf, psi_rf = hel_angles[(2, 3)]
+    phi_rf, theta_rf = hel_angles[(2, 3)]
     assert np.allclose(dpd_helicity_2, np.cos(theta_rf))
 
     # we will now test the theta hat angles from dpd
@@ -292,7 +292,7 @@ def test_daltiz_plot_decomposition(momenta):
     # for tree1 this is particle 1 and the negative direction is the combined momentum of particle 2 and 3
     tree1_aligned_momenta = tree1.align_with_daughter(momenta, (2, 3))
     dpd_value = cos_theta_hat_3_canonical_1(mothermass2**0.5, *masses, *sigmas)
-    theta_rf, psi_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
+    phi_rf, theta_rf = tree3.helicity_angles(tree1_aligned_momenta)[((1, 2), 3)]
     assert np.allclose(dpd_value, np.cos(theta_rf))
 
 
@@ -404,11 +404,11 @@ def test_helicity_angles():
         chain_vars["Kpi"]["theta_Kst"],
     )
     assert np.allclose(
-        tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].psi_rf,
+        tree1.helicity_angles(momenta_23_rotated)[((2, 3), 1)].phi_rf,
         chain_vars["Kpi"]["phi_Kst"],
     )
     assert np.allclose(
-        tree1.helicity_angles(momenta_23_rotated)[(2, 3)].psi_rf,
+        tree1.helicity_angles(momenta_23_rotated)[(2, 3)].phi_rf,
         chain_vars["Kpi"]["phi_K"],
     )
     assert np.allclose(
@@ -422,12 +422,12 @@ def test_helicity_angles():
         chain_vars["pip"]["theta_D"],
     )
     assert np.allclose(
-        tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].psi_rf,
+        tree2.helicity_angles(momenta_23_rotated)[((3, 1), 2)].phi_rf,
         chain_vars["pip"]["phi_D"],
     )
 
     assert np.allclose(
-        tree2.helicity_angles(momenta_23_rotated)[(3, 1)].psi_rf,
+        tree2.helicity_angles(momenta_23_rotated)[(3, 1)].phi_rf,
         chain_vars["pip"]["phi_pi"],
     )
     assert np.allclose(
@@ -440,11 +440,11 @@ def test_helicity_angles():
         chain_vars["pK"]["theta_L"],
     )
     assert np.allclose(
-        tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].psi_rf,
+        tree3.helicity_angles(momenta_23_rotated)[((1, 2), 3)].phi_rf,
         chain_vars["pK"]["phi_L"],
     )
     assert np.allclose(
-        tree3.helicity_angles(momenta_23_rotated)[(1, 2)].psi_rf,
+        tree3.helicity_angles(momenta_23_rotated)[(1, 2)].phi_rf,
         chain_vars["pK"]["Lphi_p"],
         1e-4,
     )
