@@ -11,7 +11,7 @@ from decayangle.config import config as cfg
 
 cb = cfg.backend
 
-HelicityAngles = namedtuple("HelicityAngles", ["theta_rf", "psi_rf"])
+HelicityAngles = namedtuple("HelicityAngles", ["phi_rf", "theta_rf"])
 
 
 def flat(l) -> Generator:
@@ -412,8 +412,11 @@ class Node:
 
         # define the daughter for which the momentum should be aligned with the positive z after the rotation
         positive_z = self.daughters[0]
-        _, minus_theta_rf, minus_psi_rf = self.rotate_to(positive_z, momenta, tol=tol)
-        return HelicityAngles(-minus_theta_rf, -minus_psi_rf)
+        _, minus_theta_rf, minus_phi_rf = self.rotate_to(positive_z, momenta, tol=tol)
+        return HelicityAngles(
+            -minus_phi_rf,
+            -minus_theta_rf,
+        )
 
     def rotate_to(
         self,

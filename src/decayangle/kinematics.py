@@ -79,9 +79,9 @@ def rotate_to_z_axis(v: Union[jnp.array, np.array]) -> Union[jnp.array, np.array
         Union[jnp.array, np.array]: the rotation angles around first z and then y axis
     """
     v = cb.array(v)
-    psi_rf = cb.arctan2(y_component(v), x_component(v))
+    phi_rf = cb.arctan2(y_component(v), x_component(v))
     theta_rf = cb.arccos(z_component(v) / p(v))
-    return -psi_rf, -theta_rf
+    return -phi_rf, -theta_rf
 
 
 def rotation_matrix_2_2_x(

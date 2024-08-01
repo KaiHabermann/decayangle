@@ -3,6 +3,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/decayangle.svg)](https://pypi.org/project/decayangle/)
 [![codecov](https://codecov.io/gh/KaiHabermann/decayangle/graph/badge.svg?token=KXBO8KEQ3V)](https://codecov.io/gh/KaiHabermann/decayangle)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13122268.svg)](https://doi.org/10.5281/zenodo.13122268)
 
 ---
 
