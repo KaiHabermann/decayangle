@@ -107,6 +107,10 @@ class LorentzTrafo:
         Args:
             two_pi_aware (bool, optional): If true the check for a rotation of 2 pi will be made. Defaults to True.
             tol (Optional[float], optional): The tolerance for the check of a 2 pi rotation. If None the default tolerance of the config will be used. Defaults to None.
+            method (Literal["flip", "su2_decode"], optional): The method to use for decoding. Defaults to "flip".
+                "flip": The parameters are decoded from the 4x4 matrix and the check for a 2 pi rotation is made.
+                        A 2 pi flip may be applied to phi_rf
+                "su2_decode": theta_rf, phi_rf and psi_rf are decoded from the 2x2 SU(2) matrix directly.
 
         Returns:
             Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
