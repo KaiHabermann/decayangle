@@ -166,12 +166,16 @@ class LorentzTrafo:
             matrix_4x4=cb.linalg.inv(self.matrix_4x4),
         )
 
-    def wigner_angles(self) -> Tuple[Union[np.array, jnp.array]]:
+    def wigner_angles(
+        self, method: Literal["flip", "su2_decode"] = "su2_decode"
+    ) -> Tuple[Union[np.array, jnp.array]]:
         """The wigner angles of a transformation
         These are usually the angles of the rotation before the boost
 
         Returns:
             Tuple[Union[np.array, jnp.array]]: the angles of the rotation in the frame before the boost
         """
-        _, _, _, phi_rf, theta_rf, psi_rf = self.decode(two_pi_aware=True)
+        _, _, _, phi_rf, theta_rf, psi_rf = self.decode(
+            two_pi_aware=True, method=method
+        )
         return WignerAngles(phi_rf, theta_rf, psi_rf)
