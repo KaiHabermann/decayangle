@@ -68,7 +68,7 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
 
 
 def test_dpd_static():
-    momenta_aligned = make_four_vectors(np.pi, 0, 0)
+    momenta_aligned = make_four_vectors(0, 0, 0)
     # print(momenta_aligned)
     chain1 = Topology(0, ((2, 3), 1))
     chain2 = Topology(0, ((3, 1), 2))
@@ -80,11 +80,6 @@ def test_dpd_static():
         phi = a_decayangle.phi_rf
         psi = a_decayangle.psi_rf
         assert np.allclose(np.abs(a), np.abs(theta), rtol=1e-4)
-        phi = phi % (2 * np.pi)
-        psi = psi % (2 * np.pi)
-
-        # if np.sign(a) == 1 and not np.allclose(a, 0):
-        #     assert np.allclose(np.fmod(phi - psi, np.pi * 4), 2*np.pi, rtol=1e-4)
 
     zeta_dict = {
         "zeta_1(1)_for1": 0.0,
