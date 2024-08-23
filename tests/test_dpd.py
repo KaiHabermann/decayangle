@@ -69,70 +69,64 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
 
 def test_dpd_static():
     momenta_aligned = make_four_vectors(np.pi, 0, 0)
-    print(momenta_aligned)
-    chain1 = Topology(0, (1, (2, 3)))
+    # print(momenta_aligned)
+    chain1 = Topology(0, ((2, 3), 1))
     chain2 = Topology(0, ((3, 1), 2))
     chain3 = Topology(0, ((1, 2), 3))
     zeta_1_1_for1 = 0.0
 
-    def assert_abs(a, b):
-        assert np.allclose(np.abs(a), np.abs(b), rtol=1e-4)
+    def assert_abs(a, a_decayangle):
+        theta = a_decayangle.theta_rf
+        phi = a_decayangle.phi_rf
+        psi = a_decayangle.psi_rf
+        assert np.allclose(np.abs(a), np.abs(theta), rtol=1e-4)
+        phi = phi % (2 * np.pi)
+        psi = psi % (2 * np.pi)
 
-    decay_angle_zeta_1_1_for1 = chain1.relative_wigner_angles(chain1, momenta_aligned)[
-        1
-    ].theta_rf
-    assert np.allclose(zeta_1_1_for1, decay_angle_zeta_1_1_for1)
+        # if np.sign(a) == 1 and not np.allclose(a, 0):
+        #     assert np.allclose(np.fmod(phi - psi, np.pi * 4), 2*np.pi, rtol=1e-4)
 
-    zeta_1_1_for2 = 0.0
-    decay_angle_zeta_1_1_for2 = chain1.relative_wigner_angles(chain1, momenta_aligned)[
-        2
-    ].theta_rf
-    assert np.allclose(zeta_1_1_for2, decay_angle_zeta_1_1_for2)
+    zeta_dict = {
+        "zeta_1(1)_for1": 0.0,
+        "zeta_2(1)_for1": 0.19602946185017026,
+        "zeta_3(1)_for1": -0.47341288277954335,
+        "zeta_1(2)_for1": -0.19602946185017026,
+        "zeta_2(2)_for1": 0.0,
+        "zeta_3(2)_for1": -0.6694423446296955,
+        "zeta_1(3)_for1": 0.47341288277954335,
+        "zeta_2(3)_for1": 0.6694423446296955,
+        "zeta_3(3)_for1": 0.0,
+        "zeta_1(1)_for2": 0.0,
+        "zeta_2(1)_for2": 0.33838476527660183,
+        "zeta_3(1)_for2": 1.6547365635520592,
+        "zeta_1(2)_for2": -0.33838476527660183,
+        "zeta_2(2)_for2": 0.0,
+        "zeta_3(2)_for2": 1.3163517982754578,
+        "zeta_1(3)_for2": -1.6547365635520592,
+        "zeta_2(3)_for2": -1.3163517982754578,
+        "zeta_3(3)_for2": 0.0,
+        "zeta_1(1)_for3": 0.0,
+        "zeta_2(1)_for3": -0.6926241816619112,
+        "zeta_3(1)_for3": -0.30688282550974805,
+        "zeta_1(2)_for3": 0.6926241816619112,
+        "zeta_2(2)_for3": 0.0,
+        "zeta_3(2)_for3": 0.3857413561521633,
+        "zeta_1(3)_for3": 0.30688282550974805,
+        "zeta_2(3)_for3": -0.3857413561521633,
+        "zeta_3(3)_for3": 0.0,
+    }
 
-    zeta_1_1_for3 = 0.0
-    decay_angle_zeta_1_1_for3 = chain1.relative_wigner_angles(chain1, momenta_aligned)[
-        3
-    ].theta_rf
-    assert np.allclose(zeta_1_1_for3, decay_angle_zeta_1_1_for3)
-
-    zeta_2_1_for1 = 0.19602946185017026
-    decay_angle_zeta_2_1_for1 = chain1.relative_wigner_angles(chain2, momenta_aligned)[
-        1
-    ].theta_rf
-    print(chain1.relative_wigner_angles(chain2, momenta_aligned)[1])
-    assert np.allclose(zeta_2_1_for1, decay_angle_zeta_2_1_for1, rtol=1e-4)
-
-    zeta_1_2_for1 = -0.19602946185017026
-    decay_angle_zeta_1_2_for1 = chain2.relative_wigner_angles(chain1, momenta_aligned)[
-        1
-    ].theta_rf
-    print(chain2.relative_wigner_angles(chain1, momenta_aligned)[1])
-    assert_abs(zeta_1_2_for1, decay_angle_zeta_1_2_for1)
-    # assert np.allclose(zeta_1_2_for1, decay_angle_zeta_1_2_for1, rtol=1e-4)
-
-    zeta_3_1_for1 = -0.47341288277954335
-    decay_angle_zeta_3_1_for1 = chain1.relative_wigner_angles(chain3, momenta_aligned)[
-        1
-    ].theta_rf
-    print(chain1.relative_wigner_angles(chain3, momenta_aligned)[1])
-    assert_abs(zeta_3_1_for1, decay_angle_zeta_3_1_for1)
-    # assert np.allclose(zeta_3_1_for1, decay_angle_zeta_3_1_for1, rtol=1e-4)
-
-    zeta_3_2_for1 = -0.6694423446296955
-    decay_angle_zeta_3_2_for1 = chain2.relative_wigner_angles(chain3, momenta_aligned)[
-        1
-    ].theta_rf
-    print(chain2.relative_wigner_angles(chain3, momenta_aligned)[1])
-    assert_abs(zeta_3_2_for1, decay_angle_zeta_3_2_for1)
-    # assert np.allclose(zeta_3_2_for1, decay_angle_zeta_3_2_for1, rtol=1e-4)
-
-    zeta_2_3_for1 = 0.6694423446296955
-    decay_angle_zeta_2_3_for1 = chain3.relative_wigner_angles(chain2, momenta_aligned)[
-        1
-    ].theta_rf
-    print(chain3.relative_wigner_angles(chain2, momenta_aligned)[1])
-    assert_abs(zeta_2_3_for1, decay_angle_zeta_2_3_for1)
-    # assert np.allclose(zeta_2_3_for1, decay_angle_zeta_2_3_for1, rtol=1e-4)
+    for c, chain in enumerate([chain1, chain2, chain3]):
+        for ref, ref_chain in enumerate([chain1, chain2, chain3]):
+            for i in [1, 2, 3]:
+                zeta_name = f"zeta_{c+1}({ref+1})_for{i}"
+                zeta = zeta_dict[zeta_name]
+                decay_angle = chain.relative_wigner_angles(ref_chain, momenta_aligned)[
+                    i
+                ]
+                print(zeta_name)
+                print(zeta, decay_angle)
+                assert_abs(zeta, decay_angle)
 
 
 if __name__ == "__main__":
