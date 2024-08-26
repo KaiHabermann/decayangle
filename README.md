@@ -181,6 +181,10 @@ topology = topologies[0]
 angles = topology.helicity_angles(momenta)
 ```
 
+Note that cases where angles are exactly 0 or π
+might cause numerical instabilities. The computed value of `phi_rf` might be arbitrary due to `arctan2` with very small arguments close to 0.
+The value will be consistently accounted for in subsequent transformations within the decay topology.
+
 The second method is to calculate the relative rotations which relate the rest frames of the final-state particles in which one arrives when following the different topologies. Here up to three angles can be necessary. But for a three-body decay only the $\theta$ angle is needed.
 
 ```python

@@ -344,7 +344,7 @@ class Node:
             rotation = rotation_daughter1
             if target != self.daughters[0]:
                 # if the target is daughter 2, we have to turn around before boosting
-                rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, -cb.pi) @ rotation_daughter1
+                rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, 0) @ rotation_daughter1
             full_transformation = boost @ rotation
         elif convention == "minus_phi":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
@@ -770,8 +770,8 @@ class Topology:
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(
-            target, momenta, inverse=True, tol=tol, convention=convention
-        )
+            target, momenta, tol=tol, convention=convention
+        ).inverse()
         boost2 = other.boost(target, momenta, tol=tol, convention=convention)
         return boost2 @ boost1_inv
 
