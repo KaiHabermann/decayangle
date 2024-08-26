@@ -100,7 +100,7 @@ class LorentzTrafo:
         self,
         two_pi_aware=True,
         tol: Optional[float] = None,
-        method: Literal["flip", "su2_decode"] = "flip",
+        method: Literal["flip", "su2_decode"] = "su2_decode",
     ) -> Tuple[Union[np.array, jnp.array]]:
         """Decode the parameters of the Lorentz transformation
 
