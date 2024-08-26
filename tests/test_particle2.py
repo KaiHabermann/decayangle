@@ -25,9 +25,57 @@ def test_particle2():
     momenta = {i: rotation.matrix_4x4 @ p for i, p in momenta.items()}
     wigner_angles = topo1.relative_wigner_angles(topo2, momenta)
 
+    R = topo1.rotate_between_topologies(topo2, 2, momenta)
+    print(R.matrix_4x4[0][10])
+    print(R.wigner_angles().psi_rf[0][10] + R.wigner_angles().phi_rf[0][10])
+    print(R.matrix_4x4[0][11])
+
+    print(R.wigner_angles().psi_rf[0][11] + R.wigner_angles().phi_rf[0][11])
+
     hel1 = topo1.helicity_angles(momenta)
     hel2 = topo2.helicity_angles(momenta)
+    import matplotlib.pyplot as plt
 
+    # plt.imshow(hel1[((2, 3), 1)].phi_rf - hel2[((3, 2), 1)].phi_rf, extent=[x.min(), x.max(), y.min(), y.max()])
+    plt.imshow(
+        hel1[(2, 3)].phi_rf - hel2[(3, 2)].phi_rf,
+        extent=[x.min(), x.max(), y.min(), y.max()],
+    )
+    plt.colorbar()
+    plt.savefig("test.png")
+    plt.close("all")
+    plt.imshow(hel1[(2, 3)].phi_rf, extent=[x.min(), x.max(), y.min(), y.max()])
+    plt.savefig("2_3.png")
+    plt.close("all")
+    plt.imshow(hel2[(3, 2)].phi_rf, extent=[x.min(), x.max(), y.min(), y.max()])
+    plt.savefig("3_2.png")
+    plt.close("all")
+    # exit(0)
+    plt.imshow(
+        wigner_angles[3].phi_rf - wigner_angles[3].psi_rf,
+        extent=[x.min(), x.max(), y.min(), y.max()],
+    )
+    plt.colorbar()
+    plt.savefig("test2.png")
+    plt.close("all")
+    plt.imshow(
+        wigner_angles[2].phi_rf - wigner_angles[2].psi_rf,
+        extent=[x.min(), x.max(), y.min(), y.max()],
+    )
+    plt.colorbar()
+    plt.savefig("test3.png")
+    plt.close("all")
+
+    plt.imshow(
+        wigner_angles[2].phi_rf
+        + wigner_angles[2].psi_rf
+        + wigner_angles[3].phi_rf
+        + wigner_angles[3].psi_rf,
+        extent=[x.min(), x.max(), y.min(), y.max()],
+    )
+    plt.colorbar()
+    plt.savefig("test4.png")
+    plt.close("all")
     assert np.allclose(hel1[(2, 3)].theta_rf, (np.pi - hel2[(3, 2)].theta_rf))
 
     assert np.allclose(

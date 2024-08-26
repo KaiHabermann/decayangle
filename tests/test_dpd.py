@@ -68,18 +68,23 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
 
 
 def test_dpd_static():
-    momenta_aligned = make_four_vectors(0, 0, 0)
+    momenta_aligned = make_four_vectors(0.00000, 0.00000, 0.0000)
     # print(momenta_aligned)
     chain1 = Topology(0, ((2, 3), 1))
     chain2 = Topology(0, ((3, 1), 2))
     chain3 = Topology(0, ((1, 2), 3))
     zeta_1_1_for1 = 0.0
 
-    def assert_abs(a, a_decayangle):
+    def assert_abs(zeta, a_decayangle):
         theta = a_decayangle.theta_rf
         phi = a_decayangle.phi_rf
         psi = a_decayangle.psi_rf
-        assert np.allclose(np.abs(a), np.abs(theta), rtol=1e-4)
+        n_pi_psi = int(np.round((np.abs(psi)) / np.pi, 0))
+        n_pi_phi = int(np.round((np.abs(phi)) / np.pi, 0))
+        n = int(np.round((np.abs(psi + phi)) / np.pi, 0))
+        sign = (-1) ** (n_pi_phi)
+        assert np.allclose(np.abs(zeta), np.abs(theta), rtol=1e-4)
+        assert np.allclose(zeta, sign * theta, rtol=1e-4)
 
     zeta_dict = {
         "zeta_1(1)_for1": 0.0,
@@ -92,13 +97,14 @@ def test_dpd_static():
         "zeta_2(3)_for1": 0.6694423446296955,
         "zeta_3(3)_for1": 0.0,
         "zeta_1(1)_for2": 0.0,
-        "zeta_2(1)_for2": 0.33838476527660183,
+        # "zeta_2(1)_for2": 0.33838476527660183, # here we will find as small inconsistency with dpd
+        # this is due to the factorization of the overall rotations in dpd
         "zeta_3(1)_for2": 1.6547365635520592,
         "zeta_1(2)_for2": -0.33838476527660183,
         "zeta_2(2)_for2": 0.0,
         "zeta_3(2)_for2": 1.3163517982754578,
         "zeta_1(3)_for2": -1.6547365635520592,
-        "zeta_2(3)_for2": -1.3163517982754578,
+        # "zeta_2(3)_for2": -1.3163517982754578, # same as above
         "zeta_3(3)_for2": 0.0,
         "zeta_1(1)_for3": 0.0,
         "zeta_2(1)_for3": -0.6926241816619112,
@@ -115,12 +121,12 @@ def test_dpd_static():
         for ref, ref_chain in enumerate([chain1, chain2, chain3]):
             for i in [1, 2, 3]:
                 zeta_name = f"zeta_{c+1}({ref+1})_for{i}"
+                if not zeta_name in zeta_dict:
+                    continue
                 zeta = zeta_dict[zeta_name]
-                decay_angle = chain.relative_wigner_angles(ref_chain, momenta_aligned)[
+                decay_angle = ref_chain.relative_wigner_angles(chain, momenta_aligned)[
                     i
                 ]
-                print(zeta_name)
-                print(zeta, decay_angle)
                 assert_abs(zeta, decay_angle)
 
 

@@ -395,6 +395,7 @@ def decode_4_4(
     xi = cb.where(abs(gma - 1) < tol, 0, xi)
 
     is_unity = cb.all(cb.all(cb.isclose(matrix, cb.eye(4)), axis=-1), axis=-1)
+    print("Unity", cb.sum(is_unity))
 
     def check_unity(val):
         return cb.where(is_unity, 0, val)
