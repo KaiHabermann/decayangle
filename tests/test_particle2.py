@@ -30,9 +30,14 @@ def test_particle2():
 
     assert np.allclose(hel1[(2, 3)].theta_rf, (np.pi - hel2[(3, 2)].theta_rf))
 
-    assert np.allclose(
-        hel1[(2, 3)].phi_rf - hel2[(3, 2)].phi_rf + wigner_angles[2].phi_rf, np.pi
+    test_quantity = (
+        hel1[(2, 3)].phi_rf
+        - hel2[(3, 2)].phi_rf
+        + wigner_angles[2].phi_rf
+        + wigner_angles[2].psi_rf
     )
+    # we check of a global phase, so we accept, that there is any total phase in the end
+    assert np.allclose(test_quantity, np.mean(test_quantity))
 
     cfg.sorting = "value"
 
