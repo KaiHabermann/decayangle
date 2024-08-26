@@ -340,10 +340,10 @@ def decode_rotation_4x4(
     return phi, theta, psi
 
 
-def decode_4_4(
+def decode_4_4_boost(
     matrix, tol: Optional[float] = None
 ) -> Tuple[Union[float, np.array, jnp.array]]:
-    r"""decode a 4x4 matrix into the 6 kinematic parameters
+    r"""decode a 4x4 matrix into the 3 boost parameters
 
     Args:
         matrix (jax.numpy.ndarray): the 4x4 matrix
@@ -375,7 +375,36 @@ def decode_4_4(
 
     cosine_input = cb.where(abs(abs_mom) <= tol, 0, z_component(v) / abs_mom)
     theta = cb.arccos(cosine_input)
+    phi = cb.where(abs(gma - 1) < tol, 0, phi)
+    theta = cb.where(abs(gma - 1) < tol, 0, theta)
+    xi = cb.where(abs(gma - 1) < tol, 0, xi)
 
+    is_unity = cb.all(cb.all(cb.isclose(matrix, cb.eye(4)), axis=-1), axis=-1)
+
+    def check_unity(val):
+        return cb.where(is_unity, 0, val)
+
+    # replace the values with 0 if the matrix is unity
+    phi, theta, xi = [check_unity(val) for val in [phi, theta, xi]]
+
+    return phi, theta, xi
+
+
+def decode_4_4(matrix: Union[jnp.array, np.array], tol: Optional[float] = None):
+    """Decode a 4x4 matrix into the 6 kinematic parameters
+
+    Args:
+        matrix (Union[jnp.array, np.array]): the 4x4 matrix
+        tol (Optional[float], optional): The tolerance for the gamma factor. If None the default tolerance of the config will be used. Defaults to None.
+
+    Returns:
+        Tuple[Union[jnp.array, np.array]]: the 6 kinematic parameters
+    """
+
+    if tol is None:
+        tol = cfg.gamma_tolerance
+
+    phi, theta, xi = decode_4_4_boost(matrix, tol=tol)
     m_rf = (
         boost_matrix_4_4_z(-xi)
         @ rotation_matrix_4_4_y(-theta)
@@ -387,12 +416,9 @@ def decode_4_4(
     phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_rotation_4x4(
         matrix[..., :3, :3]
     )
-    phi_rf = cb.where(abs(gma - 1) < tol, phi_rf_no_boost, phi_rf)
-    theta_rf = cb.where(abs(gma - 1) < tol, theta_rf_no_boost, theta_rf)
-    psi_rf = cb.where(abs(gma - 1) < tol, psi_rf_no_boost, psi_rf)
-    phi = cb.where(abs(gma - 1) < tol, 0, phi)
-    theta = cb.where(abs(gma - 1) < tol, 0, theta)
-    xi = cb.where(abs(gma - 1) < tol, 0, xi)
+    phi_rf = cb.where(xi < tol, phi_rf_no_boost, phi_rf)
+    theta_rf = cb.where(xi < tol, theta_rf_no_boost, theta_rf)
+    psi_rf = cb.where(xi < tol, psi_rf_no_boost, psi_rf)
 
     is_unity = cb.all(cb.all(cb.isclose(matrix, cb.eye(4)), axis=-1), axis=-1)
     print("Unity", cb.sum(is_unity))
@@ -401,11 +427,26 @@ def decode_4_4(
         return cb.where(is_unity, 0, val)
 
     # replace the values with 0 if the matrix is unity
-    phi, theta, xi, phi_rf, theta_rf, psi_rf = [
-        check_unity(val) for val in [phi, theta, xi, phi_rf, theta_rf, psi_rf]
-    ]
-
+    phi_rf, theta_rf, psi_rf = [check_unity(val) for val in [phi_rf, theta_rf, psi_rf]]
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
+
+
+def decode_su2_rotation(
+    matrix_2x2: jnp.array,
+) -> Tuple[jnp.array, jnp.array, jnp.array]:
+
+    cosbeta = cb.real(
+        matrix_2x2[..., 0, 0] * matrix_2x2[..., 1, 1]
+        + matrix_2x2[..., 0, 1] * matrix_2x2[..., 1, 0]
+    )
+    cosbeta = cb.clip(cosbeta, -1, 1)
+    beta = cb.arccos(cosbeta)
+    alpha_p_gamma = cb.angle(matrix_2x2[..., 1, 1])
+    alpha_m_gamma = -cb.angle(matrix_2x2[..., 1, 0])
+
+    alpha = alpha_p_gamma + alpha_m_gamma
+    gamma = alpha_p_gamma - alpha_m_gamma
+    return gamma, beta, alpha
 
 
 def adjust_for_2pi_rotation(
