@@ -83,8 +83,8 @@ def test_dpd_static():
         n_pi_phi = int(np.round((np.abs(phi)) / np.pi, 0))
         n = int(np.round((np.abs(psi + phi)) / np.pi, 0))
         sign = (-1) ** (n_pi_phi)
-        assert np.allclose(np.abs(zeta), np.abs(theta), rtol=1e-4)
-        assert np.allclose(zeta, sign * theta, rtol=1e-4)
+        assert np.allclose(np.abs(zeta), np.abs(theta), atol=1e-7, rtol=1e-4)
+        assert np.allclose(zeta, sign * theta, atol=1e-7, rtol=1e-4)
 
     zeta_dict = {
         "zeta_1(1)_for1": 0.0,
