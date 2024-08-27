@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 from jax import numpy as jnp
 import networkx as nx
-from decayangle.lorentz import LorentzTrafo
+from decayangle.lorentz import LorentzTrafo, WignerAngles
 from decayangle import kinematics as akm
 from decayangle.numerics_helpers import matrix_vector_product
 from decayangle.config import config as cfg
@@ -767,11 +767,13 @@ class Topology:
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
         """
+        if self == other:
+            return LorentzTrafo(0, 0, 0, 0, 0, 0)
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(
-            target, momenta, tol=tol, convention=convention
-        ).inverse()
+            target, momenta, tol=tol, convention=convention, inverse=True
+        )
         boost2 = other.boost(target, momenta, tol=tol, convention=convention)
         return boost2 @ boost1_inv
 
