@@ -1,8 +1,9 @@
-from typing import NamedTuple, Callable
-from math import prod
+from typing import NamedTuple
 import numpy as np
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
+from decayangle.decay_topology import Topology, TopologyCollection
+
 
 cfg.sorting = "off"
 
@@ -210,9 +211,6 @@ class resonance:
         return h * (-1) ** ((self.sk - hk_) / 2)
 
 
-from functools import partial
-from decayangle.decay_topology import Topology, TopologyCollection
-
 # particle 1
 
 spin0 = 1
@@ -343,15 +341,16 @@ def add_dicts(d1, d2):
     return {k: d1[k] + d2[k] for k in d1.keys()}
 
 
-terms_1 = amp_dict(f, resonance_lineshapes_single_1)
-terms_2 = amp_dict(f, resonance_lineshapes_single_3)
+def test_eqquivalence():
+    terms_1 = amp_dict(f, resonance_lineshapes_single_1)
+    terms_2 = amp_dict(f, resonance_lineshapes_single_3)
 
-terms_1_m = amp_dict(f, resonance_lineshapes_single_1, convention="minus_phi")
-terms_2_m = amp_dict(f, resonance_lineshapes_single_3, convention="minus_phi")
+    terms_1_m = amp_dict(f, resonance_lineshapes_single_1, convention="minus_phi")
+    terms_2_m = amp_dict(f, resonance_lineshapes_single_3, convention="minus_phi")
 
-assert np.allclose(
-    unpolarized(add_dicts(terms_1_m, terms_2_m)),
-    unpolarized(add_dicts(terms_1, terms_2)),
-)
-assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
-assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
+    assert np.allclose(
+        unpolarized(add_dicts(terms_1_m, terms_2_m)),
+        unpolarized(add_dicts(terms_1, terms_2)),
+    )
+    assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
+    assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))

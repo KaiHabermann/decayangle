@@ -767,6 +767,10 @@ class Topology:
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
         """
+        if convention not in ["helicity", "minus_phi", "canonical"]:
+            raise ValueError(
+                f"Convention {convention} not supported. Use 'helicity', 'minus_phi' or 'canonical'."
+            )
         if self == other:
             return LorentzTrafo(0, 0, 0, 0, 0, 0)
         target = Node.get_node(target)
