@@ -7,13 +7,12 @@ from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
 
-import time
+subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 from sympy import Rational
 from sympy.abc import x
 from sympy.utilities.lambdify import lambdify
 from sympy.physics.quantum.spin import Rotation as Wigner
 
-subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 cfg.sorting = "off"
 
 
