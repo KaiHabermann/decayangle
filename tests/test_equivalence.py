@@ -89,6 +89,7 @@ def get_wigner_function(j, m1, m2):
     d = lambdify(x, d, "numpy")
     return d
 
+
 def wigner_small_d(theta, j, m1, m2):
     """Calculate Wigner small-d function. Needs sympy.
       theta : angle
@@ -253,7 +254,13 @@ THETA, PSI = np.meshgrid(theta, psi)
 
 momenta = make_four_vectors(PSI, THETA, 0)
 specific_point = make_four_vectors(0.3, np.arccos(0.4), 0.5)
-momenta = {i: np.concatenate([momenta[i].reshape((40 * 40,4)), specific_point[i].reshape((1,4))], axis=0) for i in range(1, 4)}
+momenta = {
+    i: np.concatenate(
+        [momenta[i].reshape((40 * 40, 4)), specific_point[i].reshape((1, 4))], axis=0
+    )
+    for i in range(1, 4)
+}
+
 
 @cache
 def angles(convention):
@@ -269,6 +276,7 @@ def angles(convention):
         for topology in tg.topologies
     }
     return final_state_rotations, helicity_angles
+
 
 def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
     helicity_list = [h0, h1, h2, h3]
@@ -318,7 +326,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                 for hj_ in helicities[j]
             ]
             amplitude += sum(parts)
-            
+
     return amplitude
 
 
@@ -376,25 +384,21 @@ def test_eqquivalence():
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
 
     assert np.allclose(
-        terms_1[(-1, 1, 2, 0)][-1],
-        -0.540354116266746-0.02084320694159516j
-    )
-    
-    assert np.allclose(
-        terms_2[(-1, 1, 2, 0)][-1],
-        -0.49899891547281655+0.030820810874496913j
+        terms_1[(-1, 1, 2, 0)][-1], -0.540354116266746 - 0.02084320694159516j
     )
 
     assert np.allclose(
-        terms_1_m[(-1, 1, 2, 0)][-1],
-        -0.44278118293224566+0.31042202609213687j
+        terms_2[(-1, 1, 2, 0)][-1], -0.49899891547281655 + 0.030820810874496913j
     )
-    
+
     assert np.allclose(
-        terms_2_m[(-1, 1, 2, 0)][-1],
-        0.19255308033038804-0.24973577897708593j
+        terms_1_m[(-1, 1, 2, 0)][-1], -0.44278118293224566 + 0.31042202609213687j
     )
-    
+
+    assert np.allclose(
+        terms_2_m[(-1, 1, 2, 0)][-1], 0.19255308033038804 - 0.24973577897708593j
+    )
+
 
 if __name__ == "__main__":
     test_eqquivalence()
