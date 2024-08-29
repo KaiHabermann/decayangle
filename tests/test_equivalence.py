@@ -1,10 +1,12 @@
 from typing import NamedTuple
 import numpy as np
+import subprocess
+import sys
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
 
-
+subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 cfg.sorting = "off"
 
 
