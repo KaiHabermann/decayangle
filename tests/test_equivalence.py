@@ -2,9 +2,16 @@ from typing import NamedTuple
 import numpy as np
 import subprocess
 import sys
+from functools import cache
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
+
+import time
+from sympy import Rational
+from sympy.abc import x
+from sympy.utilities.lambdify import lambdify
+from sympy.physics.quantum.spin import Rotation as Wigner
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 cfg.sorting = "off"
@@ -75,6 +82,13 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     return momenta_23_rotated
 
 
+@cache
+def get_wigner_function(j, m1, m2):
+    j, m1, m2 = int(j), int(m1), int(m2)
+    d = Wigner.d(Rational(j, 2), Rational(m1, 2), Rational(m2, 2), x).doit().evalf()
+    d = lambdify(x, d, "numpy")
+    return d
+
 def wigner_small_d(theta, j, m1, m2):
     """Calculate Wigner small-d function. Needs sympy.
       theta : angle
@@ -87,14 +101,8 @@ def wigner_small_d(theta, j, m1, m2):
     :param m2: after rotation
 
     """
-    from sympy import Rational
-    from sympy.abc import x
-    from sympy.utilities.lambdify import lambdify
-    from sympy.physics.quantum.spin import Rotation as Wigner
-
-    j, m1, m2 = int(j), int(m1), int(m2)
-    d = Wigner.d(Rational(j, 2), Rational(m1, 2), Rational(m2, 2), x).doit().evalf()
-    d = lambdify(x, d, "numpy")(theta)
+    d_func = get_wigner_function(j, m1, m2)
+    d = d_func(theta)
     # d = np.array(d)
     # d[np.isnan(d)] = 0
     d = np.nan_to_num(d, copy=True, nan=0.0)
@@ -145,6 +153,7 @@ class resonance:
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
         return [LS(L, S, 1 + 0j) for L, S in self.LSout]
 
+    @cache
     def clebsch_gordan(self, j1, m1, j2, m2, J, M):
         """
         Return clebsch-Gordan coefficient. Note that all arguments should be multiplied by 2
@@ -243,13 +252,11 @@ theta, psi = np.linspace(0, np.pi, 40), np.linspace(0, 2 * np.pi, 40)
 THETA, PSI = np.meshgrid(theta, psi)
 
 momenta = make_four_vectors(PSI, THETA, 0)
+specific_point = make_four_vectors(0.3, np.arccos(0.4), 0.5)
+momenta = {i: np.concatenate([momenta[i].reshape((40 * 40,4)), specific_point[i].reshape((1,4))], axis=0) for i in range(1, 4)}
 
-
-def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
-    helicity_list = [h0, h1, h2, h3]
-    spin_list = [spin0, spin1, spin2, spin3]
-    amplitude = 0
-
+@cache
+def angles(convention):
     final_state_rotations = {
         topology.tuple: reference_topology.relative_wigner_angles(
             topology, momenta, convention=convention
@@ -261,6 +268,15 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
         topology.tuple: topology.helicity_angles(momenta, convention=convention)
         for topology in tg.topologies
     }
+    return final_state_rotations, helicity_angles
+
+def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
+    helicity_list = [h0, h1, h2, h3]
+    spin_list = [spin0, spin1, spin2, spin3]
+    amplitude = 0
+
+    final_state_rotations, helicity_angles = angles(convention)
+
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
@@ -278,7 +294,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
             psi = 0 if convention == "helicity" else -phi
             psi_ij = 0 if convention == "helicity" else -phi_ij
 
-            amplitude += sum(
+            parts = [
                 (resonance.spin + 1) ** 0.5
                 * resonance.helicity_coupling_times_lineshape(
                     topology.nodes[isobar].mass(momenta) ** 2, hi_, hj_
@@ -300,7 +316,9 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                 for hk_ in helicities[bachelor]
                 for hi_ in helicities[i]
                 for hj_ in helicities[j]
-            )
+            ]
+            amplitude += sum(parts)
+            
     return amplitude
 
 
@@ -356,3 +374,27 @@ def test_eqquivalence():
     )
     assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
+
+    assert np.allclose(
+        terms_1[(-1, 1, 2, 0)][-1],
+        -0.540354116266746-0.02084320694159516j
+    )
+    
+    assert np.allclose(
+        terms_2[(-1, 1, 2, 0)][-1],
+        -0.49899891547281655+0.030820810874496913j
+    )
+
+    assert np.allclose(
+        terms_1_m[(-1, 1, 2, 0)][-1],
+        -0.44278118293224566+0.31042202609213687j
+    )
+    
+    assert np.allclose(
+        terms_2_m[(-1, 1, 2, 0)][-1],
+        0.19255308033038804-0.24973577897708593j
+    )
+    
+
+if __name__ == "__main__":
+    test_eqquivalence()
