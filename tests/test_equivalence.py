@@ -2,7 +2,7 @@ from typing import NamedTuple
 import numpy as np
 import subprocess
 import sys
-from functools import cache
+from functools import lru_cache
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
@@ -14,6 +14,8 @@ from sympy.utilities.lambdify import lambdify
 from sympy.physics.quantum.spin import Rotation as Wigner
 
 cfg.sorting = "off"
+
+cache = lru_cache(maxsize=None)
 
 
 class J:
@@ -298,6 +300,22 @@ def angles(convention):
     return final_state_rotations, helicity_angles
 
 
+def internal_rotation(convention):
+    if convention in ["helicity", "minus_phi"]:
+        return wigner_capital_d
+    elif convention in ["canonical"]:
+
+        def gamma_lm(phi, theta, psi, l, m, m_):
+            # m_ is not used, but here, so we have a common interface with wigner_capital_d
+            return ((l + 1) / (4 * np.pi)) ** 0.5 * wigner_capital_d(
+                phi, theta, psi, l, m, 0
+            )
+
+        return gamma_lm
+    else:
+        raise ValueError(f"Convention {convention} not recognized")
+
+
 def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
     helicity_list = [h0, h1, h2, h3]
     spin_list = [spin0, spin1, spin2, spin3]
@@ -454,12 +472,14 @@ def test_eqquivalence():
     print(rotdict[1].phi_rf[-100], rotdict[1].theta_rf[-100], rotdict[1].psi_rf[-100])
 
     terms_2_m_new_basis = basis_change(terms_2_m, rotdict)
-    # exit(0)
     for k, v in terms_2_m_new_basis.items():
+        if k != (-1, 1, 2, 0):
+            continue
         print(k)
         print(
             abs(v[-1]), np.angle(v[-1]), abs(terms_2[k][-1]), np.angle(terms_2[k][-1])
         )
+        print(v[-1], terms_2[k][-1])
 
 
 if __name__ == "__main__":
