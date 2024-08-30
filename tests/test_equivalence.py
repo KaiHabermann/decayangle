@@ -383,7 +383,7 @@ resonance_lineshapes_single_3 = {
 }
 
 resonance_lineshapes_single_1 = {
-    (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(2, 3)], [(4, 2)])],
+    (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)])],
 }
 
 
@@ -433,12 +433,13 @@ def test_eqquivalence():
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),
+        rtol=1e-6,
     )
     assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
 
     assert np.allclose(
-        terms_1[(-1, 1, 2, 0)][-1], -0.540354116266746 - 0.02084320694159516j
+        terms_1[(-1, 1, 2, 0)][-1], -0.14315554700441074 + 0.12414558894503328j
     )
 
     assert np.allclose(
@@ -446,11 +447,11 @@ def test_eqquivalence():
     )
 
     assert np.allclose(
-        terms_1_m[(-1, 1, 2, 0)][-1], -0.44278118293224566 + 0.31042202609213687j
+        terms_1_m[(-1, 1, 2, 0)][-1], -0.03883258888101088 + 0.1854660829732478j
     )
 
     assert np.allclose(
-        terms_2_m[(-1, 1, 2, 0)][-1], 0.19255308033038804 - 0.24973577897708593j
+        terms_2_m[(-1, 1, 2, 0)][-1], -0.37859261634645197 + 0.32652330831650717j
     )
 
     rotdict = {
@@ -468,18 +469,18 @@ def test_eqquivalence():
         ).wigner_angles(),
     }
 
-    print(rotdict[1].phi_rf[-1], rotdict[1].theta_rf[-1], rotdict[1].psi_rf[-1])
-    print(rotdict[1].phi_rf[-100], rotdict[1].theta_rf[-100], rotdict[1].psi_rf[-100])
-
     terms_2_m_new_basis = basis_change(terms_2_m, rotdict)
+    terms_1_m_new_basis = basis_change(terms_1_m, rotdict)
+
     for k, v in terms_2_m_new_basis.items():
-        if k != (-1, 1, 2, 0):
-            continue
-        print(k)
-        print(
-            abs(v[-1]), np.angle(v[-1]), abs(terms_2[k][-1]), np.angle(terms_2[k][-1])
-        )
-        print(v[-1], terms_2[k][-1])
+        assert np.allclose(v, terms_2[k])
+
+    for k, v in terms_1_m_new_basis.items():
+        if abs(np.mean(v)) < 1e-6:
+            # zero is always a little less precise :/
+            assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
+        else:
+            assert np.allclose(v, terms_1[k])
 
 
 if __name__ == "__main__":
