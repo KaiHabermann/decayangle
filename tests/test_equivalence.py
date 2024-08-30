@@ -16,6 +16,27 @@ from sympy.physics.quantum.spin import Rotation as Wigner
 cfg.sorting = "off"
 
 
+class J:
+    """
+    Helper class to ensure correctness of angular variable treatment
+    """
+
+    def __init__(self, j_times_2):
+        self.j_times_2 = j_times_2
+
+    @property
+    def index(self):
+        return self.j_times_2
+
+    @property
+    def value(self):
+        return self.j_times_2 / 2
+
+    @property
+    def sympy(self):
+        return Rational(self.j_times_2, 2)
+
+
 def make_four_vectors(phi_rf, theta_rf, psi_rf):
     import numpy as np
 
@@ -82,7 +103,7 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
 
 
 @cache
-def get_wigner_function(j, m1, m2):
+def get_wigner_function(j: J, m1: J, m2: J):
     j, m1, m2 = int(j), int(m1), int(m2)
     d = Wigner.d(Rational(j, 2), Rational(m1, 2), Rational(m2, 2), x).doit().evalf()
     d = lambdify(x, d, "numpy")
@@ -368,6 +389,22 @@ def add_dicts(d1, d2):
     return {k: d1[k] + d2[k] for k in d1.keys()}
 
 
+def basis_change(dtc, rotation):
+    new_dtc = {}
+    for key, value in dtc.items():
+        l0, l1, l2, l3 = key
+        new_dtc[key] = sum(
+            dtc[(l0, l1_, l2_, l3_)]
+            * np.conj(wigner_capital_d(*rotation[1], spin1, l1_, l1))
+            * np.conj(wigner_capital_d(*rotation[2], spin2, l2_, l2))
+            * np.conj(wigner_capital_d(*rotation[3], spin3, l3_, l3))
+            for l1_ in helicities[1]
+            for l2_ in helicities[2]
+            for l3_ in helicities[3]
+        )
+    return new_dtc
+
+
 def test_eqquivalence():
     terms_1 = amp_dict(f, resonance_lineshapes_single_1)
     terms_2 = amp_dict(f, resonance_lineshapes_single_3)
@@ -397,6 +434,32 @@ def test_eqquivalence():
     assert np.allclose(
         terms_2_m[(-1, 1, 2, 0)][-1], 0.19255308033038804 - 0.24973577897708593j
     )
+
+    rotdict = {
+        1: (
+            reference_topology.boost(1, momenta, convention="minus_phi")
+            @ reference_topology.boost(1, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+        2: (
+            reference_topology.boost(2, momenta, convention="minus_phi")
+            @ reference_topology.boost(2, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+        3: (
+            reference_topology.boost(3, momenta, convention="minus_phi")
+            @ reference_topology.boost(3, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+    }
+
+    print(rotdict[1].phi_rf[-1], rotdict[1].theta_rf[-1], rotdict[1].psi_rf[-1])
+    print(rotdict[1].phi_rf[-100], rotdict[1].theta_rf[-100], rotdict[1].psi_rf[-100])
+
+    terms_2_m_new_basis = basis_change(terms_2_m, rotdict)
+    # exit(0)
+    for k, v in terms_2_m_new_basis.items():
+        print(k)
+        print(
+            abs(v[-1]), np.angle(v[-1]), abs(terms_2[k][-1]), np.angle(terms_2[k][-1])
+        )
 
 
 if __name__ == "__main__":
