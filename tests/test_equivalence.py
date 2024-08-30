@@ -473,7 +473,7 @@ def test_eqquivalence():
     terms_1_m_new_basis = basis_change(terms_1_m, rotdict)
 
     for k, v in terms_2_m_new_basis.items():
-        assert np.allclose(v, terms_2[k])
+        assert np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
 
     for k, v in terms_1_m_new_basis.items():
         if abs(np.mean(v)) < 1e-6:
