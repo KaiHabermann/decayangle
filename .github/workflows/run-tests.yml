@@ -28,6 +28,8 @@ jobs:
           restore-keys: ${{ runner.os }}-pip-
       - name: Install Hatch
         run: pipx install hatch
+      - name: Install sympy
+        run: pipx install sympy
       - name: Run tests
         run: hatch run test:cov
       - name: Upload coverage reports to Codecov
