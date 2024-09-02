@@ -12,6 +12,8 @@ from sympy import Rational
 from sympy.abc import x
 from sympy.utilities.lambdify import lambdify
 from sympy.physics.quantum.spin import Rotation as Wigner
+from sympy.physics.quantum.cg import CG
+from sympy import Rational
 
 cfg.sorting = "off"
 
@@ -182,8 +184,6 @@ class resonance:
         Return clebsch-Gordan coefficient. Note that all arguments should be multiplied by 2
         (e.g. 1 for spin 1/2, 2 for spin 1 etc.). Needs sympy.
         """
-        from sympy.physics.quantum.cg import CG
-        from sympy import Rational
 
         cg = (
             CG(
