@@ -155,6 +155,31 @@ def BWResonance(spin, mass, width):
     return f
 
 
+@cache
+def clebsch_gordan(j1, m1, j2, m2, J, M):
+    """
+    Return clebsch-Gordan coefficient. Note that all arguments should be multiplied by 2
+    (e.g. 1 for spin 1/2, 2 for spin 1 etc.). Needs sympy.
+    """
+
+    cg = (
+        CG(
+            Rational(j1, 2),
+            Rational(m1, 2),
+            Rational(j2, 2),
+            Rational(m2, 2),
+            Rational(J, 2),
+            Rational(M, 2),
+        )
+        .doit()
+        .evalf()
+    )
+    cg = float(cg)
+    if str(cg) == "nan":
+        raise ValueError(f"CG({j1/2},{m1/2},{j2/2},{m2/2},{J/2},{M/2}) is not a number")
+    return cg
+
+
 class resonance:
     def __init__(self, spin, s0, si, sj, sk, LSin, LSout):
         self.spin = spin
@@ -178,39 +203,13 @@ class resonance:
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
         return [LS(L, S, 1 + 0j) for L, S in self.LSout]
 
-    @cache
-    def clebsch_gordan(self, j1, m1, j2, m2, J, M):
-        """
-        Return clebsch-Gordan coefficient. Note that all arguments should be multiplied by 2
-        (e.g. 1 for spin 1/2, 2 for spin 1 etc.). Needs sympy.
-        """
-
-        cg = (
-            CG(
-                Rational(j1, 2),
-                Rational(m1, 2),
-                Rational(j2, 2),
-                Rational(m2, 2),
-                Rational(J, 2),
-                Rational(M, 2),
-            )
-            .doit()
-            .evalf()
-        )
-        cg = float(cg)
-        if str(cg) == "nan":
-            raise ValueError(
-                f"CG({j1/2},{m1/2},{j2/2},{m2/2},{J/2},{M/2}) is not a number"
-            )
-        return cg
-
     def helicity_coupling_times_lineshape(self, s, hi_, hj_, convention="helicity"):
         ls_resonance_decay = self.LS_coupling_resonance_decay()
         h = sum(
             ls.coupling
             * self.lineshape(s, ls.L)
-            * self.clebsch_gordan(self.si, hi_, self.sj, -hj_, ls.S, hi_ - hj_)
-            * self.clebsch_gordan(ls.L, 0, ls.S, hi_ - hj_, self.spin, hi_ - hj_)
+            * clebsch_gordan(self.si, hi_, self.sj, -hj_, ls.S, hi_ - hj_)
+            * clebsch_gordan(ls.L, 0, ls.S, hi_ - hj_, self.spin, hi_ - hj_)
             * (ls.L + 1) ** 0.5
             / (self.spin + 1) ** 0.5
             for ls in ls_resonance_decay
@@ -231,8 +230,8 @@ class resonance:
         mother_decay = self.LS_couplings_mother_decay()
         h = sum(
             ls.coupling
-            * self.clebsch_gordan(self.spin, hiso_, self.sk, -hk_, ls.S, hiso_ - hk_)
-            * self.clebsch_gordan(ls.L, 0, ls.S, hiso_ - hk_, self.s0, hiso_ - hk_)
+            * clebsch_gordan(self.spin, hiso_, self.sk, -hk_, ls.S, hiso_ - hk_)
+            * clebsch_gordan(ls.L, 0, ls.S, hiso_ - hk_, self.s0, hiso_ - hk_)
             * (ls.L + 1) ** 0.5
             / (self.s0 + 1) ** 0.5
             for ls in mother_decay
@@ -308,7 +307,7 @@ def internal_rotation(convention):
         def gamma_lm(phi, theta, psi, l, m, m_):
             # m_ is not used, but here, so we have a common interface with wigner_capital_d
             return ((l + 1) / (4 * np.pi)) ** 0.5 * wigner_capital_d(
-                phi, theta, psi, l, m, 0
+                phi, theta, 0, l, m, 0
             )
 
         return gamma_lm
@@ -322,7 +321,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
     amplitude = 0
 
     final_state_rotations, helicity_angles = angles(convention)
-
+    rotation_function = internal_rotation(convention)
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
@@ -346,10 +345,10 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                     topology.nodes[isobar].mass(momenta) ** 2, hi_, hj_
                 )
                 * np.conj(
-                    wigner_capital_d(phi, theta, psi, spin0, h0, h_iso - hk_)
+                    rotation_function(phi, theta, psi, spin0, h0, h_iso - hk_)
                 )  # mother decay
                 * np.conj(
-                    wigner_capital_d(
+                    rotation_function(
                         phi_ij, theta_ij, psi_ij, resonance.spin, h_iso, hi_ - hj_
                     )
                 )  # isobar decay
@@ -357,6 +356,86 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                 * np.conj(wigner_capital_d(*final_state_rotation[j], sj, hj_, hj))
                 * np.conj(wigner_capital_d(*final_state_rotation[k], sk, hk_, hk))
                 * resonance.h_mother(hk_, h_iso)
+                for resonance in resonance_lineshapes.get(isobar, [])
+                for h_iso in resonance.possible_helicities
+                for hk_ in helicities[bachelor]
+                for hi_ in helicities[i]
+                for hj_ in helicities[j]
+            ]
+            amplitude += sum(parts)
+
+    return amplitude
+
+
+def gamma_lm(phi, theta, l, m):
+    # m_ is not used, but here, so we have a common interface with wigner_capital_d
+    return ((l + 1) / (4 * np.pi)) ** 0.5 * np.conj(
+        wigner_capital_d(phi, theta, 0, l, m, 0)
+    )
+
+
+def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
+    ms = h1 + h2
+    ml = h0 - ms
+    ret = sum(
+        ls.coupling
+        * clebsch_gordan(s1, h1, s2, h2, ls.S, ms)
+        * clebsch_gordan(ls.L, ml, ls.S, ms, s0, h0)
+        * gamma_lm(phi, theta, ls.L, ml)
+        * (ls.L + 1) ** 0.5
+        / (ls.S + 1) ** 0.5
+        for ls in ls_couplings
+    )
+    return ret
+
+
+def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
+    helicity_list = [h0, h1, h2, h3]
+    spin_list = [spin0, spin1, spin2, spin3]
+    amplitude = 0
+
+    final_state_rotations, helicity_angles = angles("canonical")
+    for topology in tg.topologies:
+        final_state_rotation = final_state_rotations[topology.tuple]
+        isobars = helicity_angles[topology.tuple]
+        for (isobar, bachelor), (phi, theta) in isobars.items():
+            if isobar not in resonance_lineshapes:
+                # guard clause against key errors
+                continue
+            (i, j), k = isobar, bachelor
+            hi, hj, hk = helicity_list[i], helicity_list[j], helicity_list[k]
+            si, sj, sk = spin_list[i], spin_list[j], spin_list[k]
+
+            theta_ij = isobars[isobar].theta_rf
+            phi_ij = isobars[isobar].phi_rf
+
+            parts = [
+                (resonance.spin + 1) ** 0.5
+                * canonical_coupling(
+                    h_iso,
+                    hi_,
+                    hj_,
+                    resonance.spin,
+                    si,
+                    sj,
+                    resonance.LS_coupling_resonance_decay(),
+                    theta_ij,
+                    phi_ij,
+                )
+                * canonical_coupling(
+                    h0,
+                    h_iso,
+                    hk_,
+                    spin0,
+                    resonance.spin,
+                    sk,
+                    resonance.LS_couplings_mother_decay(),
+                    theta,
+                    phi,
+                )
+                * np.conj(wigner_capital_d(*final_state_rotation[i], si, hi_, hi))
+                * np.conj(wigner_capital_d(*final_state_rotation[j], sj, hj_, hj))
+                * np.conj(wigner_capital_d(*final_state_rotation[k], sk, hk_, hk))
                 for resonance in resonance_lineshapes.get(isobar, [])
                 for h_iso in resonance.possible_helicities
                 for hk_ in helicities[bachelor]
@@ -429,6 +508,11 @@ def test_eqquivalence():
 
     terms_1_m = amp_dict(f, resonance_lineshapes_single_1, convention="minus_phi")
     terms_2_m = amp_dict(f, resonance_lineshapes_single_3, convention="minus_phi")
+
+    terms_1_can = amp_dict(f_canonical, resonance_lineshapes_single_1)
+    terms_2_can = amp_dict(f_canonical, resonance_lineshapes_single_3)
+
+    print(unpolarized(terms_1_can)[-1], unpolarized(terms_1)[-1])
 
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
