@@ -1,3 +1,4 @@
+import pytest
 from typing import NamedTuple
 import numpy as np
 import subprocess
@@ -364,6 +365,7 @@ def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
         * clebsch_gordan(s1, h1, s2, h2, ls.S, ms)
         * clebsch_gordan(ls.L, ml, ls.S, ms, s0, h0)
         * gamma_lm(phi, theta, ls.L, ml)
+        # * (s0 + 1)**0.5 / (ls.L + 1)**0.5
         for ls in ls_couplings
     )
     return ret
@@ -390,8 +392,9 @@ def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
             phi_ij = isobars[isobar].phi_rf
 
             parts = [
-                # (resonance.spin + 1) ** 0.5
-                (0.5) ** 0.5  # I have no Idea why :(
+                1.0
+                # * (resonance.spin + 1) ** 0.5
+                * (0.5) ** 0.5  # I have no Idea why :(
                 * canonical_coupling(
                     h_iso,
                     hi_,
@@ -428,25 +431,6 @@ def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
     return amplitude
 
 
-resonance_lineshapes_single_3 = {
-    (1, 2): [
-        resonance(
-            1,
-            spin0,
-            spin1,
-            spin2,
-            spin3,
-            [(2, 1)],
-            [(2, 3)],
-        )
-    ],
-}
-
-resonance_lineshapes_single_1 = {
-    (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)])],
-}
-
-
 def amp_dict(func, resonances, **kwargs):
     return {
         (l1, l2, l3, l4): func(
@@ -468,6 +452,10 @@ def add_dicts(d1, d2):
 
 
 def basis_change(dtc, rotation):
+    """
+    Small helper function, which will perform a basis change on the dictionary of amplitudes.
+    One needs a rotation for all final state particles.
+    """
     new_dtc = {}
     for key, value in dtc.items():
         l0, l1, l2, l3 = key
@@ -483,7 +471,34 @@ def basis_change(dtc, rotation):
     return new_dtc
 
 
-def test_eqquivalence():
+@pytest.mark.parametrize(
+    "resonance_lineshapes_single_1, resonance_lineshapes_single_3",
+    [
+        (
+            {
+                (2, 3): [
+                    resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)]),
+                    resonance(2, spin0, spin2, spin3, spin1, [(2, 1)], [(4, 2)]),
+                ],
+            },
+            {
+                (1, 2): [
+                    resonance(1, spin0, spin1, spin2, spin3, [(2, 1)], [(2, 3)]),
+                    resonance(3, spin0, spin1, spin2, spin3, [(2, 3)], [(2, 3)]),
+                ],
+            },
+        ),
+        (
+            {
+                (2, 3): [resonance(0, spin0, spin2, spin3, spin1, [(2, 1)], [(2, 2)])],
+            },
+            {
+                (1, 2): [resonance(3, spin0, spin1, spin2, spin3, [(2, 3)], [(2, 1)])],
+            },
+        ),
+    ],
+)
+def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_3):
     terms_1 = amp_dict(f, resonance_lineshapes_single_1)
     terms_2 = amp_dict(f, resonance_lineshapes_single_3)
 
@@ -498,7 +513,10 @@ def test_eqquivalence():
         unpolarized(add_dicts(terms_1, terms_2)),
         rtol=1e-6,
     )
-
+    print(
+        unpolarized(add_dicts(terms_1_can, terms_2_can))[-1],
+        unpolarized(add_dicts(terms_1, terms_2))[-1],
+    )
     assert np.allclose(
         unpolarized(add_dicts(terms_1_can, terms_2_can)),
         unpolarized(add_dicts(terms_1, terms_2)),
@@ -508,22 +526,6 @@ def test_eqquivalence():
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
     assert np.allclose(unpolarized(terms_1_can), unpolarized(terms_1))
     assert np.allclose(unpolarized(terms_2_can), unpolarized(terms_2))
-
-    assert np.allclose(
-        terms_1[(-1, 1, 2, 0)][-1], -0.14315554700441074 + 0.12414558894503328j
-    )
-
-    assert np.allclose(
-        terms_2[(-1, 1, 2, 0)][-1], -0.49899891547281655 + 0.030820810874496913j
-    )
-
-    assert np.allclose(
-        terms_1_m[(-1, 1, 2, 0)][-1], -0.03883258888101088 + 0.1854660829732478j
-    )
-
-    assert np.allclose(
-        terms_2_m[(-1, 1, 2, 0)][-1], -0.37859261634645197 + 0.32652330831650717j
-    )
 
     rotdict = {
         1: (
@@ -578,5 +580,61 @@ def test_eqquivalence():
         assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
 
 
+def test_against_dpd():
+    resonance_lineshapes_single_3 = {
+        (1, 2): [
+            resonance(
+                1,
+                spin0,
+                spin1,
+                spin2,
+                spin3,
+                [(2, 1)],
+                [(2, 3)],
+            )
+        ],
+    }
+
+    resonance_lineshapes_single_1 = {
+        (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)])],
+    }
+    terms_1 = amp_dict(f, resonance_lineshapes_single_1)
+    terms_2 = amp_dict(f, resonance_lineshapes_single_3)
+
+    terms_1_m = amp_dict(f, resonance_lineshapes_single_1, convention="minus_phi")
+    terms_2_m = amp_dict(f, resonance_lineshapes_single_3, convention="minus_phi")
+    assert np.allclose(
+        terms_1[(-1, 1, 2, 0)][-1], -0.14315554700441074 + 0.12414558894503328j
+    )
+
+    assert np.allclose(
+        terms_2[(-1, 1, 2, 0)][-1], -0.49899891547281655 + 0.030820810874496913j
+    )
+
+    assert np.allclose(
+        terms_1_m[(-1, 1, 2, 0)][-1], -0.03883258888101088 + 0.1854660829732478j
+    )
+
+    assert np.allclose(
+        terms_2_m[(-1, 1, 2, 0)][-1], -0.37859261634645197 + 0.32652330831650717j
+    )
+
+
 if __name__ == "__main__":
-    test_eqquivalence()
+    resonance_lineshapes_single_3 = {
+        (1, 2): [
+            resonance(
+                1,
+                spin0,
+                spin1,
+                spin2,
+                spin3,
+                [(2, 1)],
+                [(2, 3)],
+            )
+        ],
+    }
+    resonance_lineshapes_single_1 = {
+        (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)])],
+    }
+    test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_3)
