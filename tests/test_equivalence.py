@@ -392,7 +392,7 @@ def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
             phi_ij = isobars[isobar].phi_rf
 
             parts = [
-                (1 / (spin0 + 1)) ** 0.5  # I have no Idea why :(
+                (1 / (spin0 + 1)) ** 0.5
                 * canonical_coupling(
                     h_iso,
                     hi_,
