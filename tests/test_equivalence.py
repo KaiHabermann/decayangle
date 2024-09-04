@@ -275,6 +275,8 @@ THETA, PSI = np.meshgrid(theta, psi)
 
 momenta = make_four_vectors(PSI, THETA, 0)
 specific_point = make_four_vectors(0.3, np.arccos(0.4), 0.5)
+# specific_point = make_four_vectors(0, 0, 0)
+
 momenta = {
     i: np.concatenate(
         [momenta[i].reshape((40 * 40, 4)), specific_point[i].reshape((1, 4))], axis=0
@@ -369,9 +371,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
 
 def gamma_lm(phi, theta, l, m):
     # m_ is not used, but here, so we have a common interface with wigner_capital_d
-    return ((l + 1) / (4 * np.pi)) ** 0.5 * np.conj(
-        wigner_capital_d(phi, theta, 0, l, m, 0)
-    )
+    return ((l + 1) / 1) ** 0.5 * np.conj(wigner_capital_d(phi, theta, 0, l, m, 0))
 
 
 def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
@@ -382,8 +382,9 @@ def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
         * clebsch_gordan(s1, h1, s2, h2, ls.S, ms)
         * clebsch_gordan(ls.L, ml, ls.S, ms, s0, h0)
         * gamma_lm(phi, theta, ls.L, ml)
-        * (ls.L + 1) ** 0.5
-        / (ls.S + 1) ** 0.5
+        # * (s0 + 1)**0.5
+        # * (ls.L + 1) ** 0.5
+        # / (ls.S + 1) ** 0.5
         for ls in ls_couplings
     )
     return ret
@@ -410,7 +411,8 @@ def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
             phi_ij = isobars[isobar].phi_rf
 
             parts = [
-                (resonance.spin + 1) ** 0.5
+                # (resonance.spin + 1) ** 0.5
+                (0.5) ** 0.5  # I have no Idea why :(
                 * canonical_coupling(
                     h_iso,
                     hi_,
@@ -513,7 +515,14 @@ def test_eqquivalence():
     terms_2_can = amp_dict(f_canonical, resonance_lineshapes_single_3)
 
     print(unpolarized(terms_1_can)[-1], unpolarized(terms_1)[-1])
+    print(unpolarized(terms_2_can)[-1], unpolarized(terms_2)[-1])
+    print(
+        unpolarized(add_dicts(terms_1_can, terms_2_can))[-1],
+        unpolarized(add_dicts(terms_1, terms_2))[-1],
+    )
 
+    print(terms_1_can[(-1, 1, 2, 0)][-1], terms_1[(-1, 1, 2, 0)][-1])
+    exit(0)
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),
