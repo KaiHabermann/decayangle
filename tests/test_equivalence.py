@@ -301,29 +301,12 @@ def angles(convention):
     return final_state_rotations, helicity_angles
 
 
-def internal_rotation(convention):
-    if convention in ["helicity", "minus_phi"]:
-        return wigner_capital_d
-    elif convention in ["canonical"]:
-
-        def gamma_lm(phi, theta, psi, l, m, m_):
-            # m_ is not used, but here, so we have a common interface with wigner_capital_d
-            return ((l + 1) / (4 * np.pi)) ** 0.5 * wigner_capital_d(
-                phi, theta, 0, l, m, 0
-            )
-
-        return gamma_lm
-    else:
-        raise ValueError(f"Convention {convention} not recognized")
-
-
 def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
     helicity_list = [h0, h1, h2, h3]
     spin_list = [spin0, spin1, spin2, spin3]
     amplitude = 0
 
     final_state_rotations, helicity_angles = angles(convention)
-    rotation_function = internal_rotation(convention)
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
@@ -347,10 +330,10 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                     topology.nodes[isobar].mass(momenta) ** 2, hi_, hj_
                 )
                 * np.conj(
-                    rotation_function(phi, theta, psi, spin0, h0, h_iso - hk_)
+                    wigner_capital_d(phi, theta, psi, spin0, h0, h_iso - hk_)
                 )  # mother decay
                 * np.conj(
-                    rotation_function(
+                    wigner_capital_d(
                         phi_ij, theta_ij, psi_ij, resonance.spin, h_iso, hi_ - hj_
                     )
                 )  # isobar decay
@@ -370,8 +353,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
 
 
 def gamma_lm(phi, theta, l, m):
-    # m_ is not used, but here, so we have a common interface with wigner_capital_d
-    return ((l + 1) / 1) ** 0.5 * np.conj(wigner_capital_d(phi, theta, 0, l, m, 0))
+    return ((l + 1)) ** 0.5 * np.conj(wigner_capital_d(phi, theta, 0, l, m, 0))
 
 
 def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
@@ -382,9 +364,6 @@ def canonical_coupling(h0, h1, h2, s0, s1, s2, ls_couplings, theta, phi):
         * clebsch_gordan(s1, h1, s2, h2, ls.S, ms)
         * clebsch_gordan(ls.L, ml, ls.S, ms, s0, h0)
         * gamma_lm(phi, theta, ls.L, ml)
-        # * (s0 + 1)**0.5
-        # * (ls.L + 1) ** 0.5
-        # / (ls.S + 1) ** 0.5
         for ls in ls_couplings
     )
     return ret
@@ -514,22 +493,21 @@ def test_eqquivalence():
     terms_1_can = amp_dict(f_canonical, resonance_lineshapes_single_1)
     terms_2_can = amp_dict(f_canonical, resonance_lineshapes_single_3)
 
-    print(unpolarized(terms_1_can)[-1], unpolarized(terms_1)[-1])
-    print(unpolarized(terms_2_can)[-1], unpolarized(terms_2)[-1])
-    print(
-        unpolarized(add_dicts(terms_1_can, terms_2_can))[-1],
-        unpolarized(add_dicts(terms_1, terms_2))[-1],
-    )
-
-    print(terms_1_can[(-1, 1, 2, 0)][-1], terms_1[(-1, 1, 2, 0)][-1])
-    exit(0)
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),
         rtol=1e-6,
     )
+
+    assert np.allclose(
+        unpolarized(add_dicts(terms_1_can, terms_2_can)),
+        unpolarized(add_dicts(terms_1, terms_2)),
+        rtol=1e-6,
+    )
     assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
+    assert np.allclose(unpolarized(terms_1_can), unpolarized(terms_1))
+    assert np.allclose(unpolarized(terms_2_can), unpolarized(terms_2))
 
     assert np.allclose(
         terms_1[(-1, 1, 2, 0)][-1], -0.14315554700441074 + 0.12414558894503328j
@@ -574,6 +552,30 @@ def test_eqquivalence():
             assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
         else:
             assert np.allclose(v, terms_1[k])
+
+    rotdict = {
+        1: (
+            reference_topology.boost(1, momenta, convention="canonical")
+            @ reference_topology.boost(1, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+        2: (
+            reference_topology.boost(2, momenta, convention="canonical")
+            @ reference_topology.boost(2, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+        3: (
+            reference_topology.boost(3, momenta, convention="canonical")
+            @ reference_topology.boost(3, momenta, convention="helicity").inverse()
+        ).wigner_angles(),
+    }
+
+    terms_2_can_new_basis = basis_change(terms_2_can, rotdict)
+    terms_1_can_new_basis = basis_change(terms_1_can, rotdict)
+
+    for k, v in terms_2_can_new_basis.items():
+        assert np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
+
+    for k, v in terms_1_can_new_basis.items():
+        assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":
