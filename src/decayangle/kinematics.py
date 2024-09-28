@@ -289,14 +289,27 @@ def build_2_2(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     Returns:
         jax.numpy.ndarray: the 2x2 matrix
     """
-    return (
-        rotation_matrix_2_2_z(phi)
-        @ rotation_matrix_2_2_y(theta)
-        @ boost_matrix_2_2_z(xi)
-        @ rotation_matrix_2_2_z(phi_rf)
-        @ rotation_matrix_2_2_y(theta_rf)
-        @ rotation_matrix_2_2_z(psi_rf)
-    )
+    matrix = None
+    for parameter, builder in zip(
+        [phi, theta, xi, phi_rf, theta_rf, psi_rf],
+        [
+            rotation_matrix_2_2_z,
+            rotation_matrix_2_2_y,
+            boost_matrix_2_2_z,
+            rotation_matrix_2_2_z,
+            rotation_matrix_2_2_y,
+            rotation_matrix_2_2_z,
+        ],
+    ):
+        if parameter is None or parameter is 0:
+            continue
+        if matrix is None:
+            matrix = builder(parameter)
+        else:
+            matrix = matrix @ builder(parameter)
+    if matrix is None:
+        matrix = cb.eye(2)
+    return matrix
 
 
 def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
@@ -313,14 +326,27 @@ def build_4_4(phi, theta, xi, phi_rf, theta_rf, psi_rf):
     Returns:
         jax.numpy.ndarray: the 4x4 matrix
     """
-    return (
-        rotation_matrix_4_4_z(phi)
-        @ rotation_matrix_4_4_y(theta)
-        @ boost_matrix_4_4_z(xi)
-        @ rotation_matrix_4_4_z(phi_rf)
-        @ rotation_matrix_4_4_y(theta_rf)
-        @ rotation_matrix_4_4_z(psi_rf)
-    )
+    matrix = None
+    for parameter, builder in zip(
+        [phi, theta, xi, phi_rf, theta_rf, psi_rf],
+        [
+            rotation_matrix_4_4_z,
+            rotation_matrix_4_4_y,
+            boost_matrix_4_4_z,
+            rotation_matrix_4_4_z,
+            rotation_matrix_4_4_y,
+            rotation_matrix_4_4_z,
+        ],
+    ):
+        if parameter is None or parameter is 0:
+            continue
+        if matrix is None:
+            matrix = builder(parameter)
+        else:
+            matrix = matrix @ builder(parameter)
+    if matrix is None:
+        matrix = cb.eye(4)
+    return matrix
 
 
 def decode_rotation_4x4(

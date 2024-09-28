@@ -323,9 +323,8 @@ class Node:
             )
         target = Node.get_node(target)
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
-        one = cb.ones_like(zero)
         if self.value == target.value:
-            return LorentzTrafo(zero, zero, zero, zero, zero, zero)
+            return LorentzTrafo(0, 0, 0, 0, 0, zero)
 
         if target not in self.daughters:
             raise ValueError(
@@ -334,7 +333,7 @@ class Node:
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(momenta))
-        boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
+        boost = LorentzTrafo(0, 0, xi, 0, 0, 0)
 
         if convention == "canonical":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
@@ -355,7 +354,7 @@ class Node:
                 self.daughters[0], momenta, tol=tol
             )
             rotation = LorentzTrafo(
-                zero, zero, zero, -minus_psi_rf, minus_theta_rf, minus_psi_rf
+                0, 0, 0, -minus_psi_rf, minus_theta_rf, minus_psi_rf
             )
 
         else:
@@ -460,7 +459,7 @@ class Node:
             )
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
         if self.value == target.value:
-            return LorentzTrafo(zero, zero, zero, zero, zero, zero)
+            return LorentzTrafo(0, 0, 0, 0, 0, zero)
 
         if not target in self.daughters:
             raise ValueError(
@@ -469,7 +468,7 @@ class Node:
 
         # rotate so that the target momentum is aligned with the z axis
         minus_phi_rf, minus_theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
-        rotation = LorentzTrafo(zero, zero, zero, zero, minus_theta_rf, minus_phi_rf)
+        rotation = LorentzTrafo(0, 0, 0, 0, minus_theta_rf, minus_phi_rf)
         return rotation, minus_theta_rf, minus_phi_rf
 
 
