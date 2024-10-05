@@ -182,9 +182,7 @@ def clebsch_gordan(j1, m1, j2, m2, J, M):
 
 
 class resonance:
-    def __init__(
-        self, spin, s0, si, sj, sk, LSin, LSout, coupling_convention="helicity"
-    ):
+    def __init__(self, spin, s0, si, sj, sk, LSin, LSout, coupling_convention="normal"):
         self.spin = spin
         self.s0 = s0
         self.si = si
@@ -201,7 +199,7 @@ class resonance:
 
     def LS_couplings_mother_decay(self):
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
-        if self.coupling_convention == "minus_phi":
+        if self.coupling_convention == "inverted":
             return [
                 LS(
                     L,
@@ -215,14 +213,16 @@ class resonance:
 
     def LS_coupling_resonance_decay(self):
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
-        if self.coupling_convention == "minus_phi":
+        if self.coupling_convention == "inverted":
             return [
                 LS(L, S, (1 + 0j) * (-1) ** (L // 2 + S // 2 - self.si - self.sj // 2))
                 for L, S in self.LSout
             ]
         return [LS(L, S, 1 + 0j) for L, S in self.LSout]
 
-    def helicity_coupling_times_lineshape(self, s, hi_, hj_, convention="helicity"):
+    def helicity_coupling_times_lineshape(
+        self, s, hi_, hj_, convention="helicity", reverse=False
+    ):
         ls_resonance_decay = self.LS_coupling_resonance_decay()
         h = sum(
             ls.coupling
@@ -236,9 +236,11 @@ class resonance:
         if convention == "minus_phi":
             # TODO insert phase difference here
             pass
+        if reverse:
+            return h * (-1) ** ((self.si - hi_) / 2)
         return h * (-1) ** ((self.sj - hj_) / 2)
 
-    def h_mother(self, hk_, hiso_, convention="helicity") -> float:
+    def h_mother(self, hk_, hiso_, convention="helicity", reverse=False) -> float:
         """
         Calculate the helicity amplitude for the mother particle decay.
         The phase is (-1)**(pk.spin - hk_) comes as a consequence of the definition of the two particle state.
@@ -259,7 +261,8 @@ class resonance:
         if convention == "minus_phi":
             # TODO insert phase difference here
             pass
-
+        if reverse:
+            return h * (-1) ** ((self.spin - hiso_) / 2)
         return h * (-1) ** ((self.sk - hk_) / 2)
 
     def copy(self):
@@ -298,6 +301,34 @@ tg = TopologyCollection(
     ],
 )
 
+tg_reverse = TopologyCollection(
+    0,
+    topologies=[
+        Topology(
+            0,
+            decay_topology=(
+                1,
+                (3, 2),
+            ),
+        ),
+        Topology(
+            0,
+            decay_topology=(
+                2,
+                (1, 3),
+            ),
+        ),
+        Topology(
+            0,
+            decay_topology=(
+                3,
+                (2, 1),
+            ),
+        ),
+    ],
+)
+
+
 reference_topology = tg.topologies[0]
 
 theta, psi = np.linspace(0, np.pi, 40), np.linspace(0, 2 * np.pi, 40)
@@ -316,36 +347,55 @@ momenta = {
 }
 
 
+def order_tuple(t, invert=False):
+    if not invert:
+        return t
+    if not isinstance(t, tuple):
+        return t
+    return tuple([order_tuple(element, invert=invert) for element in t][::-1])
+
+
 @cache
-def angles(convention):
+def angles(convention, reverse=False):
+    tg_internal = {False: tg, True: tg_reverse}[reverse]
     final_state_rotations = {
-        topology.tuple: reference_topology.relative_wigner_angles(
+        order_tuple(
+            topology.tuple, invert=reverse
+        ): reference_topology.relative_wigner_angles(
             topology, momenta, convention=convention
         )
-        for topology in tg.topologies
+        for topology in tg_internal.topologies
     }
 
     helicity_angles = {
-        topology.tuple: topology.helicity_angles(momenta, convention=convention)
-        for topology in tg.topologies
+        order_tuple(topology.tuple, invert=reverse): topology.helicity_angles(
+            momenta, convention=convention
+        )
+        for topology in tg_internal.topologies
     }
     return final_state_rotations, helicity_angles
 
 
-def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
+def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity", reverse=False):
     helicity_list = [h0, h1, h2, h3]
     spin_list = [spin0, spin1, spin2, spin3]
     amplitude = 0
 
-    final_state_rotations, helicity_angles = angles(convention)
+    final_state_rotations, helicity_angles = angles(convention, reverse=reverse)
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
         for (isobar, bachelor), (phi, theta) in isobars.items():
-            if isobar not in resonance_lineshapes:
+            if reverse:
+                bachelor, isobar = isobar, bachelor
+            if (
+                isinstance(isobar, int)
+                or isobar[:: (-1) ** int(reverse)] not in resonance_lineshapes
+            ):
                 # guard clause against key errors
                 continue
-            (i, j), k = isobar, bachelor
+            (i, j), k = isobar[:: (-1) ** int(reverse)], bachelor
+
             hi, hj, hk = helicity_list[i], helicity_list[j], helicity_list[k]
             si, sj, sk = spin_list[i], spin_list[j], spin_list[k]
 
@@ -358,7 +408,10 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
             parts = [
                 (resonance.spin + 1) ** 0.5
                 * resonance.helicity_coupling_times_lineshape(
-                    topology.nodes[isobar].mass(momenta) ** 2, hi_, hj_
+                    topology.nodes[isobar[:: (-1) ** int(reverse)]].mass(momenta) ** 2,
+                    hi_,
+                    hj_,
+                    reverse=reverse,
                 )
                 * np.conj(
                     wigner_capital_d(phi, theta, psi, spin0, h0, h_iso - hk_)
@@ -371,13 +424,16 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
                 * np.conj(wigner_capital_d(*final_state_rotation[i], si, hi_, hi))
                 * np.conj(wigner_capital_d(*final_state_rotation[j], sj, hj_, hj))
                 * np.conj(wigner_capital_d(*final_state_rotation[k], sk, hk_, hk))
-                * resonance.h_mother(hk_, h_iso)
-                for resonance in resonance_lineshapes.get(isobar, [])
+                * resonance.h_mother(hk_, h_iso, reverse=reverse)
+                for resonance in resonance_lineshapes.get(
+                    isobar[:: (-1) ** int(reverse)], []
+                )
                 for h_iso in resonance.possible_helicities
                 for hk_ in helicities[bachelor]
                 for hi_ in helicities[i]
                 for hj_ in helicities[j]
             ]
+
             amplitude += sum(parts)
 
     return amplitude
@@ -650,16 +706,20 @@ def test_minus_phi_ls_map(resonance_lineshapes_single_1, resonance_lineshapes_si
 
     for resonances in resonance_lineshapes_single_1_m.values():
         for r in resonances:
-            r.coupling_convention = "minus_phi"
+            r.coupling_convention = "inverted"
     for resonances in resonance_lineshapes_single_3_m.values():
         for r in resonances:
-            r.coupling_convention = "minus_phi"
+            r.coupling_convention = "inverted"
 
-    terms_1_m = amp_dict(f, resonance_lineshapes_single_1_m, convention="minus_phi")
-    terms_2_m = amp_dict(f, resonance_lineshapes_single_3_m, convention="minus_phi")
+    terms_1_i = amp_dict(f, resonance_lineshapes_single_1_m, reverse=True)
+    terms_2_i = amp_dict(f, resonance_lineshapes_single_3_m, reverse=True)
 
+    print(unpolarized(add_dicts(terms_1_i, terms_2_i)))
+    print(unpolarized(add_dicts(terms_1, terms_2)))
+    print(unpolarized(terms_1_i)[-1], unpolarized(terms_1)[-1])
+    print(unpolarized(terms_2_i)[-1], unpolarized(terms_2)[-1])
     assert np.allclose(
-        unpolarized(add_dicts(terms_1_m, terms_2_m)),
+        unpolarized(add_dicts(terms_1_i, terms_2_i)),
         unpolarized(add_dicts(terms_1, terms_2)),
         rtol=1e-6,
     )
@@ -722,4 +782,5 @@ if __name__ == "__main__":
     resonance_lineshapes_single_1 = {
         (2, 3): [resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)])],
     }
-    test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_3)
+    # test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_3)
+    test_minus_phi_ls_map(resonance_lineshapes_single_1, resonance_lineshapes_single_3)
