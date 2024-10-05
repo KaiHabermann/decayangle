@@ -182,7 +182,9 @@ def clebsch_gordan(j1, m1, j2, m2, J, M):
 
 
 class resonance:
-    def __init__(self, spin, s0, si, sj, sk, LSin, LSout):
+    def __init__(
+        self, spin, s0, si, sj, sk, LSin, LSout, coupling_convention="helicity"
+    ):
         self.spin = spin
         self.s0 = s0
         self.si = si
@@ -191,6 +193,7 @@ class resonance:
         self.LSin = LSin
         self.LSout = LSout
         self.lineshape = lambda *args: 1.0
+        self.coupling_convention = coupling_convention
 
     @property
     def possible_helicities(self):
@@ -198,10 +201,25 @@ class resonance:
 
     def LS_couplings_mother_decay(self):
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
+        if self.coupling_convention == "minus_phi":
+            return [
+                LS(
+                    L,
+                    S,
+                    (1 + 0j)
+                    * (-1) ** (L // 2 + S // 2 - self.spin // 2 - self.sk // 2),
+                )
+                for L, S in self.LSin
+            ]
         return [LS(L, S, 1 + 0j) for L, S in self.LSin]
 
     def LS_coupling_resonance_decay(self):
         LS = NamedTuple("LS", [("L", int), ("S", int), ("coupling", complex)])
+        if self.coupling_convention == "minus_phi":
+            return [
+                LS(L, S, (1 + 0j) * (-1) ** (L // 2 + S // 2 - self.si - self.sj // 2))
+                for L, S in self.LSout
+            ]
         return [LS(L, S, 1 + 0j) for L, S in self.LSout]
 
     def helicity_coupling_times_lineshape(self, s, hi_, hj_, convention="helicity"):
@@ -243,6 +261,18 @@ class resonance:
             pass
 
         return h * (-1) ** ((self.sk - hk_) / 2)
+
+    def copy(self):
+        return resonance(
+            self.spin,
+            self.s0,
+            self.si,
+            self.sj,
+            self.sk,
+            self.LSin,
+            self.LSout,
+            self.coupling_convention,
+        )
 
 
 # particle 1
@@ -576,6 +606,63 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
 
     for k, v in terms_1_can_new_basis.items():
         assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "resonance_lineshapes_single_1, resonance_lineshapes_single_3",
+    [
+        (
+            {
+                (2, 3): [
+                    resonance(4, spin0, spin2, spin3, spin1, [(4, 3)], [(4, 2)]),
+                    resonance(2, spin0, spin2, spin3, spin1, [(2, 1)], [(4, 2)]),
+                ],
+            },
+            {
+                (1, 2): [
+                    resonance(1, spin0, spin1, spin2, spin3, [(2, 1)], [(2, 3)]),
+                    resonance(3, spin0, spin1, spin2, spin3, [(2, 3)], [(2, 3)]),
+                ],
+            },
+        ),
+        (
+            {
+                (2, 3): [resonance(0, spin0, spin2, spin3, spin1, [(2, 1)], [(2, 2)])],
+            },
+            {
+                (1, 2): [resonance(3, spin0, spin1, spin2, spin3, [(2, 3)], [(2, 1)])],
+            },
+        ),
+    ],
+)
+def test_minus_phi_ls_map(resonance_lineshapes_single_1, resonance_lineshapes_single_3):
+    terms_1 = amp_dict(f, resonance_lineshapes_single_1)
+    terms_2 = amp_dict(f, resonance_lineshapes_single_3)
+
+    resonance_lineshapes_single_1_m = {
+        key: [r.copy() for r in resonances]
+        for key, resonances in resonance_lineshapes_single_1.items()
+    }
+    resonance_lineshapes_single_3_m = {
+        key: [r.copy() for r in resonances]
+        for key, resonances in resonance_lineshapes_single_3.items()
+    }
+
+    for resonances in resonance_lineshapes_single_1_m.values():
+        for r in resonances:
+            r.coupling_convention = "minus_phi"
+    for resonances in resonance_lineshapes_single_3_m.values():
+        for r in resonances:
+            r.coupling_convention = "minus_phi"
+
+    terms_1_m = amp_dict(f, resonance_lineshapes_single_1_m, convention="minus_phi")
+    terms_2_m = amp_dict(f, resonance_lineshapes_single_3_m, convention="minus_phi")
+
+    assert np.allclose(
+        unpolarized(add_dicts(terms_1_m, terms_2_m)),
+        unpolarized(add_dicts(terms_1, terms_2)),
+        rtol=1e-6,
+    )
 
 
 def test_against_dpd():
