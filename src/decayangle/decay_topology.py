@@ -318,7 +318,7 @@ class Node:
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
                 ValueError(
-                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. To boost to the rest frame of the root node, use method ```momenta = topology.to_rest_frame(momenta)```."
                 )
             )
         target = Node.get_node(target)
@@ -455,7 +455,7 @@ class Node:
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
                 ValueError(
-                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. To boost to the rest frame of the root node, use method ```momenta = topology.to_rest_frame(momenta)```."
                 )
             )
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
