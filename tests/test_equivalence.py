@@ -275,15 +275,7 @@ theta, psi = np.linspace(0, np.pi, 40), np.linspace(0, 2 * np.pi, 40)
 THETA, PSI = np.meshgrid(theta, psi)
 
 momenta = make_four_vectors(PSI, THETA, 0)
-specific_point = make_four_vectors(0.3, np.arccos(0.4), 0.5)
-# specific_point = make_four_vectors(0, 0, 0)
-
-momenta = {
-    i: np.concatenate(
-        [momenta[i].reshape((40 * 40, 4)), specific_point[i].reshape((1, 4))], axis=0
-    )
-    for i in range(1, 4)
-}
+momenta = make_four_vectors(0.3, np.arccos(0.4), 0.5)
 
 
 @cache
@@ -324,31 +316,24 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
 
             psi = 0 if convention == "helicity" else -phi
             psi_ij = 0 if convention == "helicity" else -phi_ij
-
-            parts = [
-                (resonance.spin + 1) ** 0.5
-                * resonance.helicity_coupling_times_lineshape(
-                    topology.nodes[isobar].mass(momenta) ** 2, hi_, hj_
-                )
-                * np.conj(
-                    wigner_capital_d(phi, theta, psi, spin0, h0, h_iso - hk_)
-                )  # mother decay
-                * np.conj(
-                    wigner_capital_d(
-                        phi_ij, theta_ij, psi_ij, resonance.spin, h_iso, hi_ - hj_
+            for resonance in resonance_lineshapes.get(isobar, []):
+                for h_iso in resonance.possible_helicities:
+                    A_mother = np.conj(
+                        wigner_capital_d(phi, theta, psi, spin0, h0, h_iso - hk)
+                    ) * resonance.h_mother(hk, h_iso)
+                    A_res = (
+                        (resonance.spin + 1) ** 0.5
+                        * resonance.helicity_coupling_times_lineshape(
+                            topology.nodes[isobar].mass(momenta) ** 2, hi, hj
+                        )
+                        * np.conj(
+                            wigner_capital_d(
+                                phi_ij, theta_ij, psi_ij, resonance.spin, h_iso, hi - hj
+                            )
+                        )
                     )
-                )  # isobar decay
-                * np.conj(wigner_capital_d(*final_state_rotation[i], si, hi_, hi))
-                * np.conj(wigner_capital_d(*final_state_rotation[j], sj, hj_, hj))
-                * np.conj(wigner_capital_d(*final_state_rotation[k], sk, hk_, hk))
-                * resonance.h_mother(hk_, h_iso)
-                for resonance in resonance_lineshapes.get(isobar, [])
-                for h_iso in resonance.possible_helicities
-                for hk_ in helicities[bachelor]
-                for hi_ in helicities[i]
-                for hj_ in helicities[j]
-            ]
-            amplitude += sum(parts)
+                    amplitude += A_mother * A_res
+                    print(A_mother, A_res)
 
     return amplitude
 
@@ -601,24 +586,30 @@ def test_against_dpd():
 
     terms_1_m = amp_dict(f, resonance_lineshapes_single_1, convention="minus_phi")
     terms_2_m = amp_dict(f, resonance_lineshapes_single_3, convention="minus_phi")
+
+    print(reference_topology.helicity_angles(momenta, convention="helicity"))
+
+    print(terms_1[(-1, 1, 2, 0)])
     assert np.allclose(
-        terms_1[(-1, 1, 2, 0)][-1], -0.14315554700441074 + 0.12414558894503328j
+        terms_1[(-1, 1, 2, 0)], -0.14315554700441074 + 0.12414558894503328j
     )
 
     assert np.allclose(
-        terms_2[(-1, 1, 2, 0)][-1], -0.49899891547281655 + 0.030820810874496913j
+        terms_2[(-1, 1, 2, 0)], -0.49899891547281655 + 0.030820810874496913j
     )
 
     assert np.allclose(
-        terms_1_m[(-1, 1, 2, 0)][-1], -0.03883258888101088 + 0.1854660829732478j
+        terms_1_m[(-1, 1, 2, 0)], -0.03883258888101088 + 0.1854660829732478j
     )
 
     assert np.allclose(
-        terms_2_m[(-1, 1, 2, 0)][-1], -0.37859261634645197 + 0.32652330831650717j
+        terms_2_m[(-1, 1, 2, 0)], -0.37859261634645197 + 0.32652330831650717j
     )
 
 
 if __name__ == "__main__":
+    test_against_dpd()
+    exit(0)
     resonance_lineshapes_single_3 = {
         (1, 2): [
             resonance(
