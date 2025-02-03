@@ -7,6 +7,10 @@ import numpy as np
 def make_four_vectors_from_dict(mkpisq, mkpsq, mppisq, phip, thetap, chi):
     import numpy as np
 
+    # Tell me why :(
+    phip = -np.pi + phip
+    thetap = np.pi - thetap
+    chi = -np.pi + chi
     # Make sure, the sorting is turned off
 
     # Given values
@@ -59,7 +63,7 @@ def make_four_vectors_from_dict(mkpisq, mkpsq, mppisq, phip, thetap, chi):
     momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
     tree1 = Topology(root=0, decay_topology=((2, 3), 1))
 
-    rotation = LorentzTrafo(0, 0, 0, -phip, -thetap, -chi)
+    rotation = LorentzTrafo(0, 0, 0, phip, thetap, chi)
 
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
     return momenta_23_rotated
@@ -89,12 +93,12 @@ def read_helicity_angles_from_dict(dtc):
     for tpl, (name, theta_hat, phi_hat, theta, phi) in mappings.items():
         topos[tpl] = {
             tpl: HelicityAngles(
-                dtc[name][theta_hat],
                 dtc[name][phi_hat],
+                dtc[name][theta_hat],
             ),
             tpl[0]: HelicityAngles(
-                dtc[name][theta],
                 dtc[name][phi],
+                dtc[name][theta],
             ),
         }
     return topos
@@ -113,14 +117,18 @@ def test_elisabeth():
             topology = Topology(0, decay_topology=topo_tuple)
             helicity_angles = topology.helicity_angles(momenta=momenta)
             for decay in helicity_angles:
+                print("---")
                 print(helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf)
-                print(helicity_angles[decay].theta_rf - read_hel_angles[decay].theta_rf)
-                # assert np.isclose(
-                #     helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf
-                # )
-                # assert np.isclose(
-                #     helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf
-                # )
+                print(helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf)
+                print(helicity_angles[decay].phi_rf + read_hel_angles[decay].phi_rf)
+                print(helicity_angles[decay].phi_rf - read_hel_angles[decay].phi_rf)
+                print(helicity_angles[decay].theta_rf + read_hel_angles[decay].theta_rf)
+                assert np.isclose(
+                    helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf
+                )
+                assert np.isclose(
+                    helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf
+                )
 
 
 if __name__ == "__main__":
