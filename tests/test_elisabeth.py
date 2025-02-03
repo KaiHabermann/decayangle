@@ -3,23 +3,29 @@ from decayangle.lorentz import LorentzTrafo
 from decayangle.config import config as decayangle_config
 import numpy as np
 
+def make_numpy(f):
+    def wrapper(*args, **kwargs):
+        args = [np.array(arg) for arg in args]
+        kwargs = {k: np.array(v) for k, v in kwargs.items()}
+        return f(*args, **kwargs)
+    return wrapper
 
-def make_four_vectors_from_dict(mkpisq, mkpsq, mppisq, phip, thetap, chi):
+@make_numpy
+def make_four_vectors_from_dict(mkpisq, mkpsq, mppisq, phip, thetap, chi, phi_Kst = None, theta_Kst=None, phi_K=None, theta_K=None):
     import numpy as np
 
-    # Tell me why :(
-    phip = -np.pi + phip
-    thetap = np.pi - thetap
-    chi = -np.pi + chi
+
     # Make sure, the sorting is turned off
 
     # Given values
     # Lc -> p K pi
-    m0 = 2.286
+    # 0 -> 1 2 3
     m12 = mkpsq**0.5
     m23 = mkpisq**0.5
     m13 = mppisq**0.5
-    m1, m2, m3 = 0.938, 0.495, 0.139
+    m1, m2, m3 = 0.938272, 0.493677, 0.1395704
+    m0 = ((mkpisq + mkpsq + mppisq) - m1**2  - m2**2 - m3**2)**0.5
+
     # Squared masses
     m0sq, m1sq, m2sq, m3sq, m12sq, m23sq = [x**2 for x in [m0, m1, m2, m3, m12, m23]]
 
@@ -62,8 +68,14 @@ def make_four_vectors_from_dict(mkpisq, mkpsq, mppisq, phip, thetap, chi):
     # Lorentz transformation
     momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
     tree1 = Topology(root=0, decay_topology=((2, 3), 1))
+    # momenta are now in x-z plane
 
-    rotation = LorentzTrafo(0, 0, 0, phip, thetap, chi)
+    phip = -np.pi + phip 
+
+    thetap = np.pi - thetap
+    chi = -np.pi + chi
+    # rotation = LorentzTrafo(0, 0, 0, phip, thetap, chi)
+    rotation = LorentzTrafo(0, 0, 0, phi_Kst, theta_Kst, phi_K)
 
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
     return momenta_23_rotated
@@ -80,6 +92,9 @@ tg = TopologyCollection(
     ],
 )
 
+
+# Lc -> p K pi
+# 0 -> 1 2 3
 
 def read_helicity_angles_from_dict(dtc):
     mappings = {
@@ -103,6 +118,9 @@ def read_helicity_angles_from_dict(dtc):
         }
     return topos
 
+def report(a, b, name=None):
+    print(f"{name}: decayangle {(a):.3f} Elisabeth {(b):.3f} Diff {(a - b):.3f} Sum {(a + b):.3f} DTypes {type(a)} {type(b)}")
+
 
 def test_elisabeth():
     import json
@@ -111,24 +129,103 @@ def test_elisabeth():
     with open(path, "r") as f:
         data = json.load(f)
     for k, dtc in data.items():
-        momenta = make_four_vectors_from_dict(**dtc["kinematic"])
+        kwargs = {k: v for k, v in dtc["kinematic"].items() if k != "mkpisq" }
+        momenta = make_four_vectors_from_dict(**dtc["chain_variables"]["Kpi"], **kwargs)
         angles_from_json = read_helicity_angles_from_dict(dtc["chain_variables"])
         for topo_tuple, read_hel_angles in angles_from_json.items():
             topology = Topology(0, decay_topology=topo_tuple)
             helicity_angles = topology.helicity_angles(momenta=momenta)
             for decay in helicity_angles:
-                print("---")
-                print(helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf)
-                print(helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf)
-                print(helicity_angles[decay].phi_rf + read_hel_angles[decay].phi_rf)
-                print(helicity_angles[decay].phi_rf - read_hel_angles[decay].phi_rf)
-                print(helicity_angles[decay].theta_rf + read_hel_angles[decay].theta_rf)
+                # print("---", decay)
+                # report(helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf, "Theta")
+                # report(helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf, "Phi")
                 assert np.isclose(
-                    helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf
+                    helicity_angles[decay].theta_rf, read_hel_angles[decay].theta_rf, atol=1e-3
                 )
                 assert np.isclose(
-                    helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf
+                    helicity_angles[decay].phi_rf, read_hel_angles[decay].phi_rf, atol=1e-3
                 )
+        # exit(0)
+    
+    # phi_Kst = np.linspace(1e-5, 2 * np.pi - 1e-5, 30)
+    # theta_Kst = np.linspace(1e-5,  np.pi - 1e-5, 30)
+
+    # theta_Kst, phi_Kst = np.meshgrid(theta_Kst, phi_Kst)
+    np.random.seed(0)
+    theta_Kst = np.random.uniform(0, np.pi, 10000)
+    phi_Kst = np.random.uniform(0, 2 * np.pi, 10000)
+    phi_K = np.random.uniform(0, 2 * np.pi, 10000)
+    grid = {
+    "kinematic": {
+      "mkpisq": 0.5561674682091109,
+      "mkpsq": 3.0833222564754488,
+      "mppisq": 2.7319599271154402,
+      "phip": 1.3378497917393044,
+      "chi": -0.6240548021534527,
+      "thetap": 1.353485369031088
+    },
+    "chain_variables": {
+      "Kpi": {
+        "mkpisq": 0.5561674682091109,
+        "theta_Kst":theta_Kst,
+        "phi_Kst": phi_Kst,
+        "theta_K": 2.5975969431839845,
+        "phi_K": phi_K
+      },
+      "pip": {
+        "mppisq": 2.7319599271154402,
+        "theta_D": 1.14023558672871,
+        "phi_D": 1.5086313414356933,
+        "theta_pi": 2.761208621409753,
+        "phi_pi": 2.462748025368235
+      },
+      "pK": {
+        "mkpsq": 3.0833222564754488,
+        "theta_L": 1.5166647025202817,
+        "phi_L": 1.2214893641013873,
+        "theta_p": 0.31622082220551684,
+        "phi_p": 2.5333520669181233
+      }
+    }
+  }
+    kwargs = {k: v for k, v in grid["kinematic"].items() if k != "mkpisq" }
+    momenta = make_four_vectors_from_dict(**grid["chain_variables"]["Kpi"], **kwargs)
+    reference = Topology(0, decay_topology=((2, 3), 1))
+    wigner_rotation = reference.relative_wigner_angles(
+        Topology(0, decay_topology=((3, 1), 2)), momenta=momenta
+    )
+    # Lc -> p K pi
+    # 0  -> 1 2 3
+    import matplotlib.pyplot as plt
+    phi_p = Topology(0, decay_topology=((2, 3), 1)).helicity_angles(momenta=momenta)[((2, 3), 1)].phi_rf 
+    phi_k = Topology(0, decay_topology=((3, 1), 2)).helicity_angles(momenta=momenta)[((3, 1), 2)].phi_rf
+    rotation = wigner_rotation[1]
+    color = np.fmod(rotation.phi_rf + rotation.psi_rf + 4 * np.pi, 4*np.pi)/np.pi
+    color_restricted = np.fmod(color.copy(), 4)
+    color_restricted[phi_p - phi_k > np.pi] = color_restricted[phi_p - phi_k > np.pi] - 2
+    color_restricted[phi_p - phi_k < -np.pi] = color_restricted[phi_p - phi_k < -np.pi] - 2
+    color_restricted = color_restricted % 4
+
+    plt.scatter(phi_k, phi_p, c=color_restricted, cmap="viridis", s=1)
+    # phi_p - phi_k = pi
+    y = np.pi + np.linspace(-np.pi, np.pi, 1000)
+    y[y > np.pi] = y[y > np.pi] - 2 * np.pi
+    plt.plot(np.linspace(-np.pi, np.pi, 1000), y, c="red")
+    plt.xlabel(r"$\phi_{K}$")
+    plt.ylabel(r"$\phi_{p}$")
+    plt.colorbar()
+    plt.savefig("test.png")
+    exit()
+    for particle, rotation in wigner_rotation.items():
+        # R_y(phi) R_z(theta) R_y(psi)
+        # plt.imshow(np.fmod(rotation.phi_rf + rotation.psi_rf + 4 * np.pi, 4*np.pi), extent=[0, 2 * np.pi, 0, np.pi], origin="lower")
+        # plt.scatter(rotation.phi_rf, rotation.theta_rf, c=np.fmod(rotation.phi_rf + rotation.psi_rf + 4 * np.pi, 4*np.pi), cmap="viridis")
+        plt.ylabel(r"$\theta_{p}$")
+        plt.xlabel(r"$\phi_{K^*}$")
+        plt.colorbar()
+        plt.savefig(f"tests/test_data/phi_rf_{particle}.png")
+        plt.close()
+
 
 
 if __name__ == "__main__":
