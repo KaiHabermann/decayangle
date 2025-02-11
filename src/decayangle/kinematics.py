@@ -432,8 +432,10 @@ def decode_4_4(matrix: Union[jnp.array, np.array], tol: Optional[float] = None):
 
 
 def decode_su2_rotation(
-    matrix_2x2: jnp.array,
-) -> Tuple[jnp.array, jnp.array, jnp.array]:
+    matrix_2x2: Union[jnp.array, np.array],
+) -> Tuple[
+    Union[jnp.array, np.array], Union[jnp.array, np.array], Union[jnp.array, np.array]
+]:
 
     cosbeta = cb.real(
         matrix_2x2[..., 0, 0] * matrix_2x2[..., 1, 1]
@@ -492,7 +494,9 @@ def adjust_for_2pi_rotation(
     return phi, theta, xi, phi_rf, theta_rf, psi_rf
 
 
-def spatial_components(vector):
+def spatial_components(
+    vector: Union[jnp.array, np.array]
+) -> Union[jnp.array, np.array]:
     """Return spatial components of the input Lorentz vector
 
     :param vector: input Lorentz vector
@@ -502,7 +506,7 @@ def spatial_components(vector):
     return vector[..., 0:3]
 
 
-def time_component(vector):
+def time_component(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return time component of the input Lorentz vector
 
     :param vector: input Lorentz vector (where indexes 0-2 are space, index 3 is time)
@@ -512,7 +516,7 @@ def time_component(vector):
     return vector[..., 3]
 
 
-def x_component(vector):
+def x_component(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return spatial X component of the input Lorentz or 3-vector
 
     :param vector: input vector (Lorentz or 3-vector)
@@ -522,7 +526,7 @@ def x_component(vector):
     return vector[..., 0]
 
 
-def y_component(vector):
+def y_component(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return spatial Y component of the input Lorentz or 3-vector
 
     :param vector: input vector (Lorentz or 3-vector)
@@ -532,7 +536,7 @@ def y_component(vector):
     return vector[..., 1]
 
 
-def z_component(vector):
+def z_component(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return spatial Z component of the input Lorentz or 3-vector
 
     :param vector: input vector (Lorentz or 3-vector)
@@ -542,7 +546,7 @@ def z_component(vector):
     return vector[..., 2]
 
 
-def pt(vector):
+def pt(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return transverse (X-Y) component of the input Lorentz or 3-vector
 
     :param vector: input vector (Lorentz or 3-vector)
@@ -552,7 +556,7 @@ def pt(vector):
     return cb.sqrt(x_component(vector) ** 2 + y_component(vector) ** 2)
 
 
-def eta(vector):
+def eta(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """Return pseudorapidity component of the input Lorentz or 3-vector
 
     :param vector: input vector (Lorentz or 3-vector)
@@ -562,7 +566,11 @@ def eta(vector):
     return -cb.log(pt(vector) / 2.0 / z_component(vector))
 
 
-def build_vector(x, y, z):
+def build_vector(
+    x: Union[jnp.array, np.array],
+    y: Union[jnp.array, np.array],
+    z: Union[jnp.array, np.array],
+) -> Union[jnp.array, np.array]:
     """
     Make a 3-vector from components. Components are stacked along the last index.
 
@@ -574,7 +582,7 @@ def build_vector(x, y, z):
     return cb.stack([x, y, z], axis=-1)
 
 
-def mass_squared(vector):
+def mass_squared(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Calculate squared invariant mass scalar for Lorentz 4-momentum vector
 
@@ -585,7 +593,7 @@ def mass_squared(vector):
     return cb.sum(vector * vector * metric_tensor(), -1)
 
 
-def metric_tensor():
+def metric_tensor() -> Union[jnp.array, np.array]:
     """
     Constant metric tensor for Lorentz space
 
@@ -594,7 +602,9 @@ def metric_tensor():
     return cb.array([-1.0, -1.0, -1.0, 1.0], dtype=cb.float64)
 
 
-def lorentz_vector(space, time):
+def lorentz_vector(
+    space: Union[jnp.array, np.array], time: Union[jnp.array, np.array]
+) -> Union[jnp.array, np.array]:
     """
     Make a Lorentz vector from spatial and time components
 
@@ -606,7 +616,9 @@ def lorentz_vector(space, time):
     return cb.concatenate([space, cb.stack([time], axis=-1)], axis=-1)
 
 
-def from_mass_and_momentum(m, mom):
+def from_mass_and_momentum(
+    m: Union[jnp.array, np.array], mom: Union[jnp.array, np.array]
+) -> Union[jnp.array, np.array]:
     """
     Create a Lorentz vector from mass and momentum vector
 
@@ -618,7 +630,7 @@ def from_mass_and_momentum(m, mom):
     return lorentz_vector(mom, cb.sqrt(norm(mom) ** 2 + m**2))
 
 
-def mass(vector):
+def mass(vector: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Calculate mass scalar for Lorentz 4-momentum vector
 
@@ -629,7 +641,7 @@ def mass(vector):
     return cb.sqrt(mass_squared(vector))
 
 
-def gamma(momentum):
+def gamma(momentum: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""calculate gamma factor
 
     Args:
@@ -638,7 +650,7 @@ def gamma(momentum):
     return time_component(momentum) / mass(momentum)
 
 
-def beta(momentum):
+def beta(momentum: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""calculate beta factor
 
     Args:
@@ -647,7 +659,7 @@ def beta(momentum):
     return p(momentum) / time_component(momentum)
 
 
-def rapidity(momentum):
+def rapidity(momentum: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     r"""calculate rapidity
 
     Args:
@@ -657,7 +669,7 @@ def rapidity(momentum):
     return 0.5 * cb.log((b + 1) / (1 - b))
 
 
-def norm(vec: Union[jnp.array, np.array]):
+def norm(vec: Union[jnp.array, np.array]) -> Union[jnp.array, np.array]:
     """
     Calculate norm of 3-vector
 
