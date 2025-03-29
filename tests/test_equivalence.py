@@ -311,7 +311,7 @@ def f(h0, h1, h2, h3, resonance_lineshapes, convention="helicity"):
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
-        for (isobar, bachelor), (phi, theta) in isobars.items():
+        for (isobar, bachelor), (phi, theta, mass) in isobars.items():
             if isobar not in resonance_lineshapes:
                 # guard clause against key errors
                 continue
@@ -380,7 +380,7 @@ def f_canonical(h0, h1, h2, h3, resonance_lineshapes):
     for topology in tg.topologies:
         final_state_rotation = final_state_rotations[topology.tuple]
         isobars = helicity_angles[topology.tuple]
-        for (isobar, bachelor), (phi, theta) in isobars.items():
+        for (isobar, bachelor), (phi, theta, mass) in isobars.items():
             if isobar not in resonance_lineshapes:
                 # guard clause against key errors
                 continue
