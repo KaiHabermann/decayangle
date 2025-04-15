@@ -1,12 +1,17 @@
 from __future__ import annotations
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, Literal
 from collections import namedtuple
 import numpy as np
 import jax.numpy as jnp
 from decayangle.kinematics import (
     build_4_4,
     build_2_2,
+    decode_4_4_boost,
     decode_4_4,
+    decode_su2_rotation,
+    rotation_matrix_2_2_y,
+    boost_matrix_2_2_z,
+    rotation_matrix_2_2_z,
     adjust_for_2pi_rotation,
 )
 from decayangle.config import config as cfg
@@ -92,21 +97,48 @@ class LorentzTrafo:
         raise ValueError("Only LorentzTrafo can be multiplied with LorentzTrafo")
 
     def decode(
-        self, two_pi_aware=True, tol: Optional[float] = None
+        self,
+        two_pi_aware=True,
+        tol: Optional[float] = None,
+        method: Literal["flip", "su2_decode"] = "su2_decode",
     ) -> Tuple[Union[np.array, jnp.array]]:
         """Decode the parameters of the Lorentz transformation
 
         Args:
             two_pi_aware (bool, optional): If true the check for a rotation of 2 pi will be made. Defaults to True.
             tol (Optional[float], optional): The tolerance for the check of a 2 pi rotation. If None the default tolerance of the config will be used. Defaults to None.
+            method (Literal["flip", "su2_decode"], optional): The method to use for decoding. Defaults to "flip".
+                "flip": The parameters are decoded from the 4x4 matrix and the check for a 2 pi rotation is made.
+                        A 2 pi flip may be applied to phi_rf
+                "su2_decode": theta_rf, phi_rf and psi_rf are decoded from the 2x2 SU(2) matrix directly.
 
         Returns:
             Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
         """
-        params = decode_4_4(self.matrix_4x4, tol=tol)
-        if two_pi_aware:
-            params = adjust_for_2pi_rotation(self.matrix_2x2, *params)
-        return params
+        if method == "flip":
+            phi, theta, xi, phi_rf, theta_rf, psi_rf = decode_4_4(
+                self.matrix_4x4, tol=tol
+            )
+            if two_pi_aware:
+                phi, theta, xi, phi_rf, theta_rf, psi_rf = adjust_for_2pi_rotation(
+                    self.matrix_2x2, phi, theta, xi, phi_rf, theta_rf, psi_rf
+                )
+            return phi, theta, xi, phi_rf, theta_rf, psi_rf
+        if method == "su2_decode":
+            phi, theta, xi = decode_4_4_boost(self.matrix_4x4, tol=tol)
+            su2_rot = (
+                boost_matrix_2_2_z(-xi)
+                @ rotation_matrix_2_2_y(-theta)
+                @ rotation_matrix_2_2_z(-phi)
+                @ self.matrix_2x2
+            )
+            # check for the special case of no absolute boost
+            phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_su2_rotation(
+                su2_rot
+            )
+            return phi, theta, xi, phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost
+
+        raise ValueError(f"Invalid method for decoding: {method}")
 
     def __repr__(self) -> str:
         """
@@ -134,12 +166,16 @@ class LorentzTrafo:
             matrix_4x4=cb.linalg.inv(self.matrix_4x4),
         )
 
-    def wigner_angles(self) -> Tuple[Union[np.array, jnp.array]]:
+    def wigner_angles(
+        self, method: Literal["flip", "su2_decode"] = "su2_decode"
+    ) -> Tuple[Union[np.array, jnp.array]]:
         """The wigner angles of a transformation
         These are usually the angles of the rotation before the boost
 
         Returns:
             Tuple[Union[np.array, jnp.array]]: the angles of the rotation in the frame before the boost
         """
-        _, _, _, phi_rf, theta_rf, psi_rf = self.decode(two_pi_aware=True)
+        _, _, _, phi_rf, theta_rf, psi_rf = self.decode(
+            two_pi_aware=True, method=method
+        )
         return WignerAngles(phi_rf, theta_rf, psi_rf)

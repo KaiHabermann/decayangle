@@ -4,7 +4,7 @@ from collections import namedtuple
 import numpy as np
 from jax import numpy as jnp
 import networkx as nx
-from decayangle.lorentz import LorentzTrafo
+from decayangle.lorentz import LorentzTrafo, WignerAngles
 from decayangle import kinematics as akm
 from decayangle.numerics_helpers import matrix_vector_product
 from decayangle.config import config as cfg
@@ -318,7 +318,7 @@ class Node:
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
                 ValueError(
-                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. To boost to the rest frame of the root node, use method ```momenta = topology.to_rest_frame(momenta)```."
                 )
             )
         target = Node.get_node(target)
@@ -343,34 +343,36 @@ class Node:
             )
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
+        if convention == "canonical":
+            rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
+                target, momenta, tol=tol
+            )
+            # return here, since we do not need particle 2 convention
+            return rotation.inverse() @ boost @ rotation
+
+        # particle 2 convention requires, that we move to particle 2 as Lambda_1 * Rot_y(-pi)
         if convention == "helicity":
-            # rotate so that the target momentum is aligned with the z axis of daughter 1
             rotation_daughter1, minus_theta_rf, minus_psi_rf = self.rotate_to(
                 self.daughters[0], momenta, tol=tol
             )
             rotation = rotation_daughter1
-            if target != self.daughters[0]:
-                # if the target is daughter 2, we have to turn around before boosting
-                rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, -cb.pi) @ rotation_daughter1
-            full_transformation = boost @ rotation
+
         elif convention == "minus_phi":
-            rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
-                target, momenta, tol=tol
+            _, minus_theta_rf, minus_psi_rf = self.rotate_to(
+                self.daughters[0], momenta, tol=tol
             )
-            full_transformation = (
-                boost
-                @ LorentzTrafo(zero, zero, zero, zero, zero, -minus_psi_rf)
-                @ rotation
+            rotation = LorentzTrafo(
+                zero, zero, zero, -minus_psi_rf, minus_theta_rf, minus_psi_rf
             )
-        elif convention == "canonical":
-            rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
-                target, momenta, tol=tol
-            )
-            full_transformation = rotation.inverse() @ boost @ rotation
+
         else:
             raise ValueError(
                 f"Convention {convention} not supported. Use 'helicity', 'minus_phi' or 'canonical'."
             )
+
+        if target != self.daughters[0]:
+            rotation = LorentzTrafo(0, 0, 0, 0, -cb.pi, 0) @ rotation
+        full_transformation = boost @ rotation
 
         return full_transformation
 
@@ -460,7 +462,7 @@ class Node:
             gamma = akm.gamma(self.momentum(momenta))
             cfg.raise_if_safety_on(
                 ValueError(
-                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. This will be fixed in the future."
+                    f"gamma = {gamma} For the time being only particles at rest are supported as start nodes for a boost. To boost to the rest frame of the root node, use method ```momenta = topology.to_rest_frame(momenta)```."
                 )
             )
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
@@ -475,7 +477,6 @@ class Node:
         # rotate so that the target momentum is aligned with the z axis
         minus_phi_rf, minus_theta_rf = akm.rotate_to_z_axis(target.momentum(momenta))
         rotation = LorentzTrafo(zero, zero, zero, zero, minus_theta_rf, minus_phi_rf)
-
         return rotation, minus_theta_rf, minus_phi_rf
 
 
@@ -795,6 +796,12 @@ class Topology:
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
         """
+        if convention not in ["helicity", "minus_phi", "canonical"]:
+            raise ValueError(
+                f"Convention {convention} not supported. Use 'helicity', 'minus_phi' or 'canonical'."
+            )
+        if self == other:
+            return LorentzTrafo(0, 0, 0, 0, 0, 0)
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(
