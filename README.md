@@ -17,6 +17,7 @@
 - [On Conventions](#conventions)
 - [Dealing with imperfect Data](#dealing-with-imperfect-data)
 - [Related projects](#related-projects)
+- [How to cite](#how-to-cite)
 - [License](#license)
 
 ## Installation
@@ -286,6 +287,11 @@ However, there are a few projects addressing these rotations explicitly using an
 - [SymbolicThreeBodyDecays.jl](https://github.com/mmikhasenko/SymbolicThreeBodyDecays.jl),
 - [ComPWA/ampform-dpd](https://github.com/ComPWA/ampform-dpd).
   Consistency of the `decayangle` framework with these appoaches is validated in the tests.
+
+## How to cite
+This software package as well as the closely related [decayamplitude](https://github.com/KaiHabermann/decayamplitude) should be cited by the accompaning paper
+[Wigner Rotations for Cascade Reactions](https://doi.org/10.1103/PhysRevD.111.056015)
+
 
 ## License
 
