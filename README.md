@@ -17,6 +17,7 @@
 - [On Conventions](#conventions)
 - [Dealing with imperfect Data](#dealing-with-imperfect-data)
 - [Related projects](#related-projects)
+- [How to cite](#how-to-cite)
 - [License](#license)
 
 ## Installation
@@ -28,6 +29,12 @@ pip install decayangle
 ## Goal
 
 The software project `decayangle` provides a Python library for computing helicity angles and Wigner rotations in hadron physics, facilitating the analysis of particle decay processes. It enables the generation and manipulation of decay topologies, calculation of relative angles between different topologies. It supports amplitude analyses involving non-zero spin of final-state particles, while not being limited to three-body decays.
+
+## Online Decay Editor
+
+There is a beta version of a web based decay editor, which is hosted [here](https://kaihabermann.github.io/DecaySelector/).
+The Website allows for an easy selection of a decay and resonances. Once finished a script generating an amplitude with `decayamplitude` can be downloaded.
+This is usually the easiest and quickest way to get a working amplitude. Explicit lineshapes need then to be defined by the user, where it is marked in the downloaded script.
 
 ## Usage
 
@@ -286,6 +293,11 @@ However, there are a few projects addressing these rotations explicitly using an
 - [SymbolicThreeBodyDecays.jl](https://github.com/mmikhasenko/SymbolicThreeBodyDecays.jl),
 - [ComPWA/ampform-dpd](https://github.com/ComPWA/ampform-dpd).
   Consistency of the `decayangle` framework with these appoaches is validated in the tests.
+
+## How to cite
+
+This software package as well as the closely related [decayamplitude](https://github.com/KaiHabermann/decayamplitude) should be cited by the accompaning paper
+[Wigner Rotations for Cascade Reactions](https://doi.org/10.1103/PhysRevD.111.056015)
 
 ## License
 
