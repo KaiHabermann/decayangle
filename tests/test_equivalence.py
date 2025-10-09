@@ -7,6 +7,7 @@ from functools import lru_cache
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
+import decayangle.kinematics as akm
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 from sympy import Rational
@@ -50,10 +51,10 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     # Given values
     # Lc -> p K pi
     m0 = 6.32397
-    m12 = 9.55283383**0.5
+    m12 = 8.55283383**0.5
     m23 = 26.57159046**0.5
     m13 = 17.86811729**0.5
-    m1, m2, m3 = 1, 2, 3
+    m1, m2, m3 = 0, 2, 3
     # Squared masses
     m0sq, m1sq, m2sq, m3sq, m12sq, m23sq = [x**2 for x in [m0, m1, m2, m3, m12, m23]]
 
@@ -506,6 +507,8 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     terms_1_can = amp_dict(f_canonical, resonance_lineshapes_single_1)
     terms_2_can = amp_dict(f_canonical, resonance_lineshapes_single_3)
 
+    print(unpolarized(add_dicts(terms_1_m, terms_2_m)))
+    print(unpolarized(add_dicts(terms_1, terms_2)))
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),

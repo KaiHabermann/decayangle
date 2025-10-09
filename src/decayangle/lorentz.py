@@ -140,6 +140,17 @@ class LorentzTrafo:
 
         raise ValueError(f"Invalid method for decoding: {method}")
 
+    def decode_pure_rotation(self) -> Tuple[Union[np.array, jnp.array]]:
+        """Decode the parameters of the Lorentz transformation
+
+        Returns:
+            Tuple[Union[np.array, jnp.array]]: The parameters of the Lorentz transformation
+        """
+        phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost = decode_su2_rotation(
+            self.matrix_2x2
+        )
+        return phi_rf_no_boost, theta_rf_no_boost, psi_rf_no_boost
+
     def __repr__(self) -> str:
         """
         String representation of the Lorentz transformation. It shows the SU(2) and O(3,1) matrices.
@@ -175,7 +186,8 @@ class LorentzTrafo:
         Returns:
             Tuple[Union[np.array, jnp.array]]: the angles of the rotation in the frame before the boost
         """
-        _, _, _, phi_rf, theta_rf, psi_rf = self.decode(
-            two_pi_aware=True, method=method
-        )
+        # _, _, _, phi_rf, theta_rf, psi_rf = self.decode(
+        #     two_pi_aware=True, method=method
+        # )
+        phi_rf, theta_rf, psi_rf = self.decode_pure_rotation()
         return WignerAngles(phi_rf, theta_rf, psi_rf)
