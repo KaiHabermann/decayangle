@@ -41,6 +41,9 @@ dependencies = [
   "tqdm"
 ]
 
+[project.optional-dependencies]
+notebooks = ["phasespace", "particle", "sympy", "matplotlib"]
+
 [project.urls]
 Documentation = "https://kaihabermann.github.io/decayangle/"
 Issues = "https://github.com/KaiHabermann/decayangle/issues"
@@ -64,5 +67,5 @@ dependencies = [
 cov = 'pytest --cov-report=term-missing --cov-report=xml --cov-config=pyproject.toml --cov --cov=tests'
 
 [[tool.hatch.envs.test.matrix]]
-python = ["312", "311", "310", "39", "38"] 
+python = ["312", "311", "310", "39", "38"]
 version = ["1.1.2"]
