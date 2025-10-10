@@ -9,21 +9,33 @@
 
 **Table of Contents**
 
-- [Installation](#installation)
-- [Goal](#goal)
-- [Usage](#usage)
-- [On Topologies](#topologies)
-- [On Ordering](#ordering)
-- [On Conventions](#conventions)
-- [Dealing with imperfect Data](#dealing-with-imperfect-data)
-- [Related projects](#related-projects)
-- [How to cite](#how-to-cite)
-- [License](#license)
+- [Welcome to the decayangle software Project](#welcome-to-the-decayangle-software-project)
+  - [Installation](#installation)
+  - [Goal](#goal)
+  - [Online Decay Editor](#online-decay-editor)
+  - [Usage](#usage)
+  - [Topologies](#topologies)
+    - [Topologies from TopologyCollections](#topologies-from-topologycollections)
+    - [Topologies from decay descriptions](#topologies-from-decay-descriptions)
+    - [Angles from Topologies](#angles-from-topologies)
+  - [Ordering](#ordering)
+  - [Conventions](#conventions)
+  - [Dealing with imperfect Data](#dealing-with-imperfect-data)
+  - [Further configuration options](#further-configuration-options)
+  - [Related projects](#related-projects)
+  - [How to cite](#how-to-cite)
+  - [License](#license)
 
 ## Installation
 
 ```console
 pip install decayangle
+```
+
+To run the example notebooks in the `notebooks/` directory, install with the notebook dependencies:
+
+```console
+pip install decayangle[notebooks]
 ```
 
 ## Goal
