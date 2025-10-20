@@ -86,7 +86,7 @@ class Node:
         if isinstance(value, tuple):
             if len(value) == 0:
                 raise ValueError(
-                    "Node value has to be an integer or a tuple of integers"
+                    f"Node value has to be an integer or a tuple of integers not {type(value)}"
                 )
             if len(value) == 1:
                 # a single element in a tuple should have the value of the element
@@ -97,7 +97,7 @@ class Node:
         else:
             if not isinstance(value, int):
                 raise ValueError(
-                    "Node value has to be an integer or a tuple of integers"
+                    f"Node value has to be an integer or a tuple of integers not {type(value)}"
                 )
             if value < 0:
                 raise ValueError("Node value has to be a positive integer or 0")
@@ -130,6 +130,11 @@ class Node:
         if self.final_state:
             return self.value
         return tuple((d.tuple for d in self.daughters))
+
+    def root(self):
+        if self.parent is not None:
+            return self.parent.root()
+        return self
 
     @ordering_function.setter
     def ordering_function(self, value):
@@ -307,7 +312,6 @@ class Node:
                 minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
                 canonical: We rotate, boost and rotate back. Thus the action is a pure boost
         """
-
         if tol is None:
             tol = cfg.gamma_tolerance
         if not cb.allclose(
@@ -322,19 +326,29 @@ class Node:
                 )
             )
         target = Node.get_node(target)
+
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
 
-        if target not in self.daughters:
+        if target not in self.daughters and target != self.root():
             raise ValueError(
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
 
         # boost to the rest frame of the target
         xi = -akm.rapidity(target.momentum(momenta))
-        xi = cb.where(cb.isfinite(xi), xi, zero)
         boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
+        masses = cb.nan_to_num(akm.mass(target.momentum(momenta)), nan=0)
+        if cb.all(masses < 1e-6):
+            target.parent = self
+            if self.root() == self:
+                boost_to_root = LorentzTrafo(zero, zero, zero, zero, zero, zero)
+            else:
+                boost_to_root = self.boost(
+                    self.root(), momenta, convention="canonical"
+                )  # canonical convention is a pure boost
+            boost = boost_to_root
 
         if convention == "canonical":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
@@ -462,7 +476,7 @@ class Node:
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
 
-        if not target in self.daughters:
+        if target not in self.daughters and target != self.root():
             raise ValueError(
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
