@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to the decayangle software Project &mdash; decayangle 02.04.2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=339936ed"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            decayangle
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Welcome to the decayangle software Project</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#goal">Goal</a></li>
+<li><a class="reference internal" href="#online-decay-editor">Online Decay Editor</a></li>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#topologies">Topologies</a><ul>
+<li><a class="reference internal" href="#topologies-from-topologycollections">Topologies from TopologyCollections</a></li>
+<li><a class="reference internal" href="#topologies-from-decay-descriptions">Topologies from decay descriptions</a></li>
+<li><a class="reference internal" href="#angles-from-topologies">Angles from Topologies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ordering">Ordering</a></li>
+<li><a class="reference internal" href="#conventions">Conventions</a></li>
+<li><a class="reference internal" href="#dealing-with-imperfect-data">Dealing with imperfect Data</a></li>
+<li><a class="reference internal" href="#further-configuration-options">Further configuration options</a></li>
+<li><a class="reference internal" href="#related-projects">Related projects</a></li>
+<li><a class="reference internal" href="#how-to-cite">How to cite</a></li>
+<li><a class="reference internal" href="#license">License</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">decayangle</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to the decayangle software Project</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="toctree-wrapper compound" id="module-decayangle">
+</div>
+<section id="welcome-to-the-decayangle-software-project">
+<h1>Welcome to the decayangle software Project<a class="headerlink" href="#welcome-to-the-decayangle-software-project" title="Link to this heading"></a></h1>
+<a class="reference external image-reference" href="https://pypi.org/project/decayangle/"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/decayangle.svg" />
+</a>
+<a class="reference external image-reference" href="https://pypi.org/project/decayangle/"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/decayangle.svg" />
+</a>
+<a class="reference external image-reference" href="https://codecov.io/gh/KaiHabermann/decayangle"><img alt="codecov" src="https://codecov.io/gh/KaiHabermann/decayangle/graph/badge.svg?token=KXBO8KEQ3V" />
+</a>
+<a class="reference external image-reference" href="https://doi.org/10.5281/zenodo.13122268"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13122268.svg" />
+</a>
+<hr class="docutils" />
+<p><strong>Table of Contents</strong></p>
+<ul class="simple">
+<li><p><span class="xref std std-ref">Installation</span></p></li>
+<li><p><span class="xref std std-ref">Goal</span></p></li>
+<li><p><span class="xref std std-ref">Usage</span></p></li>
+<li><p><span class="xref std std-ref">On Topologies</span></p></li>
+<li><p><span class="xref std std-ref">On Ordering</span></p></li>
+<li><p><span class="xref std std-ref">On Conventions</span></p></li>
+<li><p><span class="xref std std-ref">Dealing with imperfect Data</span></p></li>
+<li><p><span class="xref std std-ref">Related projects</span></p></li>
+<li><p><span class="xref std std-ref">How to cite</span></p></li>
+<li><p><span class="xref std std-ref">License</span></p></li>
+</ul>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install decayangle</span>
+</pre></div>
+</div>
+<p>To run the example notebooks in the <code class="docutils literal notranslate"><span class="pre">notebooks/</span></code> directory, install with the notebook dependencies:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install decayangle[notebooks]</span>
+</pre></div>
+</div>
+</section>
+<section id="goal">
+<h2>Goal<a class="headerlink" href="#goal" title="Link to this heading"></a></h2>
+<p>The software project <code class="docutils literal notranslate"><span class="pre">decayangle</span></code> provides a Python library for computing helicity angles and Wigner rotations in hadron physics, facilitating the analysis of particle decay processes. It enables the generation and manipulation of decay topologies, calculation of relative angles between different topologies. It supports amplitude analyses involving non-zero spin of final-state particles, while not being limited to three-body decays.</p>
+</section>
+<section id="online-decay-editor">
+<h2>Online Decay Editor<a class="headerlink" href="#online-decay-editor" title="Link to this heading"></a></h2>
+<p>There is a beta version of a web based decay editor, which is hosted <a class="reference external" href="https://kaihabermann.github.io/DecaySelector/">here</a>.
+The Website allows for an easy selection of a decay and resonances. Once finished a script generating an amplitude with <code class="docutils literal notranslate"><span class="pre">decayamplitude</span></code> can be downloaded.
+This is usually the easiest and quickest way to get a working amplitude. Explicit lineshapes need then to be defined by the user, where it is marked in the downloaded script.</p>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>First we define the decay we are working with. For example, we can define the decay of a particle 0 into particles 1, 2, and 3. We can then generate all possible decay topologies for this decay. We can then filter the topologies based on the intermediate states we are interested in. Finally, we can calculate the relative Wigner angles between the different topologies resulting from different rotations when boosting along different configurations.</p>
+<p>Lets start with defining the decay and generating the decay topologies.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.decay_topology</span><span class="w"> </span><span class="kn">import</span> <span class="n">TopologyCollection</span>
+
+<span class="n">tg</span> <span class="o">=</span> <span class="n">TopologyCollection</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="c1"># generate all decay topologies for 0 -&gt; 1 2 3</span>
+<span class="n">tg</span><span class="o">.</span><span class="n">topologies</span> <span class="c1"># list of all decay topologies</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">tg.topologies</span></code> now contains all possible decay topologies for the decay 0 -&gt; 1 2 3. Each topology acts as a descriptor for the consecutive decays into intermediate states, until the final state is reached. For a three-body decay these are</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">topology</span> <span class="ow">in</span> <span class="n">tg</span><span class="o">.</span><span class="n">topologies</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">( 0 -&gt; ( (2, 3)</span> <span class="go">-&gt; 2, 3 ), 1 )</span>
+<span class="gp gp-VirtualEnv">( 0 -&gt; ( (1, 3)</span> <span class="go">-&gt; 1, 3 ), 2 )</span>
+<span class="gp gp-VirtualEnv">( 0 -&gt; ( (1, 2)</span> <span class="go">-&gt; 1, 2 ), 3 )</span>
+</pre></div>
+</div>
+<p>We get three topologies, where each topology contains a unique intermediate state.
+To select specific topologies we can use the filter option of the <code class="docutils literal notranslate"><span class="pre">TopologyCollection</span></code> class. For example, we can filter for topologies where the intermediate state (2, 3) is present.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">topology1</span><span class="p">,</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="c1"># we filter for topologies where the state (2, 3) is present</span>
+<span class="n">topology2</span><span class="p">,</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="c1"># we filter for topologies where the state (1, 3) is present</span>
+<span class="n">topology3</span><span class="p">,</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># we filter for topologies where the state (1, 2) is present</span>
+</pre></div>
+</div>
+<p>Finally, we can calculate the relative Wigner angles between the different topologies. For example, we can calculate the relative Wigner angles between <code class="docutils literal notranslate"><span class="pre">topology1</span></code> and <code class="docutils literal notranslate"><span class="pre">topology2</span></code> for the final-state particle 1. Only for this last step 4 momenta are needed.
+The function expects these momenta to be in the form of an array of 4 vectors, where the last (index 3) element is the time component. The momenta variable is then a dict of the form <code class="docutils literal notranslate"><span class="pre">{particle:</span> <span class="pre">momentum}</span></code>. For example, for a 3 body decay we can define the momenta as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">momenta</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="mi">2</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span> <span class="mi">3</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])}</span>
+</pre></div>
+</div>
+<p>where the momentum of the initial state is [0, 0, 0, 0], the momentum of the final-state particles are [1, 0, 0, 1], [0, 1, 0, 1], and [0, 0, 1, 1]. Then, the relative Wigner angles can be calculated as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># now we can get the rotation between each of the topologies and for each final-state particle</span>
+<span class="n">rotation1_2_1</span> <span class="o">=</span> <span class="n">topology1</span><span class="o">.</span><span class="n">relative_wigner_angles</span><span class="p">(</span><span class="n">topology2</span><span class="p">,</span> <span class="n">momenta</span><span class="p">)</span>
+<span class="n">rotation1_2_2</span> <span class="o">=</span> <span class="n">topology1</span><span class="o">.</span><span class="n">relative_wigner_angles</span><span class="p">(</span><span class="n">topology2</span><span class="p">,</span> <span class="n">momenta</span><span class="p">)</span>
+<span class="n">rotation1_2_3</span> <span class="o">=</span> <span class="n">topology1</span><span class="o">.</span><span class="n">relative_wigner_angles</span><span class="p">(</span><span class="n">topology2</span><span class="p">,</span> <span class="n">momenta</span><span class="p">)</span>
+<span class="c1"># etc.</span>
+</pre></div>
+</div>
+</section>
+<section id="topologies">
+<h2>Topologies<a class="headerlink" href="#topologies" title="Link to this heading"></a></h2>
+<p>Topologies are the central type of object for the generation of angles.
+Topologies can be generated in two ways.</p>
+<section id="topologies-from-topologycollections">
+<h3>Topologies from TopologyCollections<a class="headerlink" href="#topologies-from-topologycollections" title="Link to this heading"></a></h3>
+<p>The easiest way to produce topologies is from a <code class="docutils literal notranslate"><span class="pre">TopologyCollection</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.decay_topology</span><span class="w"> </span><span class="kn">import</span> <span class="n">TopologyCollection</span>
+
+<span class="n">tg</span> <span class="o">=</span> <span class="n">TopologyCollection</span><span class="p">(</span><span class="n">start_node</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">final_state_node</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="c1"># generate all decay topologies for 0 -&gt; 1 2 3</span>
+<span class="n">tg</span><span class="o">.</span><span class="n">topologies</span> <span class="c1"># list of all decay topologies</span>
+</pre></div>
+</div>
+<p>Here all the possible decay topologies will be generated automatically and can be accessed by the <code class="docutils literal notranslate"><span class="pre">topologies</span></code> property. To find topologies, which include interesting intermediate states the <code class="docutils literal notranslate"><span class="pre">filter</span></code> method can be used.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">topology</span><span class="p">,</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="c1"># one can pass multiple nodes</span>
+<span class="n">topology</span><span class="p">,</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># the same since every topology includes one</span>
+</pre></div>
+</div>
+<p>The output of <code class="docutils literal notranslate"><span class="pre">filter</span></code> is a list of all topologies, which include the given nodes. A composite node is represented by a tuple. The order of the values in the tuple can be arbitrary. Tuples are sorted (see <span class="xref std std-ref">ordering</span>) before the search to ensure consistency. When multiple arguments are passed, only topologies that include all provided nodes are returned.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tg</span> <span class="o">=</span> <span class="n">TopologyCollection</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">topologies</span> <span class="o">=</span> <span class="n">tg</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">topology</span> <span class="ow">in</span> <span class="n">topologies</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Topology</span><span class="p">:</span> <span class="p">(</span> <span class="mi">0</span> <span class="o">-&gt;</span> <span class="p">(</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="p">),</span> <span class="p">(</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span> <span class="p">)</span> <span class="p">)</span>
+<span class="n">Topology</span><span class="p">:</span> <span class="p">(</span> <span class="mi">0</span> <span class="o">-&gt;</span> <span class="p">(</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="p">),</span> <span class="mi">4</span> <span class="p">),</span> <span class="mi">3</span> <span class="p">)</span>
+<span class="n">Topology</span><span class="p">:</span> <span class="p">(</span> <span class="mi">0</span> <span class="o">-&gt;</span> <span class="p">(</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="p">),</span> <span class="mi">3</span> <span class="p">),</span> <span class="mi">4</span> <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="topologies-from-decay-descriptions">
+<h3>Topologies from decay descriptions<a class="headerlink" href="#topologies-from-decay-descriptions" title="Link to this heading"></a></h3>
+<p>For larger sets of final state nodes the amount of topologies, which would be generated by the <code class="docutils literal notranslate"><span class="pre">TopologyCollection</span></code> may be very large.
+Thus it is also possible to generate a <code class="docutils literal notranslate"><span class="pre">Topology</span></code> based on a root node and a decay descriptor. There the decay descriptor is a tuple of tuples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.decay_topology</span><span class="w"> </span><span class="kn">import</span> <span class="n">Topology</span>
+
+<span class="n">root</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">topologies</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">3</span><span class="p">)),</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)),</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>Here the ordering of the nodes inside a tuple is not relevant. Only the overall topology i.e. which particles form an intermediate state and how they decay.</p>
+<p>To change this behaviour and keep the ordering as it is given in the topology descriptors, one can change the config setting to disable sorting. This should be done before the topologies are created.
+More on sorting can be found in the <span class="xref std std-ref">ordering</span> section.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.decay_topology</span><span class="w"> </span><span class="kn">import</span> <span class="n">Topology</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">cfg</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">sorting</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
+
+<span class="n">root</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">topologies</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">3</span><span class="p">)),</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">)),</span>
+    <span class="n">Topology</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">decay_topology</span><span class="o">=</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>A list of topologies can be fused into a <code class="docutils literal notranslate"><span class="pre">TopologyCollection</span></code> like</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tg</span> <span class="o">=</span> <span class="n">TopologyCollection</span><span class="p">(</span><span class="n">topologies</span><span class="o">=</span><span class="n">topologies</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="angles-from-topologies">
+<h3>Angles from Topologies<a class="headerlink" href="#angles-from-topologies" title="Link to this heading"></a></h3>
+<p>The angles are calculated from four-vectors of the particles by rotating them and boosting throughout the topology tree.
+The input momenta are expected to be in the mother particle rest frame and have the time component as the last (index 3) element.
+The code is fully vectorized, so the only requirement for the shape of momenta arrays is, that they all have the same shape and the last dimension is of size 4.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Topology</span></code> class has two main methods to determine relevant angles.
+The first method, <code class="docutils literal notranslate"><span class="pre">helicity_angles</span></code> calculates the helicity angles for a given topology. It returns a dict with keys in a form of $(A,B)$ where <code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">B</span></code> are node values (a tuple of integers or an integer).
+The values of the dictionary returned by the <code class="docutils literal notranslate"><span class="pre">helicity_angles</span></code> are named tuples of the azimuthal and polar angles, $phi$ and $theta$, respectively.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">topology</span> <span class="o">=</span> <span class="n">topologies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># `momenta` is a dict of particle momenta with</span>
+<span class="c1">#  - key:  the final-state particle number</span>
+<span class="c1">#  - value: np.ndarray or jax.numpy.ndarray with shape</span>
+<span class="c1"># (..., 4)</span>
+<span class="n">angles</span> <span class="o">=</span> <span class="n">topology</span><span class="o">.</span><span class="n">helicity_angles</span><span class="p">(</span><span class="n">momenta</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that cases where angles are exactly 0 or π
+might cause numerical instabilities. The computed value of <code class="docutils literal notranslate"><span class="pre">phi_rf</span></code> might be arbitrary due to <code class="docutils literal notranslate"><span class="pre">arctan2</span></code> with very small arguments close to 0.
+The value will be consistently accounted for in subsequent transformations within the decay topology.</p>
+<p>The second method is to calculate the relative rotations which relate the rest frames of the final-state particles in which one arrives when following the different topologies. Here up to three angles can be necessary. But for a three-body decay only the $theta$ angle is needed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reference</span> <span class="o">=</span> <span class="n">topologies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">other</span> <span class="o">=</span> <span class="n">topologies</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">relative_angles</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">relative_wigner_angles</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">momenta</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="ordering">
+<h2>Ordering<a class="headerlink" href="#ordering" title="Link to this heading"></a></h2>
+<p>Final-state particles are supposed to be represented as integers.
+Support for other data types may be added in the future, but for the time being integers are the most stable and easy to implement solution.</p>
+<p>Intermediate node is written as tuples of the particles they consist of.
+Each intermediate state is represented by a <code class="docutils literal notranslate"><span class="pre">Node</span></code> object, which holds the information on the daughters of said state as well as its value (the aforementioned tuple).</p>
+<p>A particular scheme is used to order daughters, and determine node names.
+Helicity angle are always calculated with respect to the first daughter.</p>
+<p>The ordering scheme can be customized at <code class="docutils literal notranslate"><span class="pre">TopologyCollection</span></code> level.
+The schemes is specified by a function, which is to take in a list or tuple of node values (tuples of integers or integers) and return the sorted version of it.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tg</span> <span class="o">=</span> <span class="n">TopologyCollection</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">tg</span><span class="o">.</span><span class="n">ordering_function</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+</pre></div>
+</div>
+<p>The code above will just leave the object as it comes. Thus applying no sorting.</p>
+<p>The default sorting scheme puts longest node first and then sorts by value.
+The maximum value for a final-state particle (or rather the integer representing it) is limited to 10000. This should be enough for all realistic use cases.</p>
+<p>To change the default sorting scheme one can use the config.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">cfg</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">sorting</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span> <span class="c1"># turns sorting off</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">sorting</span> <span class="o">=</span> <span class="s2">&quot;value&quot;</span> <span class="c1"># default sorting</span>
+</pre></div>
+</div>
+<p>At this time only <code class="docutils literal notranslate"><span class="pre">&quot;off&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;value&quot;</span></code> are supported. For more sophisticated sorting algorithms the user has to write custom functions.</p>
+</section>
+<section id="conventions">
+<h2>Conventions<a class="headerlink" href="#conventions" title="Link to this heading"></a></h2>
+<p>Different conventions can be used to perform the transformation from one intermediate frame into another. <code class="docutils literal notranslate"><span class="pre">decayangle</span></code> implements three of these conventions.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">helicity</span></code>: $Lambda = R_y(theta) R_z(phi) B_z(xi)$</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minus_phi</span></code>: $Lambda = R_y(theta) R_z(phi) B_z(xi) R_z(-phi)$</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canonical</span></code>: $Lambda = R_y(theta) R_z(phi) B_z(xi) R_z(-phi)R_y(-theta)$</p></li>
+</ul>
+<p>The notebooks in the <a class="reference external" href="https://github.com/KaiHabermann/decayangle/tree/master/notebooks">GitHub</a> go into more detail on the effects the different conventions have on the anuglar structure. The important thing to note is, that the final amplitude will be the same using any of the above conventions.</p>
+<p>The conventions can be given as a flag in the angle computing functions with the default being <code class="docutils literal notranslate"><span class="pre">helicity</span></code></p>
+<div class="highlight-{python} notranslate"><div class="highlight"><pre><span></span>rotation1_2_3 = topology1.relative_wigner_angles(topology2, momenta, convention=&quot;helicity&quot;)
+helicity_angles = topology1.helicity_angles(momenta, convention=&quot;helicity&quot;)
+</pre></div>
+</div>
+</section>
+<section id="dealing-with-imperfect-data">
+<h2>Dealing with imperfect Data<a class="headerlink" href="#dealing-with-imperfect-data" title="Link to this heading"></a></h2>
+<p>When dealing with data, that has measurement uncertainty or other issues like backgrounds, it is sometimes easier to just process the data and remove all <code class="docutils literal notranslate"><span class="pre">inf</span></code> or <code class="docutils literal notranslate"><span class="pre">nan</span></code> values.
+These values will usually trigger <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in <code class="docutils literal notranslate"><span class="pre">decayangle</span></code>. This behaviour can be disabled via the config as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">decayangle.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">cfg</span>
+<span class="n">cfg</span><span class="o">.</span><span class="n">numerical_safety_checks</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>Now <code class="docutils literal notranslate"><span class="pre">nan</span></code> and <code class="docutils literal notranslate"><span class="pre">inf</span></code> will be handled only by <code class="docutils literal notranslate"><span class="pre">numpy</span></code> internally.</p>
+</section>
+<section id="further-configuration-options">
+<h2>Further configuration options<a class="headerlink" href="#further-configuration-options" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The required precision for comparisons of $gamma$. This controls, which deviation of $gamma$ from 1 is accepted before an exception is thrown. The default value should usually not be touched. In special cases, this may be useful though, if the decay topology is very complicated.</p></li>
+</ul>
+<div class="highlight-{python} notranslate"><div class="highlight"><pre><span></span>from decayangle.config import config as cfg
+cfg.gamma_tolerance = 1e-8 # the absolute tolerance of gamma around 1
+# this is checked at numerous places in the code
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The required precision for a shift of $2 pi$. This is checked to determine if the $2 pi$ rotation needs to be applied. I.e. if the SU(2) matrix, which is build from the decoded angles is in the range of +- <code class="docutils literal notranslate"><span class="pre">cfg.shift_precision</span></code> of the matrix, which is produced during the consecutive boosts, then no $2 pi$ shift is applied. If the negative of the SU(2) matrix, which is build from the decoded angles is in the range of +- <code class="docutils literal notranslate"><span class="pre">cfg.shift_precision</span></code> of the matrix, which is produced during the consecutive boosts, then a $2 pi$ shift is applied. If both are true, then an error is thrown. Thus in rare cases the precision may have to be adjusted or the <code class="docutils literal notranslate"><span class="pre">cfg.numerical_safety_checks</span></code> config option has to be turned off. The exception is in place to warn the user of cases, where an ambiguity due to numerical imprecision may happen.</p></li>
+</ul>
+<div class="highlight-{python} notranslate"><div class="highlight"><pre><span></span>from decayangle.config import config as cfg
+cfg.shift_precision = 1e-6
+</pre></div>
+</div>
+</section>
+<section id="related-projects">
+<h2>Related projects<a class="headerlink" href="#related-projects" title="Link to this heading"></a></h2>
+<p>Amplitude analyses dealing with non-zero spin of final-state particles have to implement wigner rotations in some way.
+However, there are a few projects addressing these rotations explicitly using analytic expressions in <a class="reference external" href="https://inspirehep.net/literature/1758460">DPD paper</a>, derived for three-body decays:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/mmikhasenko/ThreeBodyDecays.jl">ThreeBodyDecays.jl</a>,</p></li>
+<li><p><a class="reference external" href="https://github.com/mmikhasenko/SymbolicThreeBodyDecays.jl">SymbolicThreeBodyDecays.jl</a>,</p></li>
+<li><p><a class="reference external" href="https://github.com/ComPWA/ampform-dpd">ComPWA/ampform-dpd</a>.
+Consistency of the <code class="docutils literal notranslate"><span class="pre">decayangle</span></code> framework with these appoaches is validated in the tests.</p></li>
+</ul>
+</section>
+<section id="how-to-cite">
+<h2>How to cite<a class="headerlink" href="#how-to-cite" title="Link to this heading"></a></h2>
+<p>This software package as well as the closely related <a class="reference external" href="https://github.com/KaiHabermann/decayamplitude">decayamplitude</a> should be cited by the accompaning paper
+<a class="reference external" href="https://doi.org/10.1103/PhysRevD.111.056015">Wigner Rotations for Cascade Reactions</a></p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">decayangle</span></code> is distributed under the terms of the <a class="reference external" href="https://mit-license.org/">MIT</a> license.</p>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kai Habermann, Mikhail Mikhasenko.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

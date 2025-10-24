@@ -1,0 +1,61 @@
+decayangle package
+==================
+
+Submodules
+----------
+
+decayangle.backend module
+-------------------------
+
+.. automodule:: decayangle.backend
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+decayangle.config module
+------------------------
+
+.. automodule:: decayangle.config
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+decayangle.decay\_topology module
+---------------------------------
+
+.. automodule:: decayangle.decay_topology
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+decayangle.kinematics module
+----------------------------
+
+.. automodule:: decayangle.kinematics
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+decayangle.lorentz module
+-------------------------
+
+.. automodule:: decayangle.lorentz
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+decayangle.numerics\_helpers module
+-----------------------------------
+
+.. automodule:: decayangle.numerics_helpers
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: decayangle
+   :members:
+   :show-inheritance:
+   :undoc-members:
