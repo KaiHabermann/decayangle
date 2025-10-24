@@ -26,6 +26,12 @@
 pip install decayangle
 ```
 
+To run the example notebooks in the `notebooks/` directory, install with the notebook dependencies:
+
+```console
+pip install decayangle[notebooks]
+```
+
 ## Goal
 
 The software project `decayangle` provides a Python library for computing helicity angles and Wigner rotations in hadron physics, facilitating the analysis of particle decay processes. It enables the generation and manipulation of decay topologies, calculation of relative angles between different topologies. It supports amplitude analyses involving non-zero spin of final-state particles, while not being limited to three-body decays.
