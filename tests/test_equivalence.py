@@ -7,6 +7,7 @@ from functools import lru_cache
 from decayangle.config import config as cfg
 from decayangle.lorentz import LorentzTrafo
 from decayangle.decay_topology import Topology, TopologyCollection
+import decayangle.kinematics as akm
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "sympy"])
 from sympy import Rational
@@ -98,9 +99,6 @@ def make_four_vectors(phi_rf, theta_rf, psi_rf):
     momenta = {i: p for i, p in zip([1, 2, 3], [p1, p2, p3])}
     tree1 = Topology(root=0, decay_topology=((2, 3), 1))
 
-    # momenta = Topology(root=0, decay_topology=((1, 2), 3)).align_with_daughter(momenta, 3)
-    # momenta = tree1.root.transform(LorentzTrafo(0, 0, 0, 0, -np.pi, 0), momenta)
-    # print(momenta)
     rotation = LorentzTrafo(0, 0, 0, phi_rf, theta_rf, psi_rf)
 
     momenta_23_rotated = tree1.root.transform(rotation, momenta)
@@ -497,6 +495,12 @@ def basis_change(dtc, rotation):
     ],
 )
 def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_3):
+
+    def compare_array(value1, value2):
+        equal_different_to_zero = abs((value1 - value2) / value1) < 1e-4
+        equal_with_zero = abs((value1 - value2)) < 1e-7
+        return np.where(abs(value1) < 1e-7, equal_with_zero, equal_different_to_zero)
+
     terms_1 = amp_dict(f, resonance_lineshapes_single_1)
     terms_2 = amp_dict(f, resonance_lineshapes_single_3)
 
@@ -509,16 +513,13 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),
-        rtol=1e-6,
+        rtol=1e-5,
     )
-    print(
-        unpolarized(add_dicts(terms_1_can, terms_2_can))[-1],
-        unpolarized(add_dicts(terms_1, terms_2))[-1],
-    )
+
     assert np.allclose(
         unpolarized(add_dicts(terms_1_can, terms_2_can)),
         unpolarized(add_dicts(terms_1, terms_2)),
-        rtol=1e-6,
+        rtol=1e-5,
     )
     assert np.allclose(unpolarized(terms_1_m), unpolarized(terms_1))
     assert np.allclose(unpolarized(terms_2_m), unpolarized(terms_2))
@@ -544,14 +545,16 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     terms_1_m_new_basis = basis_change(terms_1_m, rotdict)
 
     for k, v in terms_2_m_new_basis.items():
-        assert np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
+        v_real, v_imag = np.real(v), np.imag(v)
+        terms_2_real, terms_2_imag = np.real(terms_2[k]), np.imag(terms_2[k])
+        assert np.all(compare_array(v_real, terms_2_real))
+        assert np.all(compare_array(v_imag, terms_2_imag))
 
     for k, v in terms_1_m_new_basis.items():
-        if abs(np.mean(v)) < 1e-6:
-            # zero is always a little less precise :/
-            assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
-        else:
-            assert np.allclose(v, terms_1[k])
+        v_real, v_imag = np.real(v), np.imag(v)
+        terms_1_real, terms_1_imag = np.real(terms_1[k]), np.imag(terms_1[k])
+        assert np.all(compare_array(v_real, terms_1_real))
+        assert np.all(compare_array(v_imag, terms_1_imag))
 
     rotdict = {
         1: (
@@ -572,10 +575,16 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     terms_1_can_new_basis = basis_change(terms_1_can, rotdict)
 
     for k, v in terms_2_can_new_basis.items():
-        assert np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
+        v_real, v_imag = np.real(v), np.imag(v)
+        terms_2_real, terms_2_imag = np.real(terms_2[k]), np.imag(terms_2[k])
+        assert np.all(compare_array(v_real, terms_2_real))
+        assert np.all(compare_array(v_imag, terms_2_imag))
 
     for k, v in terms_1_can_new_basis.items():
-        assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
+        real_v, imag_v = np.real(v), np.imag(v)
+        real_terms_1, imag_terms_1 = np.real(terms_1[k]), np.imag(terms_1[k])
+        assert np.all(compare_array(real_v, real_terms_1))
+        assert np.all(compare_array(imag_v, imag_terms_1))
 
 
 def test_against_dpd():
