@@ -753,8 +753,8 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
-        parallel_cores: Optional[int] = None,
-        chunk_size: Optional[int] = None,
+        parallel_cores: Optional[Union[int, Literal["auto"]]] = None,
+        chunk_size: Optional[Union[int, Literal["auto"]]] = None,
     ) -> Dict[Tuple[Union[tuple, int], Union[tuple, int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
@@ -774,10 +774,14 @@ class Topology:
             Helicity angles for the final state particles
 
         """
+        # Resolve parallel configuration from config if not provided
+        effective_cores = cfg.get_parallel_cores(parallel_cores)
+        effective_chunk_size = cfg.get_parallel_chunk_size(chunk_size)
+
         # Get internal nodes (non-final state nodes)
         internal_nodes = [node for node in self.root.preorder() if not node.final_state]
 
-        if parallel_cores is not None and parallel_cores > 0:
+        if effective_cores is not None and effective_cores > 0:
             import multiprocessing
 
             # Check if we have vectorized momenta (arrays with more than 1 element)
@@ -788,17 +792,17 @@ class Topology:
                 and sample_momentum.shape[0] > 1
             )
 
-            if is_vectorized and chunk_size is not None:
+            if is_vectorized and effective_chunk_size is not None:
                 # Parallelize over both internal nodes AND array chunks
                 n_events = sample_momentum.shape[0]
-                if chunk_size is None:
-                    chunk_size = max(1, n_events // parallel_cores)
+                if effective_chunk_size is None:
+                    effective_chunk_size = max(1, n_events // effective_cores)
 
                 # Create chunks of the momenta arrays
                 args_list = []
                 for node in internal_nodes:
-                    for start_idx in range(0, n_events, chunk_size):
-                        end_idx = min(start_idx + chunk_size, n_events)
+                    for start_idx in range(0, n_events, effective_chunk_size):
+                        end_idx = min(start_idx + effective_chunk_size, n_events)
                         momenta_chunk = {
                             k: v[start_idx:end_idx] for k, v in momenta.items()
                         }
@@ -816,7 +820,7 @@ class Topology:
 
                         args_list.append((self, node, momenta_chunk_in_node_frame, tol))
 
-                with multiprocessing.Pool(parallel_cores) as pool:
+                with multiprocessing.Pool(effective_cores) as pool:
                     chunk_results = pool.map(
                         _compute_helicity_angles_for_node_chunk, args_list
                     )
@@ -859,7 +863,7 @@ class Topology:
 
                     args_list.append((self, node, momenta_in_node_frame, tol))
 
-                with multiprocessing.Pool(parallel_cores) as pool:
+                with multiprocessing.Pool(effective_cores) as pool:
                     return dict(pool.map(_compute_helicity_angles_for_node, args_list))
 
         # Sequential computation
@@ -961,8 +965,8 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
-        parallel_cores: Optional[int] = None,
-        chunk_size: Optional[int] = None,
+        parallel_cores: Optional[Union[int, Literal["auto"]]] = None,
+        chunk_size: Optional[Union[int, Literal["auto"]]] = None,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -977,7 +981,11 @@ class Topology:
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
-        if parallel_cores is not None and parallel_cores > 0:
+        # Resolve parallel configuration from config if not provided
+        effective_cores = cfg.get_parallel_cores(parallel_cores)
+        effective_chunk_size = cfg.get_parallel_chunk_size(chunk_size)
+
+        if effective_cores is not None and effective_cores > 0:
             import multiprocessing
 
             # Check if we have vectorized momenta (arrays with more than 1 element)
@@ -988,17 +996,17 @@ class Topology:
                 and sample_momentum.shape[0] > 1
             )
 
-            if is_vectorized and chunk_size is not None:
+            if is_vectorized and effective_chunk_size is not None:
                 # Parallelize over both final state particles AND array chunks
                 n_events = sample_momentum.shape[0]
-                if chunk_size is None:
-                    chunk_size = max(1, n_events // parallel_cores)
+                if effective_chunk_size is None:
+                    effective_chunk_size = max(1, n_events // effective_cores)
 
                 # Create chunks of the momenta arrays
                 args_list = []
                 for target in self.final_state_nodes:
-                    for start_idx in range(0, n_events, chunk_size):
-                        end_idx = min(start_idx + chunk_size, n_events)
+                    for start_idx in range(0, n_events, effective_chunk_size):
+                        end_idx = min(start_idx + effective_chunk_size, n_events)
                         momenta_chunk = {
                             k: v[start_idx:end_idx] for k, v in momenta.items()
                         }
@@ -1006,7 +1014,7 @@ class Topology:
                             (self, other, target, momenta_chunk, tol, convention)
                         )
 
-                with multiprocessing.Pool(parallel_cores) as pool:
+                with multiprocessing.Pool(effective_cores) as pool:
                     chunk_results = pool.map(
                         _compute_wigner_angles_for_target_chunk, args_list
                     )
@@ -1037,7 +1045,7 @@ class Topology:
                     for target in self.final_state_nodes
                 ]
 
-                with multiprocessing.Pool(parallel_cores) as pool:
+                with multiprocessing.Pool(effective_cores) as pool:
                     return dict(pool.map(_compute_wigner_angles_for_target, args_list))
 
         return {

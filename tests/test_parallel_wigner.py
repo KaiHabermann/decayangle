@@ -1,5 +1,5 @@
 """
-Test file for parallel functionality in relative_wigner_angles.
+Test file for parallel functionality in relative_wigner_angles and helicity_angles.
 
 Simple runtime comparison for different parallelization strategies.
 """
@@ -103,6 +103,7 @@ def test_runtime_comparison():
             ("8 cores", 8, None),
             ("4 cores + 25k chunks", 4, 25_000),
             ("8 cores + 10k chunks", 8, 10_000),
+            ("Auto cores + auto chunks", "auto", "auto"),
         ]
 
         wigner_results = []
@@ -143,5 +144,97 @@ def test_runtime_comparison():
             print(f"  {strategy_name}: {elapsed_time:.3f}s (speedup: {speedup:.2f}x)")
 
 
+def test_config_parallel_settings():
+    """Test that config parallel settings work correctly."""
+
+    # Test configuration
+    masses = [200, 500, 800]
+    m0 = 5000
+    n_events = 10_000
+
+    # Generate momenta
+    momenta = generate_random_momenta_vectorized(m0, masses, n_events=n_events, seed=42)
+
+    # Create topologies
+    tg = TopologyCollection(0, list(range(1, len(masses) + 1)))
+    topology1 = tg.topologies[0]
+    topology2 = tg.topologies[1]
+
+    # Transform to rest frame
+    momenta_rest = topology1.to_rest_frame(momenta)
+
+    print("\nTesting Config Parallel Settings")
+    print("=" * 35)
+
+    # Test 1: Default (None) - should be sequential
+    print("1. Default config (None):")
+    cfg.parallel_cores = None
+    cfg.parallel_chunk_size = None
+
+    start_time = time.time()
+    topology1.relative_wigner_angles(topology2, momenta_rest)
+    wigner_time = time.time() - start_time
+
+    start_time = time.time()
+    topology1.helicity_angles(momenta_rest)
+    helicity_time = time.time() - start_time
+
+    print(f"   Wigner angles: {wigner_time:.3f}s")
+    print(f"   Helicity angles: {helicity_time:.3f}s")
+
+    # Test 2: Auto cores
+    print("\n2. Auto cores (cores-1):")
+    cfg.parallel_cores = "auto"
+    cfg.parallel_chunk_size = None
+
+    start_time = time.time()
+    topology1.relative_wigner_angles(topology2, momenta_rest)
+    wigner_time = time.time() - start_time
+
+    start_time = time.time()
+    topology1.helicity_angles(momenta_rest)
+    helicity_time = time.time() - start_time
+
+    print(f"   Wigner angles: {wigner_time:.3f}s")
+    print(f"   Helicity angles: {helicity_time:.3f}s")
+
+    # Test 3: Auto cores + auto chunk size
+    print("\n3. Auto cores + auto chunk size:")
+    cfg.parallel_cores = "auto"
+    cfg.parallel_chunk_size = "auto"
+
+    start_time = time.time()
+    topology1.relative_wigner_angles(topology2, momenta_rest)
+    wigner_time = time.time() - start_time
+
+    start_time = time.time()
+    topology1.helicity_angles(momenta_rest)
+    helicity_time = time.time() - start_time
+
+    print(f"   Wigner angles: {wigner_time:.3f}s")
+    print(f"   Helicity angles: {helicity_time:.3f}s")
+
+    # Test 4: Explicit values
+    print("\n4. Explicit values (2 cores, 5k chunks):")
+    cfg.parallel_cores = 2
+    cfg.parallel_chunk_size = 5_000
+
+    start_time = time.time()
+    topology1.relative_wigner_angles(topology2, momenta_rest)
+    wigner_time = time.time() - start_time
+
+    start_time = time.time()
+    topology1.helicity_angles(momenta_rest)
+    helicity_time = time.time() - start_time
+
+    print(f"   Wigner angles: {wigner_time:.3f}s")
+    print(f"   Helicity angles: {helicity_time:.3f}s")
+
+    # Reset to defaults
+    cfg.parallel_cores = None
+    cfg.parallel_chunk_size = None
+
+
 if __name__ == "__main__":
     test_runtime_comparison()
+    test_config_parallel_settings()

@@ -1,6 +1,7 @@
 from decayangle.backend import jax_backend, numpy_backend
 from types import ModuleType
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
+import multiprocessing
 
 
 class _cfg:
@@ -10,6 +11,8 @@ class _cfg:
         "numerical_safety_checks": True,
         "gamma_tolerance": 1e-10,
         "shift_precision": 1e-10,
+        "parallel_cores": None,
+        "parallel_chunk_size": None,
     }
     backend_map = {
         "jax": jax_backend,
@@ -137,6 +140,106 @@ class _cfg:
             new_value (float): The precision at which the 2 pi flip is applied
         """
         self.__state["shift_precision"] = new_value
+
+    @property
+    def parallel_cores(self) -> Optional[Union[int, str]]:
+        """
+        The number of cores to use for parallel computation.
+        Can be an integer, "auto" for automatic detection, or None to disable.
+
+        Returns:
+            Optional[Union[int, str]]: The parallel cores setting
+        """
+        return self.__state["parallel_cores"]
+
+    @parallel_cores.setter
+    def parallel_cores(self, value: Optional[Union[int, str]]):
+        """
+        Set the number of cores for parallel computation.
+
+        Args:
+            value (Optional[Union[int, str]]): The parallel cores setting.
+                - int: Number of cores to use
+                - "auto": Use available cores - 1
+                - None: Disable parallel computation
+        """
+        if value is not None and value != "auto" and not isinstance(value, int):
+            raise ValueError(
+                f"parallel_cores must be an integer, 'auto', or None, got {type(value)}"
+            )
+        if isinstance(value, int) and value <= 0:
+            raise ValueError("parallel_cores must be a positive integer")
+        self.__state["parallel_cores"] = value
+
+    @property
+    def parallel_chunk_size(self) -> Optional[Union[int, str]]:
+        """
+        The chunk size for parallel computation over arrays.
+        Can be an integer, "auto" for automatic detection, or None to disable chunking.
+
+        Returns:
+            Optional[Union[int, str]]: The parallel chunk size setting
+        """
+        return self.__state["parallel_chunk_size"]
+
+    @parallel_chunk_size.setter
+    def parallel_chunk_size(self, value: Optional[Union[int, str]]):
+        """
+        Set the chunk size for parallel computation.
+
+        Args:
+            value (Optional[Union[int, str]]): The parallel chunk size setting.
+                - int: Chunk size to use
+                - "auto": Use 50,000 as default chunk size
+                - None: Disable chunking
+        """
+        if value is not None and value != "auto" and not isinstance(value, int):
+            raise ValueError(
+                f"parallel_chunk_size must be an integer, 'auto', or None, got {type(value)}"
+            )
+        if isinstance(value, int) and value <= 0:
+            raise ValueError("parallel_chunk_size must be a positive integer")
+        self.__state["parallel_chunk_size"] = value
+
+    def get_parallel_cores(
+        self, value: Optional[Union[int, str]] = None
+    ) -> Optional[int]:
+        """
+        Get the effective number of cores for parallel computation.
+        Resolves "auto" to actual number of cores - 1.
+
+        Args:
+            value: Optional override value. If provided, uses this instead of config value.
+
+        Returns:
+            Optional[int]: The effective number of cores, or None if disabled
+        """
+        cores_value = value if value is not None else self.parallel_cores
+        if cores_value is None:
+            return None
+        if cores_value == "auto":
+            return max(1, multiprocessing.cpu_count() - 1)
+        return cores_value
+
+    def get_parallel_chunk_size(
+        self, value: Optional[Union[int, str]] = None
+    ) -> Optional[int]:
+        """
+        Get the effective chunk size for parallel computation.
+        Resolves "auto" to 50,000.
+
+        Args:
+            value: Optional override value. If provided, uses this instead of config value.
+
+        Returns:
+            Optional[int]: The effective chunk size, or None if disabled
+        """
+        chunk_value = value if value is not None else self.parallel_chunk_size
+        if chunk_value is None:
+            return None
+        if chunk_value == "auto":
+            return 50_000
+        return chunk_value
 
     def __value_sorting_fun(
         self, value: Union[int, tuple, list]
