@@ -14,6 +14,90 @@ cb = cfg.backend
 HelicityAngles = namedtuple("HelicityAngles", ["phi_rf", "theta_rf"])
 
 
+def _compute_wigner_angles_for_target(
+    args: tuple[
+        "DecayTopology",  # topology1
+        "DecayTopology",  # topology2
+        "Node",  # target_node
+        Any,  # momenta (could be np.ndarray, jnp.ndarray, etc)
+        float,  # tol
+        str,  # convention
+    ]
+) -> tuple[Any, WignerAngles]:
+    """Helper function for parallel computation that can be pickled.
+
+    Args:
+        args: Tuple containing (topology1, topology2, target_node, momenta, tol, convention)
+
+    Returns:
+        Tuple of (target_value, wigner_angles)
+    """
+    topology1, topology2, target_node, momenta, tol, convention = args
+    return (
+        target_node.value,
+        topology1.rotate_between_topologies(
+            topology2, target_node, momenta, tol=tol, convention=convention
+        ).wigner_angles(),
+    )
+
+
+def _compute_wigner_angles_for_target_chunk(
+    args: tuple[
+        "DecayTopology",  # topology1
+        "DecayTopology",  # topology2
+        "Node",  # target_node
+        Any,  # momenta_chunk (could be np.ndarray or jnp.ndarray etc.)
+        float,  # tol
+        str,  # convention
+    ]
+) -> tuple[Any, WignerAngles]:
+    """Helper function for parallel computation over array chunks that can be pickled.
+
+    Args:
+        args: Tuple containing (topology1, topology2, target_node, momenta_chunk, tol, convention)
+
+    Returns:
+        Tuple of (target_value, wigner_angles_chunk)
+    """
+    topology1, topology2, target_node, momenta_chunk, tol, convention = args
+    return (
+        target_node.value,
+        topology1.rotate_between_topologies(
+            topology2, target_node, momenta_chunk, tol=tol, convention=convention
+        ).wigner_angles(),
+    )
+
+
+def _compute_helicity_angles_for_node(args):
+    """Helper function for parallel computation of helicity angles that can be pickled.
+
+    Args:
+        args: Tuple containing (topology, node, momenta_in_node_frame, tol)
+
+    Returns:
+        Tuple of ((isobar_value, spectator_value), helicity_angles)
+    """
+    topology, node, momenta_in_node_frame, tol = args
+    isobar, spectator = node.daughters
+    helicity_angles = node.helicity_angles(momenta_in_node_frame, tol=tol)
+    return ((isobar.value, spectator.value), helicity_angles)
+
+
+def _compute_helicity_angles_for_node_chunk(args):
+    """Helper function for parallel computation of helicity angles over array chunks that can be pickled.
+
+    Args:
+        args: Tuple containing (topology, node, momenta_chunk_in_node_frame, tol)
+
+    Returns:
+        Tuple of ((isobar_value, spectator_value), helicity_angles_chunk)
+    """
+    topology, node, momenta_chunk_in_node_frame, tol = args
+    isobar, spectator = node.daughters
+    helicity_angles = node.helicity_angles(momenta_chunk_in_node_frame, tol=tol)
+    return ((isobar.value, spectator.value), helicity_angles)
+
+
 def flat(l) -> Generator:
     """Flatten a nested list
 
@@ -669,6 +753,8 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        parallel_cores: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> Dict[Tuple[Union[tuple, int], Union[tuple, int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
@@ -681,28 +767,115 @@ class Topology:
                 helicity: we just rotate to be aligned with the target and boost
                 minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
                 canonical: We rotate, boost and rotate back. Thus the action is a pure boost
-
+            parallel_cores: The number of cores to use for the parallel computation. Defaults to None.
+            chunk_size: Size of chunks for array parallelization. If None, uses array length / parallel_cores.
 
         Returns:
             Helicity angles for the final state particles
 
         """
-        helicity_angles = {}
+        # Get internal nodes (non-final state nodes)
+        internal_nodes = [node for node in self.root.preorder() if not node.final_state]
 
-        for node in self.root.preorder():
-            if not node.final_state:
-                if node != self.root:
-                    # TODO: this is a slow, but clean approach, where we only arrive in internal node frames vial the boost method. Maybe we could speed this up by not boosting from the root all the time
-                    boost_to_node = self.boost(
-                        node, momenta, tol=tol, convention=convention
+        if parallel_cores is not None and parallel_cores > 0:
+            import multiprocessing
+
+            # Check if we have vectorized momenta (arrays with more than 1 element)
+            sample_momentum = next(iter(momenta.values()))
+            is_vectorized = (
+                hasattr(sample_momentum, "shape")
+                and len(sample_momentum.shape) > 1
+                and sample_momentum.shape[0] > 1
+            )
+
+            if is_vectorized and chunk_size is not None:
+                # Parallelize over both internal nodes AND array chunks
+                n_events = sample_momentum.shape[0]
+                if chunk_size is None:
+                    chunk_size = max(1, n_events // parallel_cores)
+
+                # Create chunks of the momenta arrays
+                args_list = []
+                for node in internal_nodes:
+                    for start_idx in range(0, n_events, chunk_size):
+                        end_idx = min(start_idx + chunk_size, n_events)
+                        momenta_chunk = {
+                            k: v[start_idx:end_idx] for k, v in momenta.items()
+                        }
+
+                        # Transform to node frame for this chunk
+                        if node != self.root:
+                            boost_to_node = self.boost(
+                                node, momenta_chunk, tol=tol, convention=convention
+                            )
+                            momenta_chunk_in_node_frame = self.root.transform(
+                                boost_to_node, momenta_chunk
+                            )
+                        else:
+                            momenta_chunk_in_node_frame = momenta_chunk
+
+                        args_list.append((self, node, momenta_chunk_in_node_frame, tol))
+
+                with multiprocessing.Pool(parallel_cores) as pool:
+                    chunk_results = pool.map(
+                        _compute_helicity_angles_for_node_chunk, args_list
                     )
-                    momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
-                else:
-                    momenta_in_node_frame = momenta
-                isobar, spectator = node.daughters
-                helicity_angles[(isobar.value, spectator.value)] = node.helicity_angles(
-                    momenta_in_node_frame
+
+                # Reassemble results
+                helicity_angles = {}
+                for node in internal_nodes:
+                    node_chunks = [
+                        result
+                        for result in chunk_results
+                        if result[0]
+                        == (node.daughters[0].value, node.daughters[1].value)
+                    ]
+                    if node_chunks:
+                        # Concatenate the helicity angles from all chunks
+                        phi_chunks = [chunk[1].phi_rf for chunk in node_chunks]
+                        theta_chunks = [chunk[1].theta_rf for chunk in node_chunks]
+
+                        helicity_angles[
+                            (node.daughters[0].value, node.daughters[1].value)
+                        ] = HelicityAngles(
+                            phi_rf=cb.concatenate(phi_chunks),
+                            theta_rf=cb.concatenate(theta_chunks),
+                        )
+
+                return helicity_angles
+            else:
+                # Original parallelization over internal nodes only
+                args_list = []
+                for node in internal_nodes:
+                    if node != self.root:
+                        boost_to_node = self.boost(
+                            node, momenta, tol=tol, convention=convention
+                        )
+                        momenta_in_node_frame = self.root.transform(
+                            boost_to_node, momenta
+                        )
+                    else:
+                        momenta_in_node_frame = momenta
+
+                    args_list.append((self, node, momenta_in_node_frame, tol))
+
+                with multiprocessing.Pool(parallel_cores) as pool:
+                    return dict(pool.map(_compute_helicity_angles_for_node, args_list))
+
+        # Sequential computation
+        helicity_angles = {}
+        for node in internal_nodes:
+            if node != self.root:
+                boost_to_node = self.boost(
+                    node, momenta, tol=tol, convention=convention
                 )
+                momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
+            else:
+                momenta_in_node_frame = momenta
+            isobar, spectator = node.daughters
+            helicity_angles[(isobar.value, spectator.value)] = node.helicity_angles(
+                momenta_in_node_frame, tol=tol
+            )
         return helicity_angles
 
     def boost(
@@ -788,6 +961,8 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        parallel_cores: Optional[int] = None,
+        chunk_size: Optional[int] = None,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -796,10 +971,75 @@ class Topology:
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
             tol: Tolerance for the gamma check. Defaults to the value in the config.
-
+            convention: The convention to use for the boost. Defaults to "helicity".
+            parallel_cores: The number of cores to use for the parallel computation. Defaults to None.
+            chunk_size: Size of chunks for array parallelization. If None, uses array length / parallel_cores.
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
+        if parallel_cores is not None and parallel_cores > 0:
+            import multiprocessing
+
+            # Check if we have vectorized momenta (arrays with more than 1 element)
+            sample_momentum = next(iter(momenta.values()))
+            is_vectorized = (
+                hasattr(sample_momentum, "shape")
+                and len(sample_momentum.shape) > 1
+                and sample_momentum.shape[0] > 1
+            )
+
+            if is_vectorized and chunk_size is not None:
+                # Parallelize over both final state particles AND array chunks
+                n_events = sample_momentum.shape[0]
+                if chunk_size is None:
+                    chunk_size = max(1, n_events // parallel_cores)
+
+                # Create chunks of the momenta arrays
+                args_list = []
+                for target in self.final_state_nodes:
+                    for start_idx in range(0, n_events, chunk_size):
+                        end_idx = min(start_idx + chunk_size, n_events)
+                        momenta_chunk = {
+                            k: v[start_idx:end_idx] for k, v in momenta.items()
+                        }
+                        args_list.append(
+                            (self, other, target, momenta_chunk, tol, convention)
+                        )
+
+                with multiprocessing.Pool(parallel_cores) as pool:
+                    chunk_results = pool.map(
+                        _compute_wigner_angles_for_target_chunk, args_list
+                    )
+
+                # Reassemble results
+                results = {}
+                for target in self.final_state_nodes:
+                    target_chunks = [
+                        result for result in chunk_results if result[0] == target.value
+                    ]
+                    if target_chunks:
+                        # Concatenate the wigner angles from all chunks
+                        phi_chunks = [chunk[1].phi_rf for chunk in target_chunks]
+                        theta_chunks = [chunk[1].theta_rf for chunk in target_chunks]
+                        psi_chunks = [chunk[1].psi_rf for chunk in target_chunks]
+
+                        results[target.value] = WignerAngles(
+                            phi_rf=cb.concatenate(phi_chunks),
+                            theta_rf=cb.concatenate(theta_chunks),
+                            psi_rf=cb.concatenate(psi_chunks),
+                        )
+
+                return results
+            else:
+                # Original parallelization over final state particles only
+                args_list = [
+                    (self, other, target, momenta, tol, convention)
+                    for target in self.final_state_nodes
+                ]
+
+                with multiprocessing.Pool(parallel_cores) as pool:
+                    return dict(pool.map(_compute_wigner_angles_for_target, args_list))
+
         return {
             target.value: self.rotate_between_topologies(
                 other, target, momenta, tol=tol, convention=convention
