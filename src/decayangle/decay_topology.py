@@ -98,6 +98,24 @@ def _compute_helicity_angles_for_node_chunk(args):
     return ((isobar.value, spectator.value), helicity_angles)
 
 
+def _can_pickle_sorting_function(ordering_function):
+    """Check if a sorting function can be pickled for multiprocessing.
+
+    Args:
+        ordering_function: The sorting function to test
+
+    Returns:
+        bool: True if the function can be pickled, False otherwise
+    """
+    try:
+        import pickle
+
+        pickle.dumps(ordering_function)
+        return True
+    except (pickle.PicklingError, AttributeError, TypeError):
+        return False
+
+
 def flat(l) -> Generator:
     """Flatten a nested list
 
@@ -784,87 +802,104 @@ class Topology:
         if effective_cores is not None and effective_cores > 0:
             import multiprocessing
 
-            # Check if we have vectorized momenta (arrays with more than 1 element)
-            sample_momentum = next(iter(momenta.values()))
-            is_vectorized = (
-                hasattr(sample_momentum, "shape")
-                and len(sample_momentum.shape) > 1
-                and sample_momentum.shape[0] > 1
-            )
+            # Check if sorting functions can be pickled (required for multiprocessing)
+            if not _can_pickle_sorting_function(self.ordering_function):
+                # Fall back to sequential computation if sorting function can't be pickled
+                import warnings
 
-            if is_vectorized and effective_chunk_size is not None:
-                # Parallelize over both internal nodes AND array chunks
-                n_events = sample_momentum.shape[0]
-                if effective_chunk_size is None:
-                    effective_chunk_size = max(1, n_events // effective_cores)
+                warnings.warn(
+                    f"Sorting function {self.ordering_function} cannot be pickled for multiprocessing. "
+                    f"Falling back to sequential computation. Consider using a module-level function "
+                    f"or the default sorting function for parallel processing.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            else:
+                # Check if we have vectorized momenta (arrays with more than 1 element)
+                sample_momentum = next(iter(momenta.values()))
+                is_vectorized = (
+                    hasattr(sample_momentum, "shape")
+                    and len(sample_momentum.shape) > 1
+                    and sample_momentum.shape[0] > 1
+                )
 
-                # Create chunks of the momenta arrays
-                args_list = []
-                for node in internal_nodes:
-                    for start_idx in range(0, n_events, effective_chunk_size):
-                        end_idx = min(start_idx + effective_chunk_size, n_events)
-                        momenta_chunk = {
-                            k: v[start_idx:end_idx] for k, v in momenta.items()
-                        }
+                if is_vectorized and effective_chunk_size is not None:
+                    # Parallelize over both internal nodes AND array chunks
+                    n_events = sample_momentum.shape[0]
+                    if effective_chunk_size is None:
+                        effective_chunk_size = max(1, n_events // effective_cores)
 
-                        # Transform to node frame for this chunk
+                    # Create chunks of the momenta arrays
+                    args_list = []
+                    for node in internal_nodes:
+                        for start_idx in range(0, n_events, effective_chunk_size):
+                            end_idx = min(start_idx + effective_chunk_size, n_events)
+                            momenta_chunk = {
+                                k: v[start_idx:end_idx] for k, v in momenta.items()
+                            }
+
+                            # Transform to node frame for this chunk
+                            if node != self.root:
+                                boost_to_node = self.boost(
+                                    node, momenta_chunk, tol=tol, convention=convention
+                                )
+                                momenta_chunk_in_node_frame = self.root.transform(
+                                    boost_to_node, momenta_chunk
+                                )
+                            else:
+                                momenta_chunk_in_node_frame = momenta_chunk
+
+                            args_list.append(
+                                (self, node, momenta_chunk_in_node_frame, tol)
+                            )
+
+                    with multiprocessing.Pool(effective_cores) as pool:
+                        chunk_results = pool.map(
+                            _compute_helicity_angles_for_node_chunk, args_list
+                        )
+
+                    # Reassemble results
+                    helicity_angles = {}
+                    for node in internal_nodes:
+                        node_chunks = [
+                            result
+                            for result in chunk_results
+                            if result[0]
+                            == (node.daughters[0].value, node.daughters[1].value)
+                        ]
+                        if node_chunks:
+                            # Concatenate the helicity angles from all chunks
+                            phi_chunks = [chunk[1].phi_rf for chunk in node_chunks]
+                            theta_chunks = [chunk[1].theta_rf for chunk in node_chunks]
+
+                            helicity_angles[
+                                (node.daughters[0].value, node.daughters[1].value)
+                            ] = HelicityAngles(
+                                phi_rf=cb.concatenate(phi_chunks),
+                                theta_rf=cb.concatenate(theta_chunks),
+                            )
+
+                    return helicity_angles
+                else:
+                    # Original parallelization over internal nodes only
+                    args_list = []
+                    for node in internal_nodes:
                         if node != self.root:
                             boost_to_node = self.boost(
-                                node, momenta_chunk, tol=tol, convention=convention
+                                node, momenta, tol=tol, convention=convention
                             )
-                            momenta_chunk_in_node_frame = self.root.transform(
-                                boost_to_node, momenta_chunk
+                            momenta_in_node_frame = self.root.transform(
+                                boost_to_node, momenta
                             )
                         else:
-                            momenta_chunk_in_node_frame = momenta_chunk
+                            momenta_in_node_frame = momenta
 
-                        args_list.append((self, node, momenta_chunk_in_node_frame, tol))
+                        args_list.append((self, node, momenta_in_node_frame, tol))
 
-                with multiprocessing.Pool(effective_cores) as pool:
-                    chunk_results = pool.map(
-                        _compute_helicity_angles_for_node_chunk, args_list
-                    )
-
-                # Reassemble results
-                helicity_angles = {}
-                for node in internal_nodes:
-                    node_chunks = [
-                        result
-                        for result in chunk_results
-                        if result[0]
-                        == (node.daughters[0].value, node.daughters[1].value)
-                    ]
-                    if node_chunks:
-                        # Concatenate the helicity angles from all chunks
-                        phi_chunks = [chunk[1].phi_rf for chunk in node_chunks]
-                        theta_chunks = [chunk[1].theta_rf for chunk in node_chunks]
-
-                        helicity_angles[
-                            (node.daughters[0].value, node.daughters[1].value)
-                        ] = HelicityAngles(
-                            phi_rf=cb.concatenate(phi_chunks),
-                            theta_rf=cb.concatenate(theta_chunks),
+                    with multiprocessing.Pool(effective_cores) as pool:
+                        return dict(
+                            pool.map(_compute_helicity_angles_for_node, args_list)
                         )
-
-                return helicity_angles
-            else:
-                # Original parallelization over internal nodes only
-                args_list = []
-                for node in internal_nodes:
-                    if node != self.root:
-                        boost_to_node = self.boost(
-                            node, momenta, tol=tol, convention=convention
-                        )
-                        momenta_in_node_frame = self.root.transform(
-                            boost_to_node, momenta
-                        )
-                    else:
-                        momenta_in_node_frame = momenta
-
-                    args_list.append((self, node, momenta_in_node_frame, tol))
-
-                with multiprocessing.Pool(effective_cores) as pool:
-                    return dict(pool.map(_compute_helicity_angles_for_node, args_list))
 
         # Sequential computation
         helicity_angles = {}
@@ -988,65 +1023,84 @@ class Topology:
         if effective_cores is not None and effective_cores > 0:
             import multiprocessing
 
-            # Check if we have vectorized momenta (arrays with more than 1 element)
-            sample_momentum = next(iter(momenta.values()))
-            is_vectorized = (
-                hasattr(sample_momentum, "shape")
-                and len(sample_momentum.shape) > 1
-                and sample_momentum.shape[0] > 1
-            )
+            # Check if sorting functions can be pickled (required for multiprocessing)
+            if not _can_pickle_sorting_function(self.ordering_function):
+                # Fall back to sequential computation if sorting function can't be pickled
+                import warnings
 
-            if is_vectorized and effective_chunk_size is not None:
-                # Parallelize over both final state particles AND array chunks
-                n_events = sample_momentum.shape[0]
-                if effective_chunk_size is None:
-                    effective_chunk_size = max(1, n_events // effective_cores)
-
-                # Create chunks of the momenta arrays
-                args_list = []
-                for target in self.final_state_nodes:
-                    for start_idx in range(0, n_events, effective_chunk_size):
-                        end_idx = min(start_idx + effective_chunk_size, n_events)
-                        momenta_chunk = {
-                            k: v[start_idx:end_idx] for k, v in momenta.items()
-                        }
-                        args_list.append(
-                            (self, other, target, momenta_chunk, tol, convention)
-                        )
-
-                with multiprocessing.Pool(effective_cores) as pool:
-                    chunk_results = pool.map(
-                        _compute_wigner_angles_for_target_chunk, args_list
-                    )
-
-                # Reassemble results
-                results = {}
-                for target in self.final_state_nodes:
-                    target_chunks = [
-                        result for result in chunk_results if result[0] == target.value
-                    ]
-                    if target_chunks:
-                        # Concatenate the wigner angles from all chunks
-                        phi_chunks = [chunk[1].phi_rf for chunk in target_chunks]
-                        theta_chunks = [chunk[1].theta_rf for chunk in target_chunks]
-                        psi_chunks = [chunk[1].psi_rf for chunk in target_chunks]
-
-                        results[target.value] = WignerAngles(
-                            phi_rf=cb.concatenate(phi_chunks),
-                            theta_rf=cb.concatenate(theta_chunks),
-                            psi_rf=cb.concatenate(psi_chunks),
-                        )
-
-                return results
+                warnings.warn(
+                    f"Sorting function {self.ordering_function} cannot be pickled for multiprocessing. "
+                    f"Falling back to sequential computation. Consider using a module-level function "
+                    f"or the default sorting function for parallel processing.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             else:
-                # Original parallelization over final state particles only
-                args_list = [
-                    (self, other, target, momenta, tol, convention)
-                    for target in self.final_state_nodes
-                ]
+                # Check if we have vectorized momenta (arrays with more than 1 element)
+                sample_momentum = next(iter(momenta.values()))
+                is_vectorized = (
+                    hasattr(sample_momentum, "shape")
+                    and len(sample_momentum.shape) > 1
+                    and sample_momentum.shape[0] > 1
+                )
 
-                with multiprocessing.Pool(effective_cores) as pool:
-                    return dict(pool.map(_compute_wigner_angles_for_target, args_list))
+                if is_vectorized and effective_chunk_size is not None:
+                    # Parallelize over both final state particles AND array chunks
+                    n_events = sample_momentum.shape[0]
+                    if effective_chunk_size is None:
+                        effective_chunk_size = max(1, n_events // effective_cores)
+
+                    # Create chunks of the momenta arrays
+                    args_list = []
+                    for target in self.final_state_nodes:
+                        for start_idx in range(0, n_events, effective_chunk_size):
+                            end_idx = min(start_idx + effective_chunk_size, n_events)
+                            momenta_chunk = {
+                                k: v[start_idx:end_idx] for k, v in momenta.items()
+                            }
+                            args_list.append(
+                                (self, other, target, momenta_chunk, tol, convention)
+                            )
+
+                    with multiprocessing.Pool(effective_cores) as pool:
+                        chunk_results = pool.map(
+                            _compute_wigner_angles_for_target_chunk, args_list
+                        )
+
+                    # Reassemble results
+                    results = {}
+                    for target in self.final_state_nodes:
+                        target_chunks = [
+                            result
+                            for result in chunk_results
+                            if result[0] == target.value
+                        ]
+                        if target_chunks:
+                            # Concatenate the wigner angles from all chunks
+                            phi_chunks = [chunk[1].phi_rf for chunk in target_chunks]
+                            theta_chunks = [
+                                chunk[1].theta_rf for chunk in target_chunks
+                            ]
+                            psi_chunks = [chunk[1].psi_rf for chunk in target_chunks]
+
+                            results[target.value] = WignerAngles(
+                                phi_rf=cb.concatenate(phi_chunks),
+                                theta_rf=cb.concatenate(theta_chunks),
+                                psi_rf=cb.concatenate(psi_chunks),
+                            )
+
+                    return results
+                else:
+                    # Original parallelization over final state particles only
+                    args_list = [
+                        (self, other, target, momenta, tol, convention)
+                        for target in self.final_state_nodes
+                    ]
+
+                    with multiprocessing.Pool(effective_cores) as pool:
+                        return dict(
+                            pool.map(_compute_wigner_angles_for_target, args_list)
+                        )
 
         return {
             target.value: self.rotate_between_topologies(

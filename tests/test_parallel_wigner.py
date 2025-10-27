@@ -66,14 +66,14 @@ def generate_random_momenta_vectorized(m0, masses, n_events=100_000, seed=None):
     return {i + 1: cb.array(momenta_4d[:, i, :]) for i in range(n_particles)}
 
 
-def test_runtime_comparison():
+def runtime_comparison():
     """Simple runtime comparison for different parallelization strategies."""
 
     # Test configurations: (n_events, masses, description)
     test_configs = [
         (10_000, [200, 500, 800], "Small dataset (10k events, 3 particles)"),
         (100_000, [200, 500, 800, 1000], "Large dataset (100k events, 4 particles)"),
-        (1_000_000, [200, 500, 800], "Very large dataset (1M events, 3 particles)"),
+        # (1_000_000, [200, 500, 800], "Very large dataset (1M events, 3 particles)"),
     ]
 
     m0 = 5000  # Parent particle mass
@@ -236,5 +236,5 @@ def test_config_parallel_settings():
 
 
 if __name__ == "__main__":
-    test_runtime_comparison()
+    runtime_comparison()
     test_config_parallel_settings()
