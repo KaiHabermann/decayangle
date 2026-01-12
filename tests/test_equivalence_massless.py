@@ -575,15 +575,15 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
 
     # This is tricky, since the topology decides, if it works or doesn't...
     # I think it is because if we have too many pure boosts things start to break
-    # terms_2_can_new_basis = basis_change(terms_2_can, rotdict)
-    # terms_1_can_new_basis = basis_change(terms_1_can, rotdict)
+    terms_2_can_new_basis = basis_change(terms_2_can, rotdict)
+    terms_1_can_new_basis = basis_change(terms_1_can, rotdict)
 
-    # for k, v in terms_2_can_new_basis.items():
-    #     print(max(v - terms_2[k]))
-    #     assert not np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
+    for k, v in terms_2_can_new_basis.items():
+        print(max(v - terms_2[k]))
+        assert not np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
 
-    # for k, v in terms_1_can_new_basis.items():
-    #     assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
+    for k, v in terms_1_can_new_basis.items():
+        assert np.allclose(v, terms_1[k], atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":

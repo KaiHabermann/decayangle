@@ -349,6 +349,8 @@ class Node:
                     self.root(), momenta, convention="canonical"
                 )  # canonical convention is a pure boost
             boost = boost_to_root
+            if convention == "canonical":
+                return boost
 
         if convention == "canonical":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
