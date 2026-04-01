@@ -40,15 +40,15 @@ jobs:
             manylinux: auto
           # macOS Intel
           - os: macos-13
-            target: x86_64
+            target: x86_64-apple-darwin
             manylinux: ""
-          # macOS Apple Silicon
-          - os: macos-latest
-            target: aarch64
+          # macOS Apple Silicon (macos-14/latest is ARM64)
+          - os: macos-14
+            target: aarch64-apple-darwin
             manylinux: ""
           # Windows x86_64
           - os: windows-latest
-            target: x86_64
+            target: x86_64-pc-windows-msvc
             manylinux: ""
 
     steps:
