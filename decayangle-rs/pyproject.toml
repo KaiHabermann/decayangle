@@ -26,4 +26,4 @@ Source = "https://github.com/KaiHabermann/decayangle"
 
 [tool.maturin]
 module-name = "decayangle_rs"
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "pyo3/generate-import-lib"]
