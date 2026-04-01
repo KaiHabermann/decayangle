@@ -12,6 +12,7 @@ pyo3 = { version = "0.21", features = ["extension-module"] }
 numpy = "0.21"
 nalgebra = { version = "0.33", features = ["std"] }
 num-complex = "0.4"
+rayon = "1.10"
 
 [profile.release]
 lto = true

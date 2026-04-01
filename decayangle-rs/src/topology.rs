@@ -1,26 +1,27 @@
 use std::collections::HashMap;
+use rayon::prelude::*;
 
 use crate::kinematics::{
     add4, mat4_vec4, gamma, rapidity, rotate_to_z_axis, boost_to_rest,
+    build_4_4, build_2_2, decode_4_4_boost, decode_su2_rotation,
+    boost_2_2_z, rotation_2_2_y, rotation_2_2_z,
 };
-use crate::lorentz::LorentzTrafo;
+use nalgebra::{Matrix4, Matrix2};
+use num_complex::Complex64;
 
 // ── Tree representation ───────────────────────────────────────────────────────
 
-/// A decay node.  Leaf nodes hold a single final-state integer.
-/// Internal nodes hold two children and the sorted composite label.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Node {
     Leaf(i32),
     Internal {
-        label: Vec<i32>,  // sorted particle indices of all descendants
+        label: Vec<i32>,
         left: Box<Node>,
         right: Box<Node>,
     },
 }
 
 impl Node {
-    /// The "value" of a node — a single i32 for leaves, or the sorted vec of descendants.
     pub fn particles(&self) -> Vec<i32> {
         match self {
             Node::Leaf(i) => vec![*i],
@@ -32,8 +33,7 @@ impl Node {
         matches!(self, Node::Leaf(_))
     }
 
-    /// Sum 4-momenta of all leaf descendants.
-    pub fn momentum<'a>(&self, momenta: &'a HashMap<i32, Vec<[f64; 4]>>) -> Vec<[f64; 4]> {
+    pub fn momentum(&self, momenta: &HashMap<i32, Vec<[f64; 4]>>) -> Vec<[f64; 4]> {
         match self {
             Node::Leaf(i) => momenta[i].clone(),
             Node::Internal { left, right, .. } => {
@@ -51,7 +51,6 @@ impl Node {
         }
     }
 
-    /// Preorder traversal: root first, then children.
     pub fn preorder(&self) -> Vec<&Node> {
         let mut out = vec![self as &Node];
         if let Node::Internal { left, right, .. } = self {
@@ -62,7 +61,186 @@ impl Node {
     }
 }
 
-// ── Topology (wraps root Node) ────────────────────────────────────────────────
+// ── Structure-of-Arrays Lorentz transformation batch ─────────────────────────
+//
+// Instead of Vec<LorentzTrafo> (array of structs), we store N 4×4 matrices
+// as a flat Vec<f64> of length N*16 (row-major), and N 2×2 complex matrices
+// as Vec<[Complex64; 4]>. This keeps all matrix data for event i contiguous
+// and is SIMD/cache friendly for the composition loops.
+
+struct TrafoSoA {
+    n: usize,
+    m4: Vec<f64>,           // N * 16 floats, row-major
+    m2: Vec<Complex64>,     // N * 4 complex, row-major
+}
+
+impl TrafoSoA {
+    fn identity(n: usize) -> Self {
+        let eye4: [f64; 16] = [
+            1.,0.,0.,0.,
+            0.,1.,0.,0.,
+            0.,0.,1.,0.,
+            0.,0.,0.,1.,
+        ];
+        let eye2: [Complex64; 4] = [
+            Complex64::new(1.,0.), Complex64::new(0.,0.),
+            Complex64::new(0.,0.), Complex64::new(1.,0.),
+        ];
+        let mut m4 = Vec::with_capacity(n * 16);
+        let mut m2 = Vec::with_capacity(n * 4);
+        for _ in 0..n {
+            m4.extend_from_slice(&eye4);
+            m2.extend_from_slice(&eye2);
+        }
+        TrafoSoA { n, m4, m2 }
+    }
+
+    fn from_params_batch(params: &[(f64, f64, f64, f64, f64, f64)]) -> Self {
+        let n = params.len();
+        let mut m4 = vec![0.0f64; n * 16];
+        let mut m2 = vec![Complex64::new(0.,0.); n * 4];
+        params.par_iter().zip(m4.par_chunks_mut(16)).zip(m2.par_chunks_mut(4))
+            .for_each(|(((phi, theta, xi, phi_rf, theta_rf, psi_rf), chunk4), chunk2)| {
+                let mat4 = build_4_4(*phi, *theta, *xi, *phi_rf, *theta_rf, *psi_rf);
+                let mat2 = build_2_2(*phi, *theta, *xi, *phi_rf, *theta_rf, *psi_rf);
+                for row in 0..4 {
+                    for col in 0..4 {
+                        chunk4[row * 4 + col] = mat4[(row, col)];
+                    }
+                }
+                chunk2[0] = mat2[(0,0)]; chunk2[1] = mat2[(0,1)];
+                chunk2[2] = mat2[(1,0)]; chunk2[3] = mat2[(1,1)];
+            });
+        TrafoSoA { n, m4, m2 }
+    }
+
+    #[inline]
+    fn mat4(&self, i: usize) -> Matrix4<f64> {
+        Matrix4::from_row_slice(&self.m4[i * 16..i * 16 + 16])
+    }
+
+    #[inline]
+    fn mat2(&self, i: usize) -> Matrix2<Complex64> {
+        Matrix2::from_row_slice(&self.m2[i * 4..i * 4 + 4])
+    }
+
+    /// compose: result[i] = self[i] @ other[i]
+    fn compose(&self, other: &TrafoSoA) -> TrafoSoA {
+        let n = self.n;
+        let mut m4 = vec![0.0f64; n * 16];
+        let mut m2 = vec![Complex64::new(0.,0.); n * 4];
+
+        m4.par_chunks_mut(16).zip(m2.par_chunks_mut(4))
+            .enumerate()
+            .for_each(|(i, (c4, c2))| {
+                let a4 = self.mat4(i);
+                let b4 = other.mat4(i);
+                let r4 = a4 * b4;
+                for row in 0..4 {
+                    for col in 0..4 {
+                        c4[row * 4 + col] = r4[(row, col)];
+                    }
+                }
+                let a2 = self.mat2(i);
+                let b2 = other.mat2(i);
+                let r2 = a2 * b2;
+                c2[0] = r2[(0,0)]; c2[1] = r2[(0,1)];
+                c2[2] = r2[(1,0)]; c2[3] = r2[(1,1)];
+            });
+
+        TrafoSoA { n, m4, m2 }
+    }
+
+    /// compose_into: self[i] = step[i] @ self[i]  (left-multiply in place)
+    fn left_compose_assign(&mut self, step: &TrafoSoA) {
+        self.m4.par_chunks_mut(16).zip(self.m2.par_chunks_mut(4))
+            .enumerate()
+            .for_each(|(i, (c4, c2))| {
+                let a4 = step.mat4(i);
+                let b4 = Matrix4::from_row_slice(c4);
+                let r4 = a4 * b4;
+                for row in 0..4 {
+                    for col in 0..4 {
+                        c4[row * 4 + col] = r4[(row, col)];
+                    }
+                }
+                let a2 = step.mat2(i);
+                let b2 = Matrix2::from_row_slice(c2);
+                let r2 = a2 * b2;
+                c2[0] = r2[(0,0)]; c2[1] = r2[(0,1)];
+                c2[2] = r2[(1,0)]; c2[3] = r2[(1,1)];
+            });
+    }
+
+    /// right_compose_inv_assign: self[i] = self[i] @ step[i]^{-1}
+    fn right_compose_inv_assign(&mut self, step: &TrafoSoA) {
+        self.m4.par_chunks_mut(16).zip(self.m2.par_chunks_mut(4))
+            .enumerate()
+            .for_each(|(i, (c4, c2))| {
+                let b4 = step.mat4(i).try_inverse().expect("non-invertible 4x4");
+                let a4 = Matrix4::from_row_slice(c4);
+                let r4 = a4 * b4;
+                for row in 0..4 {
+                    for col in 0..4 {
+                        c4[row * 4 + col] = r4[(row, col)];
+                    }
+                }
+                let b2 = step.mat2(i).try_inverse().expect("non-invertible 2x2");
+                let a2 = Matrix2::from_row_slice(c2);
+                let r2 = a2 * b2;
+                c2[0] = r2[(0,0)]; c2[1] = r2[(0,1)];
+                c2[2] = r2[(1,0)]; c2[3] = r2[(1,1)];
+            });
+    }
+
+    /// Apply all 4×4 matrices to the corresponding event momenta.
+    fn transform_momenta(&self, momenta: &HashMap<i32, Vec<[f64; 4]>>) -> HashMap<i32, Vec<[f64; 4]>> {
+        momenta.iter().map(|(k, batch)| {
+            let transformed: Vec<[f64; 4]> = batch.par_iter().enumerate()
+                .map(|(i, v)| {
+                    let m = self.mat4(i);
+                    mat4_vec4(&m, v)
+                })
+                .collect();
+            (*k, transformed)
+        }).collect()
+    }
+
+    /// Decode Wigner angles for all N events. Returns (phis, thetas, psis).
+    fn wigner_angles_batch(
+        &self,
+        tol: f64,
+        safety_checks: bool,
+    ) -> Result<(Vec<f64>, Vec<f64>, Vec<f64>), String> {
+        let n = self.n;
+        let mut phis   = vec![0.0f64; n];
+        let mut thetas = vec![0.0f64; n];
+        let mut psis   = vec![0.0f64; n];
+
+        // Parallel decode — collect errors then propagate
+        let results: Vec<Result<(f64, f64, f64), String>> = (0..n).into_par_iter().map(|i| {
+            let m4 = self.mat4(i);
+            let m2 = self.mat2(i);
+            let (phi, theta, xi) = decode_4_4_boost(&m4, tol, safety_checks)?;
+            let su2_rot = boost_2_2_z(-xi)
+                * rotation_2_2_y(-theta)
+                * rotation_2_2_z(-phi)
+                * m2;
+            let (phi_rf, theta_rf, psi_rf) = decode_su2_rotation(&su2_rot);
+            Ok((phi_rf, theta_rf, psi_rf))
+        }).collect();
+
+        for (i, r) in results.into_iter().enumerate() {
+            let (phi_rf, theta_rf, psi_rf) = r?;
+            phis[i]   = phi_rf;
+            thetas[i] = theta_rf;
+            psis[i]   = psi_rf;
+        }
+        Ok((phis, thetas, psis))
+    }
+}
+
+// ── Topology ──────────────────────────────────────────────────────────────────
 
 pub struct Topology {
     pub root: Node,
@@ -73,166 +251,35 @@ impl Topology {
         Topology { root }
     }
 
-    /// All leaf nodes.
     pub fn final_state_nodes(&self) -> Vec<&Node> {
         self.root.preorder().into_iter().filter(|n| n.is_leaf()).collect()
     }
 
-    // ── per-node operations ────────────────────────────────────────────────
-
-    /// Transform all momenta by a 4×4 matrix (in place on a cloned map).
-    fn transform(
-        trafo: &LorentzTrafo,
-        momenta: &HashMap<i32, Vec<[f64; 4]>>,
-    ) -> HashMap<i32, Vec<[f64; 4]>> {
-        momenta
-            .iter()
-            .map(|(k, batch)| {
-                let transformed = batch.iter().map(|v| mat4_vec4(&trafo.matrix_4x4, v)).collect();
-                (*k, transformed)
-            })
-            .collect()
-    }
-
-    /// Boost all momenta to the rest frame of the root node.
     pub fn to_rest_frame(
         &self,
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
     ) -> HashMap<i32, Vec<[f64; 4]>> {
         let root_mom = self.root.momentum(momenta);
-        let n = root_mom.len();
-
-        // Check if already at rest (all gammas ≈ 1)
         let already_at_rest = root_mom.iter().all(|v| (gamma(v) - 1.0).abs() < tol);
         if already_at_rest {
             return momenta.clone();
         }
-
-        momenta
-            .iter()
-            .map(|(k, batch)| {
-                let boosted = (0..n)
-                    .map(|i| boost_to_rest(&batch[i], &root_mom[i]))
-                    .collect();
-                (*k, boosted)
-            })
-            .collect()
+        momenta.iter().map(|(k, batch)| {
+            let boosted: Vec<[f64; 4]> = batch.par_iter().enumerate()
+                .map(|(i, v)| boost_to_rest(v, &root_mom[i]))
+                .collect();
+            (*k, boosted)
+        }).collect()
     }
 
-    /// `node.rotate_to(target, momenta)` — returns `(LorentzTrafo, minus_theta_rf, minus_phi_rf)`.
-    /// Precondition: `node`'s momentum must be at rest.
-    fn node_rotate_to(
-        node: &Node,
-        target: &Node,
-        momenta: &HashMap<i32, Vec<[f64; 4]>>,
-        tol: f64,
-        safety_checks: bool,
-    ) -> Result<(Vec<LorentzTrafo>, Vec<f64>, Vec<f64>), String> {
-        let node_mom = node.momentum(momenta);
-        let n = node_mom.len();
-
-        // Safety check: node must be at rest
-        if safety_checks {
-            for v in &node_mom {
-                let g = gamma(v);
-                if (g - 1.0).abs() > tol {
-                    return Err(format!(
-                        "gamma = {g} — node is not at rest. Call to_rest_frame first."
-                    ));
-                }
-            }
-        }
-
-        // Identity case
-        if node.particles() == target.particles() {
-            let trafos = (0..n).map(|_| LorentzTrafo::identity()).collect();
-            let zeros = vec![0.0; n];
-            return Ok((trafos, zeros.clone(), zeros));
-        }
-
-        let target_mom = target.momentum(momenta);
-        let mut trafos = Vec::with_capacity(n);
-        let mut minus_theta_rfs = Vec::with_capacity(n);
-        let mut minus_phi_rfs = Vec::with_capacity(n);
-
-        for i in 0..n {
-            let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&target_mom[i]);
-            trafos.push(LorentzTrafo::from_params(0.0, 0.0, 0.0, 0.0, minus_theta_rf, minus_phi_rf));
-            minus_theta_rfs.push(minus_theta_rf);
-            minus_phi_rfs.push(minus_phi_rf);
-        }
-
-        Ok((trafos, minus_theta_rfs, minus_phi_rfs))
-    }
-
-    /// `node.boost(target, momenta)` — helicity convention.
-    fn node_boost_helicity(
-        node: &Node,
-        target: &Node,
-        momenta: &HashMap<i32, Vec<[f64; 4]>>,
-        tol: f64,
-        safety_checks: bool,
-    ) -> Result<Vec<LorentzTrafo>, String> {
-        let node_mom = node.momentum(momenta);
-        let n = node_mom.len();
-
-        if safety_checks {
-            for v in &node_mom {
-                let g = gamma(v);
-                if (g - 1.0).abs() > tol {
-                    return Err(format!(
-                        "gamma = {g} — node is not at rest. Call to_rest_frame first."
-                    ));
-                }
-            }
-        }
-
-        // Identity
-        if node.particles() == target.particles() {
-            return Ok((0..n).map(|_| LorentzTrafo::identity()).collect());
-        }
-
-        let (left, _right) = node.daughters().ok_or("node has no daughters")?;
-        let target_is_first_daughter = left.particles() == target.particles();
-
-        let target_mom = target.momentum(momenta);
-        let (rotation_trafos, _, _) = Self::node_rotate_to(node, left, momenta, tol, safety_checks)?;
-
-        let mut out = Vec::with_capacity(n);
-        for i in 0..n {
-            let xi = -rapidity(&target_mom[i]);
-            let boost = LorentzTrafo::from_params(0.0, 0.0, xi, 0.0, 0.0, 0.0);
-
-            let rotation = if target_is_first_daughter {
-                rotation_trafos[i].clone()
-            } else {
-                // Apply R_y(-pi) before the rotation to flip to particle 2
-                let flip = LorentzTrafo::from_params(0.0, 0.0, 0.0, 0.0, -std::f64::consts::PI, 0.0);
-                flip.compose(&rotation_trafos[i])
-            };
-
-            out.push(boost.compose(&rotation));
-        }
-        Ok(out)
-    }
-
-    // ── path-following boost ──────────────────────────────────────────────
-
-    /// Find the path from root to target (sequence of particle-sets).
     fn path_to<'a>(&'a self, target: &Node) -> Vec<&'a Node> {
-        fn dfs<'a>(current: &'a Node, target_particles: &[i32], path: &mut Vec<&'a Node>) -> bool {
+        fn dfs<'a>(current: &'a Node, tp: &[i32], path: &mut Vec<&'a Node>) -> bool {
             path.push(current);
-            if current.particles() == target_particles {
-                return true;
-            }
-            if let Some((left, right)) = current.daughters() {
-                if dfs(left, target_particles, path) {
-                    return true;
-                }
-                if dfs(right, target_particles, path) {
-                    return true;
-                }
+            if current.particles() == tp { return true; }
+            if let Some((l, r)) = current.daughters() {
+                if dfs(l, tp, path) { return true; }
+                if dfs(r, tp, path) { return true; }
             }
             path.pop();
             false
@@ -243,129 +290,165 @@ impl Topology {
         path
     }
 
-    /// Boost from root to `target`, composing trafos along the path.
-    /// Mirrors `Topology.boost(target, momenta, convention="helicity")`.
-    pub fn boost_to(
+    /// Compute one step of the helicity boost: node → daughter.
+    /// Returns the SoA batch trafo for this step and leaves `current_momenta` updated.
+    fn boost_step(
+        node: &Node,
+        target: &Node,
+        momenta: &HashMap<i32, Vec<[f64; 4]>>,
+        tol: f64,
+        safety_checks: bool,
+    ) -> Result<TrafoSoA, String> {
+        let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
+
+        if node.particles() == target.particles() {
+            return Ok(TrafoSoA::identity(n));
+        }
+
+        let (left, _) = node.daughters().ok_or("node has no daughters")?;
+        let target_is_first = left.particles() == target.particles();
+
+        let left_mom  = left.momentum(momenta);
+        let target_mom = target.momentum(momenta);
+
+        if safety_checks {
+            let node_mom = node.momentum(momenta);
+            for v in &node_mom {
+                let g = gamma(v);
+                if (g - 1.0).abs() > tol {
+                    return Err(format!("gamma = {g} — node not at rest"));
+                }
+            }
+        }
+
+        // Build params per event in parallel
+        let params: Vec<(f64,f64,f64,f64,f64,f64)> = (0..n).into_par_iter().map(|i| {
+            let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&left_mom[i]);
+            let xi = -rapidity(&target_mom[i]);
+
+            if target_is_first {
+                // boost @ rotation_to_left
+                // = B_z(xi) @ R_z(phi_rf=0) @ R_y(theta_rf=minus_theta_rf) @ R_z(psi_rf=minus_phi_rf)
+                (0.0, 0.0, xi, 0.0, minus_theta_rf, minus_phi_rf)
+            } else {
+                // boost @ flip @ rotation_to_left
+                // flip = R_y(-pi) = params(0,0,0, 0,-pi,0)
+                // Combined rotation: R_z(0) R_y(-pi) R_z(0) @ R_z(0) R_y(minus_theta) R_z(minus_phi)
+                // We build as two separate trafos and compose — but for SoA we need the
+                // combined 6 params. Since build_4_4 is a product, we just compose matrices.
+                // Return a sentinel and handle below.
+                // We use (NaN, ...) as a flag for the flip case — handled separately.
+                (f64::NAN, 0.0, xi, 0.0, minus_theta_rf, minus_phi_rf)
+            }
+        }).collect();
+
+        // Check if any are flip cases
+        let has_flip = !target_is_first;
+
+        if !has_flip {
+            Ok(TrafoSoA::from_params_batch(&params))
+        } else {
+            // Build rotation and compose with flip+boost manually
+            let n = params.len();
+            let mut m4 = vec![0.0f64; n * 16];
+            let mut m2 = vec![Complex64::new(0.,0.); n * 4];
+
+            m4.par_chunks_mut(16).zip(m2.par_chunks_mut(4))
+                .zip(params.par_iter())
+                .for_each(|((c4, c2), (_phi_nan, _theta, xi, _phi_rf, theta_rf, psi_rf))| {
+                    let rot4  = build_4_4(0., 0., 0., 0., *theta_rf, *psi_rf);
+                    let flip4 = build_4_4(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                    let bst4  = build_4_4(0., 0., *xi, 0., 0., 0.);
+                    let r4 = bst4 * flip4 * rot4;
+
+                    let rot2  = build_2_2(0., 0., 0., 0., *theta_rf, *psi_rf);
+                    let flip2 = build_2_2(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                    let bst2  = build_2_2(0., 0., *xi, 0., 0., 0.);
+                    let r2 = bst2 * flip2 * rot2;
+
+                    for row in 0..4 { for col in 0..4 {
+                        c4[row*4+col] = r4[(row,col)];
+                    }}
+                    c2[0]=r2[(0,0)]; c2[1]=r2[(0,1)];
+                    c2[2]=r2[(1,0)]; c2[3]=r2[(1,1)];
+                });
+            Ok(TrafoSoA { n, m4, m2 })
+        }
+    }
+
+    /// Full boost from root to target. Returns the composed SoA trafo.
+    fn boost_to_soa(
         &self,
         target: &Node,
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
-    ) -> Result<Vec<LorentzTrafo>, String> {
+    ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
 
         if path.len() < 2 {
-            // target is root — return identity
-            return Ok((0..n).map(|_| LorentzTrafo::identity()).collect());
+            return Ok(TrafoSoA::identity(n));
         }
 
-        // First step: root → path[1]
-        let mut step_trafos =
-            Self::node_boost_helicity(path[0], path[1], momenta, tol, safety_checks)?;
-        let mut composed: Vec<LorentzTrafo> = step_trafos.clone();
-
-        // Transform momenta for next step
         let mut current_momenta = momenta.clone();
-        for i in 0..n {
-            let single: HashMap<i32, Vec<[f64; 4]>> = current_momenta
-                .iter()
-                .map(|(k, batch)| {
-                    let v = mat4_vec4(&step_trafos[i].matrix_4x4, &batch[i]);
-                    (*k, vec![v])
-                })
-                .collect();
-            // We'll do this properly with a full-batch transform below
-            let _ = single; // placeholder
-        }
-        current_momenta = Self::transform_batch(&step_trafos, &current_momenta);
+        let first_step = Self::boost_step(path[0], path[1], &current_momenta, tol, safety_checks)?;
+        current_momenta = first_step.transform_momenta(&current_momenta);
+        let mut composed = first_step;
 
-        // Remaining steps
-        for step_idx in 1..path.len() - 1 {
-            step_trafos = Self::node_boost_helicity(
-                path[step_idx],
-                path[step_idx + 1],
-                &current_momenta,
-                tol,
-                safety_checks,
-            )?;
-            current_momenta = Self::transform_batch(&step_trafos, &current_momenta);
-            for i in 0..n {
-                composed[i] = step_trafos[i].compose(&composed[i]);
-            }
+        for i in 1..path.len() - 1 {
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks)?;
+            current_momenta = step.transform_momenta(&current_momenta);
+            // composed = step @ composed
+            // total = step_k @ ... @ step_1: new total = step_k @ old_total
+            composed.left_compose_assign(&step);
         }
 
         Ok(composed)
     }
 
-    /// Inverse boost (more precise: compose individual inverses in reverse order).
-    pub fn boost_to_inverse(
+    /// Full inverse boost from root to target.
+    fn boost_to_inverse_soa(
         &self,
         target: &Node,
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
-    ) -> Result<Vec<LorentzTrafo>, String> {
+    ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
 
         if path.len() < 2 {
-            return Ok((0..n).map(|_| LorentzTrafo::identity()).collect());
+            return Ok(TrafoSoA::identity(n));
         }
 
-        // Collect all step trafos
-        let mut all_steps: Vec<Vec<LorentzTrafo>> = Vec::new();
+        // Collect all steps (forward pass needed to transform momenta correctly)
+        let mut all_steps: Vec<TrafoSoA> = Vec::new();
         let mut current_momenta = momenta.clone();
 
-        for step_idx in 0..path.len() - 1 {
-            let step_trafos = Self::node_boost_helicity(
-                path[step_idx],
-                path[step_idx + 1],
-                &current_momenta,
-                tol,
-                safety_checks,
-            )?;
-            current_momenta = Self::transform_batch(&step_trafos, &current_momenta);
-            all_steps.push(step_trafos);
+        for i in 0..path.len() - 1 {
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks)?;
+            current_momenta = step.transform_momenta(&current_momenta);
+            all_steps.push(step);
         }
 
-        // Mirror Python's inverse construction:
-        //   inverse_trafo = step_0^{-1}
-        //   inverse_trafo = inverse_trafo @ step_1^{-1}
-        //   ...
-        // giving step_0^{-1} @ step_1^{-1} @ ... = (step_n @ ... @ step_0)^{-1}
-        let mut result: Vec<LorentzTrafo> = all_steps[0].iter().map(|t| t.inverse()).collect();
-        for step in all_steps[1..].iter() {
-            for i in 0..n {
-                result[i] = result[i].compose(&step[i].inverse());
-            }
+        // Python inverse: step_0^{-1} @ step_1^{-1} @ ... @ step_k^{-1}
+        // Start with step_0^{-1} then right-multiply by each subsequent inverse
+        let first_inv = {
+            let s = &all_steps[0];
+            let mut inv = TrafoSoA::identity(n);
+            // inv = I, then right-compose by step_0^{-1}
+            inv.right_compose_inv_assign(s);
+            inv
+        };
+
+        let mut result = first_inv;
+        for step in &all_steps[1..] {
+            result.right_compose_inv_assign(step);
         }
         Ok(result)
     }
 
-    /// Apply a batch of per-event trafos to all particle momenta.
-    fn transform_batch(
-        trafos: &[LorentzTrafo],
-        momenta: &HashMap<i32, Vec<[f64; 4]>>,
-    ) -> HashMap<i32, Vec<[f64; 4]>> {
-        momenta
-            .iter()
-            .map(|(k, batch)| {
-                let transformed = batch
-                    .iter()
-                    .zip(trafos.iter())
-                    .map(|(v, t)| mat4_vec4(&t.matrix_4x4, v))
-                    .collect();
-                (*k, transformed)
-            })
-            .collect()
-    }
-
-    // ── public angle computation ──────────────────────────────────────────
-
-    /// Helicity angles for all internal nodes.
-    /// Returns a map from `(isobar_label, spectator_label)` encoded as Vec<i32>
-    /// to `(phi_batch, theta_batch)` each of length N.
     pub fn helicity_angles(
         &self,
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
@@ -376,42 +459,31 @@ impl Topology {
         let mut result = HashMap::new();
 
         for node in self.root.preorder() {
-            if node.is_leaf() {
-                continue;
-            }
+            if node.is_leaf() { continue; }
 
-            let momenta_in_frame: HashMap<i32, Vec<[f64; 4]>>;
+            let frame_momenta_owned: HashMap<i32, Vec<[f64; 4]>>;
             let frame_momenta = if node.particles() == self.root.particles() {
                 momenta
             } else {
-                let node_leaf = node; // use as target
-                let trafos = self.boost_to(node_leaf, momenta, tol, safety_checks)?;
-                momenta_in_frame = Self::transform_batch(&trafos, momenta);
-                &momenta_in_frame
+                let trafos = self.boost_to_soa(node, momenta, tol, safety_checks)?;
+                frame_momenta_owned = trafos.transform_momenta(momenta);
+                &frame_momenta_owned
             };
 
-            let (left, _right) = node.daughters().unwrap();
-
+            let (left, right) = node.daughters().unwrap();
             let left_mom = left.momentum(frame_momenta);
-            let mut phis = Vec::with_capacity(n);
-            let mut thetas = Vec::with_capacity(n);
 
-            for i in 0..n {
+            let (phis, thetas): (Vec<f64>, Vec<f64>) = (0..n).into_par_iter().map(|i| {
                 let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&left_mom[i]);
-                phis.push(-minus_phi_rf);
-                thetas.push(-minus_theta_rf);
-            }
+                (-minus_phi_rf, -minus_theta_rf)
+            }).unzip();
 
-            let (right_node, _) = node.daughters().unwrap();
-            let spectator = node.daughters().unwrap().1;
-            result.insert((right_node.particles(), spectator.particles()), (phis, thetas));
+            result.insert((left.particles(), right.particles()), (phis, thetas));
         }
 
         Ok(result)
     }
 
-    /// Relative Wigner angles between `self` and `other` for all final-state particles.
-    /// Returns a map from particle index (i32) to `(phi_rf, theta_rf, psi_rf)` each of length N.
     pub fn relative_wigner_angles(
         &self,
         other: &Topology,
@@ -424,32 +496,20 @@ impl Topology {
 
         for fs_node in self.final_state_nodes() {
             let particle = match fs_node {
-                crate::topology::Node::Leaf(i) => *i,
+                Node::Leaf(i) => *i,
                 _ => unreachable!(),
             };
 
             if self.root == other.root {
-                // Same topology — identity rotation for all particles
                 result.insert(particle, (vec![0.0; n], vec![0.0; n], vec![0.0; n]));
                 continue;
             }
 
-            let boost1_inv = self.boost_to_inverse(fs_node, momenta, tol, safety_checks)?;
-            let boost2 = other.boost_to(fs_node, momenta, tol, safety_checks)?;
+            let boost1_inv = self.boost_to_inverse_soa(fs_node, momenta, tol, safety_checks)?;
+            let boost2     = other.boost_to_soa(fs_node, momenta, tol, safety_checks)?;
+            let combined   = boost2.compose(&boost1_inv);
 
-            let mut phis = Vec::with_capacity(n);
-            let mut thetas = Vec::with_capacity(n);
-            let mut psis = Vec::with_capacity(n);
-
-            for i in 0..n {
-                let combined = boost2[i].compose(&boost1_inv[i]);
-                let (phi_rf, theta_rf, psi_rf) =
-                    combined.wigner_angles(tol, safety_checks)?;
-                phis.push(phi_rf);
-                thetas.push(theta_rf);
-                psis.push(psi_rf);
-            }
-
+            let (phis, thetas, psis) = combined.wigner_angles_batch(tol, safety_checks)?;
             result.insert(particle, (phis, thetas, psis));
         }
 
