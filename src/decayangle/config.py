@@ -10,7 +10,7 @@ class _cfg:
         "numerical_safety_checks": True,
         "gamma_tolerance": 1e-8,
         "shift_precision": 1e-8,
-        "use_rust": False,
+        "use_rust": True,
     }
     backend_map = {
         "jax": jax_backend,

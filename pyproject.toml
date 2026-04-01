@@ -43,6 +43,7 @@ dependencies = [
 
 [project.optional-dependencies]
 notebooks = ["phasespace", "particle", "sympy", "matplotlib"]
+rust = ["decayangle-rs"]
 
 [project.urls]
 Documentation = "https://kaihabermann.github.io/decayangle/"
