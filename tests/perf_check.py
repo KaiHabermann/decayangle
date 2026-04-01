@@ -1,5 +1,5 @@
 """
-Performance check: helicity and Wigner angles for a 3-body decay over 100_000 momenta.
+Performance check: helicity and Wigner angles for a 3-body decay over 1_000_000 momenta.
 
 Run with:
     python tests/perf_check.py
@@ -7,10 +7,6 @@ Run with:
 
 import time
 import numpy as np
-
-from jax import config as jax_cfg
-
-jax_cfg.update("jax_enable_x64", True)
 
 from decayangle.decay_topology import TopologyCollection
 from decayangle.config import config as cfg
@@ -22,12 +18,12 @@ try:
 except ImportError:
     RUST_AVAILABLE = False
 
-N = 100_000
+N = 600_000
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 
-def make_momenta(n, backend):
+def make_momenta(n):
     """Random 3-body momenta in the mother rest frame (approx)."""
     rng = np.random.default_rng(42)
     p1 = np.stack(
@@ -57,11 +53,6 @@ def make_momenta(n, backend):
         ],
         axis=-1,
     )
-
-    if backend == "jax":
-        import jax.numpy as jnp
-
-        return {1: jnp.array(p1), 2: jnp.array(p2), 3: jnp.array(p3)}
     return {1: p1, 2: p2, 3: p3}
 
 
@@ -88,16 +79,15 @@ def print_table(rows):
 # ── benchmark ────────────────────────────────────────────────────────────────
 
 
-def run_benchmark(backend_name, use_rust=False):
-    cfg.backend = backend_name
+def run_benchmark(use_rust=False):
+    cfg.backend = "numpy"
     cfg.use_rust = use_rust
 
     tg = TopologyCollection(0, [1, 2, 3])
     topologies = tg.topologies
     reference = topologies[0]
 
-    momenta_raw = make_momenta(N, backend_name)
-
+    momenta_raw = make_momenta(N)
     t_rest, momenta = time_it(lambda: reference.to_rest_frame(momenta_raw))
 
     def all_helicity():
@@ -111,20 +101,6 @@ def run_benchmark(backend_name, use_rust=False):
     t_hel, _ = time_it(all_helicity)
     t_wig, _ = time_it(all_wigner)
 
-    # JAX: second run separates JIT from execution
-    if backend_name == "jax":
-        t_rest2, momenta = time_it(lambda: reference.to_rest_frame(momenta_raw))
-        t_hel2, _ = time_it(all_helicity)
-        t_wig2, _ = time_it(all_wigner)
-        return {
-            "to_rest_frame (1st / JIT)": f"{t_rest:.3f}s",
-            "to_rest_frame (2nd / exec)": f"{t_rest2:.3f}s",
-            "helicity_angles (1st / JIT)": f"{t_hel:.3f}s",
-            "helicity_angles (2nd / exec)": f"{t_hel2:.3f}s",
-            "wigner_angles (1st / JIT)": f"{t_wig:.3f}s",
-            "wigner_angles (2nd / exec)": f"{t_wig2:.3f}s",
-        }
-
     return {
         "to_rest_frame": f"{t_rest:.3f}s",
         "helicity_angles": f"{t_hel:.3f}s",
@@ -135,15 +111,11 @@ def run_benchmark(backend_name, use_rust=False):
 def main():
     print(f"\nPerformance check — 3-body decay, N = {N:,} momenta\n")
 
-    results_np = run_benchmark("numpy", use_rust=False)
-    results_jax = run_benchmark("jax", use_rust=False)
-
-    all_ops = sorted(set(results_np) | set(results_jax))
+    results_np = run_benchmark(use_rust=False)
 
     if RUST_AVAILABLE:
-        results_rust = run_benchmark("numpy", use_rust=True)
+        results_rust = run_benchmark(use_rust=True)
 
-        # Speedup vs NumPy (only for keys present in both)
         def speedup(py_str, rs_str):
             try:
                 py_t = float(py_str.rstrip("s"))
@@ -154,20 +126,18 @@ def main():
             except (ValueError, ZeroDivisionError):
                 return "—"
 
-        rows = [("Operation", "NumPy", "JAX", "Rust", "Speedup (NumPy/Rust)")]
-        for op in all_ops:
-            py = results_np.get(op, "—")
-            jx = results_jax.get(op, "—")
+        rows = [("Operation", "NumPy", "Rust", "Speedup")]
+        for op in sorted(results_np):
+            py = results_np[op]
             rs = results_rust.get(op, "—")
-            spd = speedup(py, rs) if rs != "—" else "—"
-            rows.append((op, py, jx, rs, spd))
+            rows.append((op, py, rs, speedup(py, rs)))
     else:
         print(
             "(Rust extension not available — build with `cd decayangle-rs && maturin develop --release`)\n"
         )
-        rows = [("Operation", "NumPy", "JAX")]
-        for op in all_ops:
-            rows.append((op, results_np.get(op, "—"), results_jax.get(op, "—")))
+        rows = [("Operation", "NumPy")]
+        for op in sorted(results_np):
+            rows.append((op, results_np[op]))
 
     print_table(rows)
     print()

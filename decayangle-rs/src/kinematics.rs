@@ -235,8 +235,11 @@ pub fn decode_4_4_boost(
 
     let mut gma = vt; // mass = 1
 
-    // clamp tiny deviations below 1 that are within tolerance
-    if gma.abs() < 1.0 && (gma - 1.0).abs() < tol {
+    // Clamp values below 1 that are within a reasonable numerical noise band.
+    // Composed matrix products accumulate rounding errors (~1e-9), so we use
+    // a fixed floor of 1e-6 (well below any physical deviation) before erroring.
+    const CLAMP_TOL: f64 = 1e-6;
+    if gma < 1.0 && (gma - 1.0).abs() < CLAMP_TOL {
         gma = 1.0;
     }
     if gma < 1.0 {

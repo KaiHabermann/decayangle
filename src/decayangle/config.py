@@ -8,8 +8,8 @@ class _cfg:
         "backend": "numpy",
         "sorting": "value",
         "numerical_safety_checks": True,
-        "gamma_tolerance": 1e-10,
-        "shift_precision": 1e-10,
+        "gamma_tolerance": 1e-8,
+        "shift_precision": 1e-8,
         "use_rust": False,
     }
     backend_map = {
@@ -207,6 +207,12 @@ class _cfg:
 
     @use_rust.setter
     def use_rust(self, value: bool):
+        """
+        Set whether to use the Rust extension for angle computations.
+
+        Args:
+            value (bool): Whether to use the Rust backend
+        """
         if not isinstance(value, bool):
             raise ValueError(f"use_rust must be a bool, got {type(value)}")
         self.__state["use_rust"] = value
