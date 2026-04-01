@@ -36,9 +36,9 @@ jobs:
           - os: ubuntu-latest
             target: aarch64
             manylinux: auto
-          - os: macos-13
-            target: x86_64-apple-darwin
-            manylinux: ""
+          # - os: macos-13
+          #   target: x86_64-apple-darwin
+          #   manylinux: ""
           - os: macos-14
             target: aarch64-apple-darwin
             manylinux: ""
