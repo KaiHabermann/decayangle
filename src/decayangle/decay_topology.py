@@ -687,6 +687,25 @@ class Topology:
             Helicity angles for the final state particles
 
         """
+        if cfg.use_rust and convention == "helicity":
+            from decayangle_rs import helicity_angles_rust
+            import numpy as np_plain
+
+            np_momenta = {k: np_plain.asarray(v) for k, v in momenta.items()}
+            raw = helicity_angles_rust(
+                self.tuple,
+                np_momenta,
+                tol=tol if tol is not None else cfg.gamma_tolerance,
+                safety_checks=cfg.numerical_safety_checks,
+            )
+            return {
+                (
+                    tuple(k[0]) if len(k[0]) > 1 else k[0][0],
+                    tuple(k[1]) if len(k[1]) > 1 else k[1][0],
+                ): HelicityAngles(v["phi"], v["theta"])
+                for k, v in raw.items()
+            }
+
         helicity_angles = {}
 
         for node in self.root.preorder():
@@ -800,6 +819,23 @@ class Topology:
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
+        if cfg.use_rust and convention == "helicity":
+            from decayangle_rs import wigner_angles_rust
+            import numpy as np_plain
+
+            np_momenta = {k: np_plain.asarray(v) for k, v in momenta.items()}
+            raw = wigner_angles_rust(
+                self.tuple,
+                other.tuple,
+                np_momenta,
+                tol=tol if tol is not None else cfg.gamma_tolerance,
+                safety_checks=cfg.numerical_safety_checks,
+            )
+            return {
+                k: WignerAngles(v["phi_rf"], v["theta_rf"], v["psi_rf"])
+                for k, v in raw.items()
+            }
+
         return {
             target.value: self.rotate_between_topologies(
                 other, target, momenta, tol=tol, convention=convention

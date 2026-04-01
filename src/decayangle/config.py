@@ -10,6 +10,7 @@ class _cfg:
         "numerical_safety_checks": True,
         "gamma_tolerance": 1e-10,
         "shift_precision": 1e-10,
+        "use_rust": False,
     }
     backend_map = {
         "jax": jax_backend,
@@ -193,6 +194,22 @@ class _cfg:
             return value
 
         raise ValueError(f"Node sorting {self.sorting} not found")
+
+    @property
+    def use_rust(self) -> bool:
+        """
+        If True, helicity_angles and relative_wigner_angles delegate to the Rust extension.
+
+        Returns:
+            bool: Whether to use the Rust backend
+        """
+        return self.__state["use_rust"]
+
+    @use_rust.setter
+    def use_rust(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError(f"use_rust must be a bool, got {type(value)}")
+        self.__state["use_rust"] = value
 
     def raise_if_safety_on(self, exception: Exception):
         """

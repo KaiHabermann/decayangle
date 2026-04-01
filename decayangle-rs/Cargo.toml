@@ -1,0 +1,18 @@
+[package]
+name = "decayangle_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "decayangle_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21", features = ["extension-module"] }
+numpy = "0.21"
+nalgebra = { version = "0.33", features = ["std"] }
+num-complex = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
