@@ -9,6 +9,26 @@ use crate::kinematics::{
 use nalgebra::{Matrix4, Matrix2};
 use num_complex::Complex64;
 
+// ── Convention ────────────────────────────────────────────────────────────────
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Convention {
+    Helicity,
+    MinusPhi,
+    Canonical,
+}
+
+impl Convention {
+    pub fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "helicity"  => Ok(Convention::Helicity),
+            "minus_phi" => Ok(Convention::MinusPhi),
+            "canonical" => Ok(Convention::Canonical),
+            other => Err(format!("Unknown convention '{other}'. Use 'helicity', 'minus_phi' or 'canonical'.")),
+        }
+    }
+}
+
 // ── Tree representation ───────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq)]
@@ -290,14 +310,14 @@ impl Topology {
         path
     }
 
-    /// Compute one step of the helicity boost: node → daughter.
-    /// Returns the SoA batch trafo for this step and leaves `current_momenta` updated.
+    /// Compute one step of the boost: node → target daughter, for a given convention.
     fn boost_step(
         node: &Node,
         target: &Node,
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
+        convention: Convention,
     ) -> Result<TrafoSoA, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
 
@@ -308,7 +328,7 @@ impl Topology {
         let (left, _) = node.daughters().ok_or("node has no daughters")?;
         let target_is_first = left.particles() == target.particles();
 
-        let left_mom  = left.momentum(momenta);
+        let left_mom   = left.momentum(momenta);
         let target_mom = target.momentum(momenta);
 
         if safety_checks {
@@ -321,59 +341,71 @@ impl Topology {
             }
         }
 
-        // Build params per event in parallel
-        let params: Vec<(f64,f64,f64,f64,f64,f64)> = (0..n).into_par_iter().map(|i| {
-            let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&left_mom[i]);
-            let xi = -rapidity(&target_mom[i]);
+        let n_events = n;
+        let mut m4 = vec![0.0f64; n_events * 16];
+        let mut m2 = vec![Complex64::new(0., 0.); n_events * 4];
 
-            if target_is_first {
-                // boost @ rotation_to_left
-                // = B_z(xi) @ R_z(phi_rf=0) @ R_y(theta_rf=minus_theta_rf) @ R_z(psi_rf=minus_phi_rf)
-                (0.0, 0.0, xi, 0.0, minus_theta_rf, minus_phi_rf)
-            } else {
-                // boost @ flip @ rotation_to_left
-                // flip = R_y(-pi) = params(0,0,0, 0,-pi,0)
-                // Combined rotation: R_z(0) R_y(-pi) R_z(0) @ R_z(0) R_y(minus_theta) R_z(minus_phi)
-                // We build as two separate trafos and compose — but for SoA we need the
-                // combined 6 params. Since build_4_4 is a product, we just compose matrices.
-                // Return a sentinel and handle below.
-                // We use (NaN, ...) as a flag for the flip case — handled separately.
-                (f64::NAN, 0.0, xi, 0.0, minus_theta_rf, minus_phi_rf)
-            }
-        }).collect();
-
-        // Check if any are flip cases
-        let has_flip = !target_is_first;
-
-        if !has_flip {
-            Ok(TrafoSoA::from_params_batch(&params))
+        // For canonical, we rotate to target (not always left daughter)
+        // For helicity/minus_phi, we always rotate to the left daughter
+        let rotate_ref_mom = if convention == Convention::Canonical {
+            target_mom.clone()
         } else {
-            // Build rotation and compose with flip+boost manually
-            let n = params.len();
-            let mut m4 = vec![0.0f64; n * 16];
-            let mut m2 = vec![Complex64::new(0.,0.); n * 4];
+            left_mom.clone()
+        };
 
-            m4.par_chunks_mut(16).zip(m2.par_chunks_mut(4))
-                .zip(params.par_iter())
-                .for_each(|((c4, c2), (_phi_nan, _theta, xi, _phi_rf, theta_rf, psi_rf))| {
-                    let rot4  = build_4_4(0., 0., 0., 0., *theta_rf, *psi_rf);
-                    let flip4 = build_4_4(0., 0., 0., 0., -std::f64::consts::PI, 0.);
-                    let bst4  = build_4_4(0., 0., *xi, 0., 0., 0.);
-                    let r4 = bst4 * flip4 * rot4;
+        m4.par_chunks_mut(16).zip(m2.par_chunks_mut(4))
+            .enumerate()
+            .for_each(|(i, (c4, c2))| {
+                let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&rotate_ref_mom[i]);
+                let xi = -rapidity(&target_mom[i]);
 
-                    let rot2  = build_2_2(0., 0., 0., 0., *theta_rf, *psi_rf);
-                    let flip2 = build_2_2(0., 0., 0., 0., -std::f64::consts::PI, 0.);
-                    let bst2  = build_2_2(0., 0., *xi, 0., 0., 0.);
-                    let r2 = bst2 * flip2 * rot2;
+                let bst4 = build_4_4(0., 0., xi, 0., 0., 0.);
+                let bst2 = build_2_2(0., 0., xi, 0., 0., 0.);
 
-                    for row in 0..4 { for col in 0..4 {
-                        c4[row*4+col] = r4[(row,col)];
-                    }}
-                    c2[0]=r2[(0,0)]; c2[1]=r2[(0,1)];
-                    c2[2]=r2[(1,0)]; c2[3]=r2[(1,1)];
-                });
-            Ok(TrafoSoA { n, m4, m2 })
-        }
+                let (r4, r2) = match convention {
+                    Convention::Canonical => {
+                        // rot aligns target with z; result = rot^{-1} @ boost @ rot
+                        // no flip needed — canonical always acts on the specific target
+                        let rot4 = build_4_4(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                        let rot2 = build_2_2(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                        let rot4_inv = rot4.try_inverse().expect("rotation invertible");
+                        let rot2_inv = rot2.try_inverse().expect("rotation invertible");
+                        (rot4_inv * bst4 * rot4, rot2_inv * bst2 * rot2)
+                    }
+                    Convention::Helicity => {
+                        // rot aligns left daughter with z; result = boost @ [flip @] rot
+                        let rot4 = build_4_4(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                        let rot2 = build_2_2(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                        if target_is_first {
+                            (bst4 * rot4, bst2 * rot2)
+                        } else {
+                            let flip4 = build_4_4(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                            let flip2 = build_2_2(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                            (bst4 * flip4 * rot4, bst2 * flip2 * rot2)
+                        }
+                    }
+                    Convention::MinusPhi => {
+                        // rot uses (-psi, theta, psi); result = boost @ [flip @] rot
+                        let rot4 = build_4_4(0., 0., 0., -minus_phi_rf, minus_theta_rf, minus_phi_rf);
+                        let rot2 = build_2_2(0., 0., 0., -minus_phi_rf, minus_theta_rf, minus_phi_rf);
+                        if target_is_first {
+                            (bst4 * rot4, bst2 * rot2)
+                        } else {
+                            let flip4 = build_4_4(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                            let flip2 = build_2_2(0., 0., 0., 0., -std::f64::consts::PI, 0.);
+                            (bst4 * flip4 * rot4, bst2 * flip2 * rot2)
+                        }
+                    }
+                };
+
+                for row in 0..4 { for col in 0..4 {
+                    c4[row * 4 + col] = r4[(row, col)];
+                }}
+                c2[0] = r2[(0,0)]; c2[1] = r2[(0,1)];
+                c2[2] = r2[(1,0)]; c2[3] = r2[(1,1)];
+            });
+
+        Ok(TrafoSoA { n: n_events, m4, m2 })
     }
 
     /// Full boost from root to target. Returns the composed SoA trafo.
@@ -383,6 +415,7 @@ impl Topology {
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
+        convention: Convention,
     ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
@@ -392,15 +425,13 @@ impl Topology {
         }
 
         let mut current_momenta = momenta.clone();
-        let first_step = Self::boost_step(path[0], path[1], &current_momenta, tol, safety_checks)?;
+        let first_step = Self::boost_step(path[0], path[1], &current_momenta, tol, safety_checks, convention)?;
         current_momenta = first_step.transform_momenta(&current_momenta);
         let mut composed = first_step;
 
         for i in 1..path.len() - 1 {
-            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks)?;
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention)?;
             current_momenta = step.transform_momenta(&current_momenta);
-            // composed = step @ composed
-            // total = step_k @ ... @ step_1: new total = step_k @ old_total
             composed.left_compose_assign(&step);
         }
 
@@ -414,6 +445,7 @@ impl Topology {
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
+        convention: Convention,
     ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
@@ -422,27 +454,17 @@ impl Topology {
             return Ok(TrafoSoA::identity(n));
         }
 
-        // Collect all steps (forward pass needed to transform momenta correctly)
         let mut all_steps: Vec<TrafoSoA> = Vec::new();
         let mut current_momenta = momenta.clone();
 
         for i in 0..path.len() - 1 {
-            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks)?;
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention)?;
             current_momenta = step.transform_momenta(&current_momenta);
             all_steps.push(step);
         }
 
-        // Python inverse: step_0^{-1} @ step_1^{-1} @ ... @ step_k^{-1}
-        // Start with step_0^{-1} then right-multiply by each subsequent inverse
-        let first_inv = {
-            let s = &all_steps[0];
-            let mut inv = TrafoSoA::identity(n);
-            // inv = I, then right-compose by step_0^{-1}
-            inv.right_compose_inv_assign(s);
-            inv
-        };
-
-        let mut result = first_inv;
+        let mut result = TrafoSoA::identity(n);
+        result.right_compose_inv_assign(&all_steps[0]);
         for step in &all_steps[1..] {
             result.right_compose_inv_assign(step);
         }
@@ -454,6 +476,7 @@ impl Topology {
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
+        convention: Convention,
     ) -> Result<HashMap<(Vec<i32>, Vec<i32>), (Vec<f64>, Vec<f64>)>, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
         let mut result = HashMap::new();
@@ -465,7 +488,7 @@ impl Topology {
             let frame_momenta = if node.particles() == self.root.particles() {
                 momenta
             } else {
-                let trafos = self.boost_to_soa(node, momenta, tol, safety_checks)?;
+                let trafos = self.boost_to_soa(node, momenta, tol, safety_checks, convention)?;
                 frame_momenta_owned = trafos.transform_momenta(momenta);
                 &frame_momenta_owned
             };
@@ -490,6 +513,7 @@ impl Topology {
         momenta: &HashMap<i32, Vec<[f64; 4]>>,
         tol: f64,
         safety_checks: bool,
+        convention: Convention,
     ) -> Result<HashMap<i32, (Vec<f64>, Vec<f64>, Vec<f64>)>, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
         let mut result = HashMap::new();
@@ -505,8 +529,8 @@ impl Topology {
                 continue;
             }
 
-            let boost1_inv = self.boost_to_inverse_soa(fs_node, momenta, tol, safety_checks)?;
-            let boost2     = other.boost_to_soa(fs_node, momenta, tol, safety_checks)?;
+            let boost1_inv = self.boost_to_inverse_soa(fs_node, momenta, tol, safety_checks, convention)?;
+            let boost2     = other.boost_to_soa(fs_node, momenta, tol, safety_checks, convention)?;
             let combined   = boost2.compose(&boost1_inv);
 
             let (phis, thetas, psis) = combined.wigner_angles_batch(tol, safety_checks)?;

@@ -8,7 +8,7 @@ use numpy::{IntoPyArray, PyReadonlyArray2, PyUntypedArrayMethods};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 
-use topology::{Node, Topology};
+use topology::{Node, Topology, Convention};
 
 // ── Python-tuple → Rust Node parser ──────────────────────────────────────────
 
@@ -28,8 +28,9 @@ fn parse_node(ob: &Bound<'_, PyAny>) -> PyResult<Node> {
     let left  = parse_node(&tup.get_item(0)?)?;
     let right = parse_node(&tup.get_item(1)?)?;
 
-    let mut label: Vec<i32> = left.particles().into_iter().chain(right.particles()).collect();
-    label.sort();
+    // Preserve left-to-right order from the tuple — sorting is already encoded
+    // by the Python topology's ordering function before the tuple is passed in.
+    let label: Vec<i32> = left.particles().into_iter().chain(right.particles()).collect();
 
     Ok(Node::Internal {
         label,
@@ -68,21 +69,30 @@ fn parse_momenta(py_momenta: &Bound<'_, PyDict>) -> PyResult<HashMap<i32, Vec<[f
 // ── Public Python functions ───────────────────────────────────────────────────
 
 #[pyfunction]
-#[pyo3(signature = (topology_tuple, momenta, tol=1e-10, safety_checks=true))]
+#[pyo3(signature = (topology_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity"))]
 fn helicity_angles_rust<'py>(
     py: Python<'py>,
     topology_tuple: &Bound<'py, PyAny>,
     momenta: &Bound<'py, PyDict>,
     tol: f64,
     safety_checks: bool,
+    convention: &str,
 ) -> PyResult<Bound<'py, PyDict>> {
     let root_node = parse_node(topology_tuple)?;
     let topo = Topology::new(root_node);
     let rust_momenta = parse_momenta(momenta)?;
+    let conv = Convention::from_str(convention)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
     let angles = topo
-        .helicity_angles(&rust_momenta, tol, safety_checks)
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        .helicity_angles(&rust_momenta, tol, safety_checks, conv)
+        .map_err(|e| {
+            if e.contains("not at rest") {
+                pyo3::exceptions::PyValueError::new_err(e)
+            } else {
+                pyo3::exceptions::PyRuntimeError::new_err(e)
+            }
+        })?;
 
     let result = PyDict::new_bound(py);
     for ((isobar, spectator), (phis, thetas)) in angles {
@@ -98,7 +108,7 @@ fn helicity_angles_rust<'py>(
 }
 
 #[pyfunction]
-#[pyo3(signature = (topology1_tuple, topology2_tuple, momenta, tol=1e-10, safety_checks=true))]
+#[pyo3(signature = (topology1_tuple, topology2_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity"))]
 fn wigner_angles_rust<'py>(
     py: Python<'py>,
     topology1_tuple: &Bound<'py, PyAny>,
@@ -106,16 +116,25 @@ fn wigner_angles_rust<'py>(
     momenta: &Bound<'py, PyDict>,
     tol: f64,
     safety_checks: bool,
+    convention: &str,
 ) -> PyResult<Bound<'py, PyDict>> {
     let root1 = parse_node(topology1_tuple)?;
     let root2 = parse_node(topology2_tuple)?;
     let topo1 = Topology::new(root1);
     let topo2 = Topology::new(root2);
     let rust_momenta = parse_momenta(momenta)?;
+    let conv = Convention::from_str(convention)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
 
     let angles = topo1
-        .relative_wigner_angles(&topo2, &rust_momenta, tol, safety_checks)
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e))?;
+        .relative_wigner_angles(&topo2, &rust_momenta, tol, safety_checks, conv)
+        .map_err(|e| {
+            if e.contains("not at rest") {
+                pyo3::exceptions::PyValueError::new_err(e)
+            } else {
+                pyo3::exceptions::PyRuntimeError::new_err(e)
+            }
+        })?;
 
     let result = PyDict::new_bound(py);
     for (particle, (phis, thetas, psis)) in angles {

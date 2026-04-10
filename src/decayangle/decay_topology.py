@@ -687,22 +687,40 @@ class Topology:
             Helicity angles for the final state particles
 
         """
-        if cfg.use_rust and convention == "helicity":
+        if cfg.use_rust:
             from decayangle_rs import helicity_angles_rust
             import numpy as np_plain
 
-            np_momenta = {k: np_plain.asarray(v) for k, v in momenta.items()}
+            print("[decayangle] using Rust backend for helicity_angles")
+            first = np_plain.asarray(next(iter(momenta.values())))
+            batch_shape = first.shape[:-1]  # everything except the last (4) axis
+            squeezed = first.ndim == 1  # scalar event — no batch dim at all
+            np_momenta = {}
+            for k, v in momenta.items():
+                arr = np_plain.ascontiguousarray(v, dtype=np_plain.float64)
+                if arr.ndim == 1:
+                    arr = arr[np_plain.newaxis, :]
+                else:
+                    arr = arr.reshape(-1, 4)
+                np_momenta[int(k)] = arr
             raw = helicity_angles_rust(
                 self.tuple,
                 np_momenta,
                 tol=tol if tol is not None else cfg.gamma_tolerance,
                 safety_checks=cfg.numerical_safety_checks,
+                convention=convention,
             )
+
+            def _rust_key_part(particles):
+                if len(particles) == 1:
+                    return particles[0]
+                return tuple(cfg.ordering_function(list(particles)))
+
             return {
-                (
-                    tuple(k[0]) if len(k[0]) > 1 else k[0][0],
-                    tuple(k[1]) if len(k[1]) > 1 else k[1][0],
-                ): HelicityAngles(v["phi"], v["theta"])
+                (_rust_key_part(k[0]), _rust_key_part(k[1])): HelicityAngles(
+                    v["phi"][0] if squeezed else v["phi"].reshape(batch_shape),
+                    v["theta"][0] if squeezed else v["theta"].reshape(batch_shape),
+                )
                 for k, v in raw.items()
             }
 
@@ -819,20 +837,40 @@ class Topology:
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
-        if cfg.use_rust and convention == "helicity":
+        if cfg.use_rust:
             from decayangle_rs import wigner_angles_rust
             import numpy as np_plain
 
-            np_momenta = {k: np_plain.asarray(v) for k, v in momenta.items()}
+            print("[decayangle] using Rust backend for relative_wigner_angles")
+            first = np_plain.asarray(next(iter(momenta.values())))
+            batch_shape = first.shape[:-1]
+            squeezed = first.ndim == 1
+            np_momenta = {}
+            for k, v in momenta.items():
+                arr = np_plain.ascontiguousarray(v, dtype=np_plain.float64)
+                if arr.ndim == 1:
+                    arr = arr[np_plain.newaxis, :]
+                else:
+                    arr = arr.reshape(-1, 4)
+                np_momenta[int(k)] = arr
             raw = wigner_angles_rust(
                 self.tuple,
                 other.tuple,
                 np_momenta,
                 tol=tol if tol is not None else cfg.gamma_tolerance,
                 safety_checks=cfg.numerical_safety_checks,
+                convention=convention,
             )
             return {
-                k: WignerAngles(v["phi_rf"], v["theta_rf"], v["psi_rf"])
+                k: WignerAngles(
+                    v["phi_rf"][0] if squeezed else v["phi_rf"].reshape(batch_shape),
+                    (
+                        v["theta_rf"][0]
+                        if squeezed
+                        else v["theta_rf"].reshape(batch_shape)
+                    ),
+                    v["psi_rf"][0] if squeezed else v["psi_rf"].reshape(batch_shape),
+                )
                 for k, v in raw.items()
             }
 

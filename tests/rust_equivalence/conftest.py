@@ -45,3 +45,42 @@ def momenta_3body():
         ]
     )
     return {1: p1, 2: p2, 3: p3}
+
+
+@pytest.fixture(scope="session")
+def momenta_4body():
+    """Random 4-body momenta in (approximately) the mother rest frame, shape (N, 4)."""
+    rng = np.random.default_rng(42)
+    p1 = np.column_stack(
+        [
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.6, 0.6, N),
+            np.ones(N),
+        ]
+    )
+    p2 = np.column_stack(
+        [
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.4, 0.4, N),
+            np.ones(N),
+        ]
+    )
+    p3 = np.column_stack(
+        [
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.4, 0.4, N),
+            rng.uniform(-0.4, 0.4, N),
+            np.ones(N),
+        ]
+    )
+    p4 = np.column_stack(
+        [
+            -p1[:, 0] - p2[:, 0] - p3[:, 0],
+            -p1[:, 1] - p2[:, 1] - p3[:, 1],
+            -p1[:, 2] - p2[:, 2] - p3[:, 2],
+            np.ones(N),
+        ]
+    )
+    return {1: p1, 2: p2, 3: p3, 4: p4}
