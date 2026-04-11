@@ -711,10 +711,12 @@ class Topology:
                 convention=convention,
             )
 
+            ordering_fn = self.ordering_function
+
             def _rust_key_part(particles):
                 if len(particles) == 1:
                     return particles[0]
-                return tuple(cfg.ordering_function(list(particles)))
+                return tuple(ordering_fn(list(particles)))
 
             return {
                 (_rust_key_part(k[0]), _rust_key_part(k[1])): HelicityAngles(
@@ -940,7 +942,7 @@ def split(nodes: List[Node], splitter: int) -> Tuple[Tuple[Node], Tuple[Node]]:
     return tuple(left), tuple(right)
 
 
-def generate_topology_definitions(nodes: List[int]) -> List[Node]:
+def generate_topology_definitions(nodes: List[int]) -> Tuple[Union[Tuple, int]]:
     """
     Generate all possible topology definitions for a given list of nodes.
 
@@ -952,26 +954,12 @@ def generate_topology_definitions(nodes: List[int]) -> List[Node]:
     """
     topologies = []
     if len(nodes) == 1:
-        return [(None, None)]
+        return nodes
     for i in range(1, 1 << len(nodes) - 1):
         left, right = split(nodes, i)
-        for l, r in generate_topology_definitions(left):
-            if len(left) == 1:
-                l_node = Node(left[0])
-            else:
-                l_node = Node(left)
-            if l is not None:
-                l_node.add_daughter(l)
-                l_node.add_daughter(r)
-            for l2, r2 in generate_topology_definitions(right):
-                if len(right) == 1:
-                    r_node = Node(right[0])
-                else:
-                    r_node = Node(right)
-                if l2 is not None:
-                    r_node.add_daughter(l2)
-                    r_node.add_daughter(r2)
-                topologies.append((l_node, r_node))
+        for left_tuple in generate_topology_definitions(left):
+            for right_tuple in generate_topology_definitions(right):
+                topologies.append((left_tuple, right_tuple))
     return topologies
 
 
@@ -1105,15 +1093,13 @@ class TopologyCollection:
             List[Topology]: all possible topologies for the given final state nodes
         """
         topologies = generate_topology_definitions(self.final_state_nodes)
-        topologies_with_root_node = []
-        for l, r in topologies:
-            root = Node(self.start_node)
-            root.add_daughter(l)
-            root.add_daughter(r)
-            topologies_with_root_node.append(root)
         return [
-            Topology(node, ordering_function=self.ordering_function)
-            for node in topologies_with_root_node
+            Topology(
+                self.start_node,
+                decay_topology=self.ordering_function(topo),
+                ordering_function=self.ordering_function,
+            )
+            for topo in topologies
         ]
 
     @property
