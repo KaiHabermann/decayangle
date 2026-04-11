@@ -691,7 +691,6 @@ class Topology:
             from decayangle_rs import helicity_angles_rust
             import numpy as np_plain
 
-            print("[decayangle] using Rust backend for helicity_angles")
             first = np_plain.asarray(next(iter(momenta.values())))
             batch_shape = first.shape[:-1]  # everything except the last (4) axis
             squeezed = first.ndim == 1  # scalar event — no batch dim at all
@@ -843,7 +842,6 @@ class Topology:
             from decayangle_rs import wigner_angles_rust
             import numpy as np_plain
 
-            print("[decayangle] using Rust backend for relative_wigner_angles")
             first = np_plain.asarray(next(iter(momenta.values())))
             batch_shape = first.shape[:-1]
             squeezed = first.ndim == 1
