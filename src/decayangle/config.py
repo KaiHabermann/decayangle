@@ -154,7 +154,7 @@ class _cfg:
                 # this is a hack to make sure, that the order of the daughters is consistent
                 # it will fail, if there are more than 10000 particles in the final state
                 # but this is not realistic for the time being
-                return -len(value) * 10000 + value[0]
+                return -len(value) * 10000 + key(value[0])
             if isinstance(value, int):
                 return abs(value)
 
