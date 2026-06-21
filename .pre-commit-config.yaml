@@ -23,12 +23,13 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
+        exclude: "decayangle-rs/*"
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.7.0
     hooks:
       - id: interrogate
-        exclude: "src/decayangle/__*|tests/*|src/decayangle/backend.py"
+        exclude: "src/decayangle/__*|tests/*|src/decayangle/backend.py|decayangle-rs/*"
         args: [--fail-under=80, --verbose]
 
   - repo: https://github.com/codespell-project/codespell
@@ -40,7 +41,7 @@ repos:
         entry: codespell README.md
         language: python
         types: [text]
-        exclude: "notebooks/*"
+        exclude: "notebooks/*|decayangle-rs/*"
 
   - repo: https://github.com/psf/black
     rev: 24.4.2

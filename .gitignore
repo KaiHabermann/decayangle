@@ -7,3 +7,7 @@ dist/
 *.pdf
 node_modules/
 env/
+
+# Rust build artifacts
+decayangle-rs/target/
+decayangle-rs/Cargo.lock
