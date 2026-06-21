@@ -66,6 +66,7 @@ dependencies = [
 
 [tool.hatch.envs.test.scripts]
 cov = 'pytest --cov-report=term-missing --cov-report=xml --cov-config=pyproject.toml --cov --cov=tests'
+install-rs = 'pip install ./decayangle-rs'
 
 [[tool.hatch.envs.test.matrix]]
 python = ["312", "311", "310", "39", "38"]

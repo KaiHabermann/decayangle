@@ -33,7 +33,7 @@ jobs:
       - name: Install sympy
         run: pipx install sympy
       - name: Install decayangle-rs into all test environments
-        run: hatch run all:pip install ./decayangle-rs
+        run: hatch run test:install-rs
       - name: Run tests
         run: hatch run test:cov
       - name: Upload coverage reports to Codecov
