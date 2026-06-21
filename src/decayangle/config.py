@@ -8,8 +8,9 @@ class _cfg:
         "backend": "numpy",
         "sorting": "value",
         "numerical_safety_checks": True,
-        "gamma_tolerance": 1e-10,
-        "shift_precision": 1e-10,
+        "gamma_tolerance": 1e-8,
+        "shift_precision": 1e-8,
+        "use_rust": True,
     }
     backend_map = {
         "jax": jax_backend,
@@ -153,7 +154,7 @@ class _cfg:
                 # this is a hack to make sure, that the order of the daughters is consistent
                 # it will fail, if there are more than 10000 particles in the final state
                 # but this is not realistic for the time being
-                return -len(value) * 10000 + value[0]
+                return -len(value) * 10000 + key(value[0])
             if isinstance(value, int):
                 return abs(value)
 
@@ -193,6 +194,28 @@ class _cfg:
             return value
 
         raise ValueError(f"Node sorting {self.sorting} not found")
+
+    @property
+    def use_rust(self) -> bool:
+        """
+        If True, helicity_angles and relative_wigner_angles delegate to the Rust extension.
+
+        Returns:
+            bool: Whether to use the Rust backend
+        """
+        return self.__state["use_rust"]
+
+    @use_rust.setter
+    def use_rust(self, value: bool):
+        """
+        Set whether to use the Rust extension for angle computations.
+
+        Args:
+            value (bool): Whether to use the Rust backend
+        """
+        if not isinstance(value, bool):
+            raise ValueError(f"use_rust must be a bool, got {type(value)}")
+        self.__state["use_rust"] = value
 
     def raise_if_safety_on(self, exception: Exception):
         """
