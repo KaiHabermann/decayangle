@@ -60,7 +60,7 @@ jobs:
           args: >-
             --release
             --out ../dist-rs
-            --interpreter 3.8 3.9 3.10 3.11 3.12
+            --interpreter 3.9 3.10 3.11 3.12
       - uses: actions/upload-artifact@v4
         with:
           name: rust-wheels-${{ matrix.os }}-${{ matrix.target }}

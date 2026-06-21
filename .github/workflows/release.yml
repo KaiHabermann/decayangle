@@ -2,6 +2,9 @@ name: PyPi Release
 
 on:
   workflow_dispatch: {}
+  push:
+    tags:
+      - "v*"
 
 jobs:
   # ── Pure-Python package (decayangle) ────────────────────────────────────────
@@ -65,7 +68,7 @@ jobs:
           args: >-
             --release
             --out ../dist-rs
-            --interpreter 3.8 3.9 3.10 3.11 3.12
+            --interpreter 3.9 3.10 3.11 3.12
       - uses: actions/upload-artifact@v4
         with:
           name: rust-wheels-${{ matrix.os }}-${{ matrix.target }}
@@ -91,8 +94,7 @@ jobs:
   # ── Publish decayangle to PyPI ───────────────────────────────────────────────
   publish-python:
     name: Publish decayangle to PyPI
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [build-python]
+    needs: [build-python, publish-rust]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -109,7 +111,6 @@ jobs:
   # ── Publish decayangle-rs to PyPI ───────────────────────────────────────────
   publish-rust:
     name: Publish decayangle-rs to PyPI
-    if: startsWith(github.ref, 'refs/tags/')
     needs: [build-rust, build-rust-sdist]
     runs-on: ubuntu-latest
     environment:
