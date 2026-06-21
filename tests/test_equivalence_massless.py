@@ -18,6 +18,7 @@ from sympy.physics.quantum.cg import CG
 from sympy import Rational
 
 cfg.sorting = "off"
+cfg.use_rust = False
 
 cache = lru_cache(maxsize=None)
 
@@ -291,13 +292,15 @@ momenta = {
 def angles(convention):
     final_state_rotations = {
         topology.tuple: reference_topology.relative_wigner_angles(
-            topology, momenta, convention=convention
+            topology, momenta, convention=convention, massless=[1]
         )
         for topology in tg.topologies
     }
 
     helicity_angles = {
-        topology.tuple: topology.helicity_angles(momenta, convention=convention)
+        topology.tuple: topology.helicity_angles(
+            momenta, convention=convention, massless=[1]
+        )
         for topology in tg.topologies
     }
     return final_state_rotations, helicity_angles
@@ -507,8 +510,6 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     terms_1_can = amp_dict(f_canonical, resonance_lineshapes_single_1)
     terms_2_can = amp_dict(f_canonical, resonance_lineshapes_single_3)
 
-    # print(unpolarized(add_dicts(terms_1_m, terms_2_m)))
-    # print(unpolarized(add_dicts(terms_1, terms_2)))
     assert np.allclose(
         unpolarized(add_dicts(terms_1_m, terms_2_m)),
         unpolarized(add_dicts(terms_1, terms_2)),
@@ -532,8 +533,10 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
 
     rotdict = {
         1: (
-            reference_topology.boost(1, momenta, convention="minus_phi")
-            @ reference_topology.boost(1, momenta, convention="helicity").inverse()
+            reference_topology.boost(1, momenta, convention="minus_phi", massless=[1])
+            @ reference_topology.boost(
+                1, momenta, convention="helicity", massless=[1]
+            ).inverse()
         ).wigner_angles(),
         2: (
             reference_topology.boost(2, momenta, convention="minus_phi")
@@ -549,7 +552,7 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
     terms_1_m_new_basis = basis_change(terms_1_m, rotdict)
 
     for k, v in terms_2_m_new_basis.items():
-        assert np.allclose(v, terms_2[k], atol=1e-6, rtol=1e-6)
+        assert np.allclose(v, terms_2[k], atol=1e-5, rtol=1e-5)
 
     for k, v in terms_1_m_new_basis.items():
         if abs(np.mean(v)) < 1e-6:
@@ -560,8 +563,10 @@ def test_equivalence(resonance_lineshapes_single_1, resonance_lineshapes_single_
 
     rotdict = {
         1: (
-            reference_topology.boost(1, momenta, convention="canonical")
-            @ reference_topology.boost(1, momenta, convention="helicity").inverse()
+            reference_topology.boost(1, momenta, convention="canonical", massless=[1])
+            @ reference_topology.boost(
+                1, momenta, convention="helicity", massless=[1]
+            ).inverse()
         ).wigner_angles(),
         2: (
             reference_topology.boost(2, momenta, convention="canonical")

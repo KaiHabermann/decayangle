@@ -147,7 +147,9 @@ def test_massless_wigner():
 
     try:
         # Calculate relative Wigner angles for all final state particles
-        wigner_rotations = topology2.relative_wigner_angles(topology3, momenta_rest)
+        wigner_rotations = topology2.relative_wigner_angles(
+            topology3, momenta_rest, massless=[2]
+        )
 
         print(f"Wigner rotations calculated successfully!")
         print(f"Number of final state particles: {len(wigner_rotations)}")
@@ -249,7 +251,9 @@ def test_massless_wigner_multiple_events():
 
         try:
             # Calculate Wigner rotations
-            wigner_rotations = topology1.relative_wigner_angles(topology2, momenta_rest)
+            wigner_rotations = topology1.relative_wigner_angles(
+                topology2, momenta_rest, massless=[2]
+            )
 
             # Verify all angles are finite for massive particles only
             massive_particles_finite = True
