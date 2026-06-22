@@ -16,7 +16,9 @@ jobs:
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme myst_parser sphinx-mdinclude && pip install . && pip uninstall -y decayangle
+          pip install sphinx sphinx_rtd_theme myst_parser sphinx-mdinclude
+          pip install --no-deps .
+          pip install networkx jax jaxlib numpy tqdm
       - name: Sphinx build
         run: |
           sphinx-apidoc -o docs/ src && sphinx-build docs _build

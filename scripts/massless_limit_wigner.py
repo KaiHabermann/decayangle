@@ -121,7 +121,17 @@ def scan_wigner_angles(
             float(np.array(w.phi_rf).flat[0]) + float(np.array(w.psi_rf).flat[0])
         )
 
-    return np.array(thetas), np.array(phi_plus_psis)
+    # Exact massless limit: m=0, massless flag set
+    momenta = add_batch_dim(make_momenta_fn(0.0))
+    momenta_rest = topo_a.to_rest_frame(momenta)
+    wa = topo_a.relative_wigner_angles(
+        topo_b, momenta_rest, convention=convention, massless=[massless_particle]
+    )
+    w = wa[massless_particle]
+    theta_exact = float(np.array(w.theta_rf).flat[0])
+    pps_exact = float(np.array(w.phi_rf).flat[0]) + float(np.array(w.psi_rf).flat[0])
+
+    return np.array(thetas), np.array(phi_plus_psis), theta_exact, pps_exact
 
 
 def scan_all_conventions(
@@ -141,7 +151,7 @@ def scan_all_conventions(
         mass_values,
         convention="helicity",
     )
-    return (helicity,)
+    return (helicity,)  # tuple of (thetas, pps, theta_exact, pps_exact)
 
 
 # ── Setup decays ──────────────────────────────────────────────────────────────
@@ -178,17 +188,17 @@ def make5(m1):
 # ── Compute ───────────────────────────────────────────────────────────────────
 
 print("Computing 3-body...")
-((theta_3, pps_3),) = scan_all_conventions(
+((theta_3, pps_3, theta_3_exact, pps_3_exact),) = scan_all_conventions(
     make3, tg3, 0, 1, massless_particle=1, mass_values=mass_values
 )
 
 print("Computing 4-body...")
-((theta_4, pps_4),) = scan_all_conventions(
+((theta_4, pps_4, theta_4_exact, pps_4_exact),) = scan_all_conventions(
     make4, tg4, 3, 6, massless_particle=1, mass_values=mass_values
 )
 
 print("Computing 5-body...")
-((theta_5, pps_5),) = scan_all_conventions(
+((theta_5, pps_5, theta_5_exact, pps_5_exact),) = scan_all_conventions(
     make5, tg5, 18, 30, massless_particle=1, mass_values=mass_values
 )
 
@@ -203,6 +213,8 @@ configs = [
         tg3.topologies[1].tuple,
         theta_3,
         pps_3,
+        theta_3_exact,
+        pps_3_exact,
         "3body",
     ),
     (
@@ -212,6 +224,8 @@ configs = [
         tg4.topologies[6].tuple,
         theta_4,
         pps_4,
+        theta_4_exact,
+        pps_4_exact,
         "4body",
     ),
     (
@@ -221,25 +235,34 @@ configs = [
         tg5.topologies[30].tuple,
         theta_5,
         pps_5,
+        theta_5_exact,
+        pps_5_exact,
         "5body",
     ),
 ]
 
-for n, m0, ta, tb, thetas, pps, tag in configs:
+for n, m0, ta, tb, thetas, pps, theta_exact, pps_exact, tag in configs:
     title = f"{n}-body: {ta} vs {tb}"
 
-    for data, ylabel, subtag in [
-        (thetas / np.pi, r"$\theta_{\rm Wigner}$ $[\pi]$", "theta"),
-        (pps / np.pi, r"$(\phi + \psi)$ $[\pi]$", "phi_plus_psi"),
+    for data, exact, ylabel, subtag in [
+        (
+            thetas / np.pi,
+            theta_exact / np.pi,
+            r"$\theta_{\rm Wigner}$ $[\pi]$",
+            "theta",
+        ),
+        (pps / np.pi, pps_exact / np.pi, r"$(\phi + \psi)$ $[\pi]$", "phi_plus_psi"),
     ]:
         fig, ax = plt.subplots(figsize=(6, 4))
         ax.plot(mass_values, data, "o-", ms=3, lw=1)
+        ax.axhline(exact, color="C1", lw=1.5, ls="--", label=r"$m_1 = 0$ (exact)")
         ax.set_xscale("log")
         ax.invert_xaxis()
         ax.set_xlabel("$m_1$ [arbitrary units]", fontsize=14)
         ax.set_ylabel(ylabel, fontsize=14)
         ax.set_title(title, fontsize=10)
-        ax.axhline(0, color="k", lw=0.5, ls="--")
+        ax.axhline(0, color="k", lw=0.5, ls=":")
+        ax.legend(fontsize=11)
         ax.grid(True, alpha=0.3)
         fig.tight_layout()
         path = f"scripts/massless_limit_wigner_{tag}_{subtag}.png"
