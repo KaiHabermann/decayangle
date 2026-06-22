@@ -18,6 +18,7 @@ from sympy.physics.quantum.cg import CG
 from sympy import Rational
 
 cfg.sorting = "off"
+cfg.use_rust = True
 
 cache = lru_cache(maxsize=None)
 
