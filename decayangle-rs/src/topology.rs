@@ -213,6 +213,25 @@ impl TrafoSoA {
             });
     }
 
+    /// inverse: result[i] = self[i]^{-1}
+    fn inverse(&self) -> TrafoSoA {
+        let n = self.n;
+        let mut m4 = vec![0.0f64; n * 16];
+        let mut m2 = vec![Complex64::new(0., 0.); n * 4];
+        m4.par_chunks_mut(16).zip(m2.par_chunks_mut(4))
+            .enumerate()
+            .for_each(|(i, (c4, c2))| {
+                let a4 = self.mat4(i).try_inverse().expect("non-invertible 4x4");
+                for row in 0..4 { for col in 0..4 {
+                    c4[row * 4 + col] = a4[(row, col)];
+                }}
+                let a2 = self.mat2(i).try_inverse().expect("non-invertible 2x2");
+                c2[0] = a2[(0,0)]; c2[1] = a2[(0,1)];
+                c2[2] = a2[(1,0)]; c2[3] = a2[(1,1)];
+            });
+        TrafoSoA { n, m4, m2 }
+    }
+
     /// Apply all 4×4 matrices to the corresponding event momenta.
     fn transform_momenta(&self, momenta: &HashMap<i32, Vec<[f64; 4]>>) -> HashMap<i32, Vec<[f64; 4]>> {
         momenta.iter().map(|(k, batch)| {
@@ -257,6 +276,26 @@ impl TrafoSoA {
             psis[i]   = psi_rf;
         }
         Ok((phis, thetas, psis))
+    }
+
+    // For massless particles the composed 4×4 is not a factorizable Lorentz boost,
+    // so decode Wigner angles directly from the SU(2) matrix, matching Python's
+    // decode_pure_rotation / wigner_angles path.
+    fn wigner_angles_su2_direct_batch(&self) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+        let n = self.n;
+        let mut phis   = vec![0.0f64; n];
+        let mut thetas = vec![0.0f64; n];
+        let mut psis   = vec![0.0f64; n];
+        phis.par_iter_mut().zip(thetas.par_iter_mut()).zip(psis.par_iter_mut())
+            .enumerate()
+            .for_each(|(i, ((phi, theta), psi))| {
+                let m2 = self.mat2(i);
+                let (phi_rf, theta_rf, psi_rf) = decode_su2_rotation(&m2);
+                *phi   = phi_rf;
+                *theta = theta_rf;
+                *psi   = psi_rf;
+            });
+        (phis, thetas, psis)
     }
 }
 
@@ -311,6 +350,11 @@ impl Topology {
     }
 
     /// Compute one step of the boost: node → target daughter, for a given convention.
+    ///
+    /// `momenta` must be in `node`'s rest frame. For massless targets the boost-to-rest is
+    /// replaced by a canonical (pure) boost to the total-momentum rest frame, computed
+    /// directly from the total 4-momentum as seen in the current node frame. The rotation
+    /// part (aligning with left daughter / flip) is applied identically to the massive case.
     fn boost_step(
         node: &Node,
         target: &Node,
@@ -318,6 +362,7 @@ impl Topology {
         tol: f64,
         safety_checks: bool,
         convention: Convention,
+        massless: &[i32],
     ) -> Result<TrafoSoA, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
 
@@ -341,6 +386,21 @@ impl Topology {
             }
         }
 
+        let target_is_massless = target.is_leaf() && {
+            if let Node::Leaf(id) = target { massless.contains(id) } else { false }
+        };
+
+        // For massless targets: sum all final-state momenta in the current node frame
+        // to get the total 4-momentum whose rest frame we boost to.
+        let total_mom: Vec<[f64; 4]> = if target_is_massless {
+            let batches: Vec<&Vec<[f64; 4]>> = momenta.values().collect();
+            (0..n).map(|i| {
+                batches.iter().fold([0.0; 4], |acc, b| add4(&acc, &b[i]))
+            }).collect()
+        } else {
+            vec![]
+        };
+
         let n_events = n;
         let mut m4 = vec![0.0f64; n_events * 16];
         let mut m2 = vec![Complex64::new(0., 0.); n_events * 4];
@@ -357,20 +417,41 @@ impl Topology {
             .enumerate()
             .for_each(|(i, (c4, c2))| {
                 let (minus_phi_rf, minus_theta_rf) = rotate_to_z_axis(&rotate_ref_mom[i]);
-                let xi = -rapidity(&target_mom[i]);
 
-                let bst4 = build_4_4(0., 0., xi, 0., 0., 0.);
-                let bst2 = build_2_2(0., 0., xi, 0., 0., 0.);
+                // Build the boost matrix: for massless targets use a canonical pure boost
+                // to the total-momentum rest frame; for massive targets use the standard
+                // z-boost to the target's rest frame.
+                let (bst4, bst2) = if target_is_massless {
+                    // Pure canonical boost to total-momentum rest frame:
+                    // rotate total_mom to z, boost along z, rotate back.
+                    let (tot_mphi, tot_mtheta) = rotate_to_z_axis(&total_mom[i]);
+                    let xi_tot = -rapidity(&total_mom[i]);
+                    let rot4 = build_4_4(0., 0., 0., 0., tot_mtheta, tot_mphi);
+                    let rot2 = build_2_2(0., 0., 0., 0., tot_mtheta, tot_mphi);
+                    let bz4  = build_4_4(0., 0., xi_tot, 0., 0., 0.);
+                    let bz2  = build_2_2(0., 0., xi_tot, 0., 0., 0.);
+                    let rot4_inv = rot4.try_inverse().expect("rotation invertible");
+                    let rot2_inv = rot2.try_inverse().expect("rotation invertible");
+                    (rot4_inv * bz4 * rot4, rot2_inv * bz2 * rot2)
+                } else {
+                    let xi = -rapidity(&target_mom[i]);
+                    (build_4_4(0., 0., xi, 0., 0., 0.), build_2_2(0., 0., xi, 0., 0., 0.))
+                };
 
                 let (r4, r2) = match convention {
                     Convention::Canonical => {
-                        // rot aligns target with z; result = rot^{-1} @ boost @ rot
-                        // no flip needed — canonical always acts on the specific target
-                        let rot4 = build_4_4(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
-                        let rot2 = build_2_2(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
-                        let rot4_inv = rot4.try_inverse().expect("rotation invertible");
-                        let rot2_inv = rot2.try_inverse().expect("rotation invertible");
-                        (rot4_inv * bst4 * rot4, rot2_inv * bst2 * rot2)
+                        if target_is_massless {
+                            // boost is already a pure canonical boost to total-mom rest frame;
+                            // return it directly (same as Python: return boost_to_root).
+                            (bst4, bst2)
+                        } else {
+                            // rot aligns target with z; result = rot^{-1} @ boost @ rot
+                            let rot4 = build_4_4(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                            let rot2 = build_2_2(0., 0., 0., 0., minus_theta_rf, minus_phi_rf);
+                            let rot4_inv = rot4.try_inverse().expect("rotation invertible");
+                            let rot2_inv = rot2.try_inverse().expect("rotation invertible");
+                            (rot4_inv * bst4 * rot4, rot2_inv * bst2 * rot2)
+                        }
                     }
                     Convention::Helicity => {
                         // rot aligns left daughter with z; result = boost @ [flip @] rot
@@ -416,6 +497,7 @@ impl Topology {
         tol: f64,
         safety_checks: bool,
         convention: Convention,
+        massless: &[i32],
     ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
@@ -425,12 +507,12 @@ impl Topology {
         }
 
         let mut current_momenta = momenta.clone();
-        let first_step = Self::boost_step(path[0], path[1], &current_momenta, tol, safety_checks, convention)?;
+        let first_step = Self::boost_step(path[0], path[1], &current_momenta, tol, safety_checks, convention, massless)?;
         current_momenta = first_step.transform_momenta(&current_momenta);
         let mut composed = first_step;
 
         for i in 1..path.len() - 1 {
-            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention)?;
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention, massless)?;
             current_momenta = step.transform_momenta(&current_momenta);
             composed.left_compose_assign(&step);
         }
@@ -446,6 +528,7 @@ impl Topology {
         tol: f64,
         safety_checks: bool,
         convention: Convention,
+        massless: &[i32],
     ) -> Result<TrafoSoA, String> {
         let path = self.path_to(target);
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
@@ -458,7 +541,7 @@ impl Topology {
         let mut current_momenta = momenta.clone();
 
         for i in 0..path.len() - 1 {
-            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention)?;
+            let step = Self::boost_step(path[i], path[i+1], &current_momenta, tol, safety_checks, convention, massless)?;
             current_momenta = step.transform_momenta(&current_momenta);
             all_steps.push(step);
         }
@@ -477,6 +560,7 @@ impl Topology {
         tol: f64,
         safety_checks: bool,
         convention: Convention,
+        massless: &[i32],
     ) -> Result<HashMap<(Vec<i32>, Vec<i32>), (Vec<f64>, Vec<f64>)>, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
         let mut result = HashMap::new();
@@ -488,7 +572,7 @@ impl Topology {
             let frame_momenta = if node.particles() == self.root.particles() {
                 momenta
             } else {
-                let trafos = self.boost_to_soa(node, momenta, tol, safety_checks, convention)?;
+                let trafos = self.boost_to_soa(node, momenta, tol, safety_checks, convention, massless)?;
                 frame_momenta_owned = trafos.transform_momenta(momenta);
                 &frame_momenta_owned
             };
@@ -514,6 +598,7 @@ impl Topology {
         tol: f64,
         safety_checks: bool,
         convention: Convention,
+        massless: &[i32],
     ) -> Result<HashMap<i32, (Vec<f64>, Vec<f64>, Vec<f64>)>, String> {
         let n = momenta.values().next().map(|v| v.len()).unwrap_or(0);
         let mut result = HashMap::new();
@@ -529,11 +614,18 @@ impl Topology {
                 continue;
             }
 
-            let boost1_inv = self.boost_to_inverse_soa(fs_node, momenta, tol, safety_checks, convention)?;
-            let boost2     = other.boost_to_soa(fs_node, momenta, tol, safety_checks, convention)?;
+            let boost1_inv = self.boost_to_inverse_soa(fs_node, momenta, tol, safety_checks, convention, massless)?;
+            let boost2     = other.boost_to_soa(fs_node, momenta, tol, safety_checks, convention, massless)?;
             let combined   = boost2.compose(&boost1_inv);
 
-            let (phis, thetas, psis) = combined.wigner_angles_batch(tol, safety_checks)?;
+            let (phis, thetas, psis) = if massless.contains(&particle) {
+                // Massless particle: the composed 4×4 is not a factorizable Lorentz boost,
+                // so decode Wigner angles directly from the SU(2) matrix (mirrors Python's
+                // decode_pure_rotation / wigner_angles path).
+                combined.wigner_angles_su2_direct_batch()
+            } else {
+                combined.wigner_angles_batch(tol, safety_checks)?
+            };
             result.insert(particle, (phis, thetas, psis));
         }
 

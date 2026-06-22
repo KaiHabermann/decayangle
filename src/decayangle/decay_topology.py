@@ -339,9 +339,6 @@ class Node:
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
 
-        # boost to the rest frame of the target
-        xi = -akm.rapidity(target.momentum(momenta))
-        boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
         masses = cb.nan_to_num(akm.mass(target.momentum(momenta)), nan=0)
         target_is_massless = (massless is not None) and (target.value in massless)
         if cb.all(masses < 1e-6) and not target_is_massless:
@@ -361,6 +358,10 @@ class Node:
             boost = boost_to_root
             if convention == "canonical":
                 return boost
+        else:
+            # boost to the rest frame of the target (only after massless check)
+            xi = -akm.rapidity(target.momentum(momenta))
+            boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
         if convention == "canonical":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
