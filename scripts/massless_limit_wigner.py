@@ -203,14 +203,23 @@ print("Computing 5-body...")
 )
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def topo_latex(topo):
+    """Convert a Topology repr to a LaTeX string."""
+    s = repr(topo).replace("Topology: ", "").replace("->", r"\to").replace(",", "")
+    return f"${s}$"
+
+
 # ── Plot ──────────────────────────────────────────────────────────────────────
 
 configs = [
     (
         3,
         M0_3,
-        tg3.topologies[0].tuple,
-        tg3.topologies[1].tuple,
+        tg3.topologies[0],
+        tg3.topologies[1],
         theta_3,
         pps_3,
         theta_3_exact,
@@ -220,8 +229,8 @@ configs = [
     (
         4,
         M0_4,
-        tg4.topologies[3].tuple,
-        tg4.topologies[6].tuple,
+        tg4.topologies[3],
+        tg4.topologies[6],
         theta_4,
         pps_4,
         theta_4_exact,
@@ -231,8 +240,8 @@ configs = [
     (
         5,
         M0_5,
-        tg5.topologies[18].tuple,
-        tg5.topologies[30].tuple,
+        tg5.topologies[18],
+        tg5.topologies[30],
         theta_5,
         pps_5,
         theta_5_exact,
@@ -242,7 +251,7 @@ configs = [
 ]
 
 for n, m0, ta, tb, thetas, pps, theta_exact, pps_exact, tag in configs:
-    title = f"{n}-body: {ta} vs {tb}"
+    title = f"{topo_latex(ta)} vs {topo_latex(tb)}"
 
     for data, exact, ylabel, subtag in [
         (
