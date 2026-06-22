@@ -54,6 +54,7 @@ branch = true
 relative_files = true
 omit = [
     'tests/*',
+    'scripts/*',
 ]
 
 [tool.hatch.envs.test]
