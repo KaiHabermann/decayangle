@@ -23,13 +23,13 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        exclude: "decayangle-rs/*"
+        exclude: "decayangle-rs/*|scripts/*"
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.7.0
     hooks:
       - id: interrogate
-        exclude: "src/decayangle/__*|tests/*|src/decayangle/backend.py|decayangle-rs/*"
+        exclude: "src/decayangle/__*|tests/*|src/decayangle/backend.py|decayangle-rs/*|scripts/*"
         args: [--fail-under=80, --verbose]
 
   - repo: https://github.com/codespell-project/codespell

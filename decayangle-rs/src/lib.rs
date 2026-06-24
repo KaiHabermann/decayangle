@@ -6,7 +6,7 @@ mod topology;
 use std::collections::HashMap;
 use numpy::{IntoPyArray, PyReadonlyArray2, PyUntypedArrayMethods};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyTuple};
+use pyo3::types::{PyDict, PyTuple, PyList};
 
 use topology::{Node, Topology, Convention};
 
@@ -66,10 +66,24 @@ fn parse_momenta(py_momenta: &Bound<'_, PyDict>) -> PyResult<HashMap<i32, Vec<[f
     Ok(out)
 }
 
+/// Convert a Python list of ints to a Rust Vec<i32>.
+fn parse_massless(py_massless: &Bound<'_, PyAny>) -> PyResult<Vec<i32>> {
+    if py_massless.is_none() {
+        return Ok(vec![]);
+    }
+    let list = py_massless.downcast::<PyList>()
+        .map_err(|_| pyo3::exceptions::PyTypeError::new_err("massless must be a list of ints"))?;
+    let mut out = Vec::with_capacity(list.len());
+    for item in list.iter() {
+        out.push(item.extract::<i32>()?);
+    }
+    Ok(out)
+}
+
 // ── Public Python functions ───────────────────────────────────────────────────
 
 #[pyfunction]
-#[pyo3(signature = (topology_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity"))]
+#[pyo3(signature = (topology_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity", massless=None))]
 fn helicity_angles_rust<'py>(
     py: Python<'py>,
     topology_tuple: &Bound<'py, PyAny>,
@@ -77,15 +91,20 @@ fn helicity_angles_rust<'py>(
     tol: f64,
     safety_checks: bool,
     convention: &str,
+    massless: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let root_node = parse_node(topology_tuple)?;
     let topo = Topology::new(root_node);
     let rust_momenta = parse_momenta(momenta)?;
     let conv = Convention::from_str(convention)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    let massless_ids = match massless {
+        Some(m) => parse_massless(m)?,
+        None => vec![],
+    };
 
     let angles = topo
-        .helicity_angles(&rust_momenta, tol, safety_checks, conv)
+        .helicity_angles(&rust_momenta, tol, safety_checks, conv, &massless_ids)
         .map_err(|e| {
             if e.contains("not at rest") {
                 pyo3::exceptions::PyValueError::new_err(e)
@@ -108,7 +127,7 @@ fn helicity_angles_rust<'py>(
 }
 
 #[pyfunction]
-#[pyo3(signature = (topology1_tuple, topology2_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity"))]
+#[pyo3(signature = (topology1_tuple, topology2_tuple, momenta, tol=1e-10, safety_checks=true, convention="helicity", massless=None))]
 fn wigner_angles_rust<'py>(
     py: Python<'py>,
     topology1_tuple: &Bound<'py, PyAny>,
@@ -117,6 +136,7 @@ fn wigner_angles_rust<'py>(
     tol: f64,
     safety_checks: bool,
     convention: &str,
+    massless: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let root1 = parse_node(topology1_tuple)?;
     let root2 = parse_node(topology2_tuple)?;
@@ -125,9 +145,13 @@ fn wigner_angles_rust<'py>(
     let rust_momenta = parse_momenta(momenta)?;
     let conv = Convention::from_str(convention)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
+    let massless_ids = match massless {
+        Some(m) => parse_massless(m)?,
+        None => vec![],
+    };
 
     let angles = topo1
-        .relative_wigner_angles(&topo2, &rust_momenta, tol, safety_checks, conv)
+        .relative_wigner_angles(&topo2, &rust_momenta, tol, safety_checks, conv, &massless_ids)
         .map_err(|e| {
             if e.contains("not at rest") {
                 pyo3::exceptions::PyValueError::new_err(e)

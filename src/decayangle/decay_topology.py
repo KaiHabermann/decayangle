@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Tuple, Union, Any, Dict, Optional, Generator, Callable, Literal
 from collections import namedtuple
+import warnings
 import numpy as np
 from jax import numpy as jnp
 import networkx as nx
@@ -86,7 +87,7 @@ class Node:
         if isinstance(value, tuple):
             if len(value) == 0:
                 raise ValueError(
-                    "Node value has to be an integer or a tuple of integers"
+                    f"Node value has to be an integer or a tuple of integers not {type(value)}"
                 )
             if len(value) == 1:
                 # a single element in a tuple should have the value of the element
@@ -97,7 +98,7 @@ class Node:
         else:
             if not isinstance(value, int):
                 raise ValueError(
-                    "Node value has to be an integer or a tuple of integers"
+                    f"Node value has to be an integer or a tuple of integers not {type(value)}"
                 )
             if value < 0:
                 raise ValueError("Node value has to be a positive integer or 0")
@@ -130,6 +131,11 @@ class Node:
         if self.final_state:
             return self.value
         return tuple((d.tuple for d in self.daughters))
+
+    def root(self):
+        if self.parent is not None:
+            return self.parent.root()
+        return self
 
     @ordering_function.setter
     def ordering_function(self, value):
@@ -293,6 +299,7 @@ class Node:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        massless: Optional[List[int]] = None,
     ) -> LorentzTrafo:
         """Get the boost from this node to a target node
         The momenta dictionary will define the initial configuration.
@@ -306,8 +313,8 @@ class Node:
                 helicity: we just rotate to be aligned with the target and boost
                 minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
                 canonical: We rotate, boost and rotate back. Thus the action is a pure boost
+            massless (Optional[List[int]], optional): list of final-state particle IDs that are massless. Defaults to None.
         """
-
         if tol is None:
             tol = cfg.gamma_tolerance
         if not cb.allclose(
@@ -322,19 +329,39 @@ class Node:
                 )
             )
         target = Node.get_node(target)
+
         zero = cb.zeros_like(akm.time_component(self.momentum(momenta)))
-        one = cb.ones_like(zero)
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
 
-        if target not in self.daughters:
+        if target not in self.daughters and target != self.root():
             raise ValueError(
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
 
-        # boost to the rest frame of the target
-        xi = -akm.rapidity(target.momentum(momenta))
-        boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
+        masses = cb.nan_to_num(akm.mass(target.momentum(momenta)), nan=0)
+        target_is_massless = (massless is not None) and (target.value in massless)
+        if cb.all(masses < 1e-6) and not target_is_massless:
+            warnings.warn(
+                f"Particle {target.value} appears massless (mass < 1e-6) but was not declared in the `massless` list. "
+                "Pass massless=[...] to helicity_angles or relative_wigner_angles to apply the correct massless procedure.",
+                stacklevel=4,
+            )
+        if target_is_massless:
+            target.parent = self
+            if self.root() == self:
+                boost_to_root = LorentzTrafo(zero, zero, zero, zero, zero, zero)
+            else:
+                boost_to_root = self.boost(
+                    self.root(), momenta, convention="canonical", massless=massless
+                )  # canonical convention is a pure boost
+            boost = boost_to_root
+            if convention == "canonical":
+                return boost
+        else:
+            # boost to the rest frame of the target (only after massless check)
+            xi = -akm.rapidity(target.momentum(momenta))
+            boost = LorentzTrafo(zero, zero, xi, zero, zero, zero)
 
         if convention == "canonical":
             rotation, minus_theta_rf, minus_psi_rf = self.rotate_to(
@@ -462,7 +489,7 @@ class Node:
         if self.value == target.value:
             return LorentzTrafo(zero, zero, zero, zero, zero, zero)
 
-        if not target in self.daughters:
+        if target not in self.daughters and target != self.root():
             raise ValueError(
                 f"Target node {target} is not a direct daughter of this node {self}"
             )
@@ -669,6 +696,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        massless: Optional[List[int]] = None,
     ) -> Dict[Tuple[Union[tuple, int], Union[tuple, int]], HelicityAngles]:
         """
         Get a tree with the helicity angles for every internal node
@@ -681,7 +709,8 @@ class Topology:
                 helicity: we just rotate to be aligned with the target and boost
                 minus_phi: we rotate to be aligned, boost and then roate the azimutal angle (phi or psi) back
                 canonical: We rotate, boost and rotate back. Thus the action is a pure boost
-
+            massless(Optional[List[int]]): list of final-state particle IDs to treat as massless.
+            Defaults to None.
 
         Returns:
             Helicity angles for the final state particles
@@ -708,6 +737,7 @@ class Topology:
                 tol=tol if tol is not None else cfg.gamma_tolerance,
                 safety_checks=cfg.numerical_safety_checks,
                 convention=convention,
+                massless=massless if massless is not None else [],
             )
 
             ordering_fn = self.ordering_function
@@ -732,7 +762,7 @@ class Topology:
                 if node != self.root:
                     # TODO: this is a slow, but clean approach, where we only arrive in internal node frames vial the boost method. Maybe we could speed this up by not boosting from the root all the time
                     boost_to_node = self.boost(
-                        node, momenta, tol=tol, convention=convention
+                        node, momenta, tol=tol, convention=convention, massless=massless
                     )
                     momenta_in_node_frame = self.root.transform(boost_to_node, momenta)
                 else:
@@ -750,6 +780,7 @@ class Topology:
         inverse: bool = False,
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        massless: Optional[List[int]] = None,
     ) -> LorentzTrafo:
         """
         Get the boost from the root node to a target node.
@@ -760,6 +791,7 @@ class Topology:
             inverse: If True, return the inverse of the boost
             tol: Tolerance for the gamma check. Defaults to the value in the config.
             convention: The convention to use for the boost. Defaults to "helicity".
+            massless: List of final-state particle IDs that are massless. Defaults to None.
 
         Returns:
             Boost from the root node to the target node
@@ -768,13 +800,21 @@ class Topology:
         target = Node.get_node(target)
         path, node_dict = self.path_to(target)
         trafo = self.root.boost(
-            node_dict[path[0]], momenta, tol=tol, convention=convention
+            node_dict[path[0]],
+            momenta,
+            tol=tol,
+            convention=convention,
+            massless=massless,
         )
         momenta = self.root.transform(trafo, momenta)
         trafos = [trafo]
         for i in range(1, len(path)):
             boost = node_dict[path[i - 1]].boost(
-                node_dict[path[i]], momenta, tol=tol, convention=convention
+                node_dict[path[i]],
+                momenta,
+                tol=tol,
+                convention=convention,
+                massless=massless,
             )
             momenta = node_dict[path[i - 1]].transform(boost, momenta)
             trafo = boost @ trafo
@@ -794,6 +834,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        massless: Optional[List[int]] = None,
     ) -> LorentzTrafo:
         """Get the relative Wigner angles between two topologies
 
@@ -802,6 +843,7 @@ class Topology:
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
             tol: Tolerance for the gamma check. Defaults to the value in the config.
+            massless: List of final-state particle IDs that are massless. Defaults to None.
 
         Returns:
             The rotation between the two rest frames for the target node, one arrives at by boosting from the mother rest frame to the target rest frame as described by the two topologies
@@ -815,9 +857,16 @@ class Topology:
         target = Node.get_node(target)
         # invert self, since this final state is seen as the reference
         boost1_inv = self.boost(
-            target, momenta, tol=tol, convention=convention, inverse=True
+            target,
+            momenta,
+            tol=tol,
+            convention=convention,
+            inverse=True,
+            massless=massless,
         )
-        boost2 = other.boost(target, momenta, tol=tol, convention=convention)
+        boost2 = other.boost(
+            target, momenta, tol=tol, convention=convention, massless=massless
+        )
         return boost2 @ boost1_inv
 
     def relative_wigner_angles(
@@ -826,6 +875,7 @@ class Topology:
         momenta: Dict[str, Union[np.array, jnp.array]],
         tol: Optional[float] = None,
         convention: Literal["helicity", "minus_phi", "canonical"] = "helicity",
+        massless: Optional[List[int]] = None,
     ) -> Dict[int, Tuple[Union[jnp.ndarray, np.array], Union[jnp.ndarray, np.array]]]:
         """Get the relative Wigner angles between two topologies
 
@@ -834,6 +884,7 @@ class Topology:
             target: Node to compare to
             momenta: Dictionary of momenta for the final state particles
             tol: Tolerance for the gamma check. Defaults to the value in the config.
+            massless: List of final-state particle IDs to treat as massless. Defaults to None.
 
         Returns:
             Dict of the relative Wigner angles with the final state node as key
@@ -860,6 +911,7 @@ class Topology:
                 tol=tol if tol is not None else cfg.gamma_tolerance,
                 safety_checks=cfg.numerical_safety_checks,
                 convention=convention,
+                massless=massless if massless is not None else [],
             )
             return {
                 k: WignerAngles(
@@ -876,7 +928,12 @@ class Topology:
 
         return {
             target.value: self.rotate_between_topologies(
-                other, target, momenta, tol=tol, convention=convention
+                other,
+                target,
+                momenta,
+                tol=tol,
+                convention=convention,
+                massless=massless,
             ).wigner_angles()
             for target in self.final_state_nodes
         }
