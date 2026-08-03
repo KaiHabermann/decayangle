@@ -317,7 +317,7 @@ class Node:
         """
         if tol is None:
             tol = cfg.gamma_tolerance
-        if not cb.allclose(
+        if cfg.check_gate(self.momentum(momenta)) and not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
             rtol=tol,
@@ -341,7 +341,7 @@ class Node:
 
         masses = cb.nan_to_num(akm.mass(target.momentum(momenta)), nan=0)
         target_is_massless = (massless is not None) and (target.value in massless)
-        if cb.all(masses < 1e-6) and not target_is_massless:
+        if cfg.check_gate(masses) and cb.all(masses < 1e-6) and not target_is_massless:
             warnings.warn(
                 f"Particle {target.value} appears massless (mass < 1e-6) but was not declared in the `massless` list. "
                 "Pass massless=[...] to helicity_angles or relative_wigner_angles to apply the correct massless procedure.",
@@ -474,7 +474,7 @@ class Node:
 
         if tol is None:
             tol = cfg.gamma_tolerance
-        if not cb.allclose(
+        if cfg.check_gate(self.momentum(momenta)) and not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
             rtol=tol,

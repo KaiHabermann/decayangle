@@ -1,7 +1,7 @@
 from decayangle.backend import jax_backend, numpy_backend
 from types import ModuleType
 from typing import Tuple, List, Union
-
+import jax
 
 class _cfg:
     __state = {
@@ -227,5 +227,9 @@ class _cfg:
         if self.numerical_safety_checks:
             raise exception
 
+    def check_gate(self, array: Union[jax_backend.ndarray, numpy_backend.ndarray, jax.core.Tracer]) -> bool:
+        if isinstance(array, jax.core.Tracer):
+            return False
+        return True
 
 config = _cfg()
