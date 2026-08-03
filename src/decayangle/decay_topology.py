@@ -716,7 +716,7 @@ class Topology:
             Helicity angles for the final state particles
 
         """
-        if cfg.use_rust:
+        if cfg.use_rust and cfg.check_gate(next(iter(momenta.values()))):
             from decayangle_rs import helicity_angles_rust
             import numpy as np_plain
 
@@ -889,7 +889,7 @@ class Topology:
         Returns:
             Dict of the relative Wigner angles with the final state node as key
         """
-        if cfg.use_rust:
+        if cfg.use_rust and cfg.check_gate(next(iter(momenta.values()))):
             from decayangle_rs import wigner_angles_rust
             import numpy as np_plain
 

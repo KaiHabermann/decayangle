@@ -2,9 +2,9 @@ name: PyPi Release
 
 on:
   workflow_dispatch: {}
-  push:
-    tags:
-      - "v*"
+  # push:
+  #   tags:
+  #     - "v*"
 
 jobs:
   # ── Pure-Python package (decayangle) ────────────────────────────────────────
