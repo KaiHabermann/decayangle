@@ -151,7 +151,7 @@ jobs:
           name: rust-sdist
           path: dist/
       - name: Sign distributions with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v3
+        uses: sigstore/gh-action-sigstore-python@v4
         with:
           inputs: >-
             ./dist/*.tar.gz
