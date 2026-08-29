@@ -12,7 +12,7 @@ from decayangle.config import config as cfg
 
 cb = cfg.backend
 
-HelicityAngles = namedtuple("HelicityAngles", ["phi_rf", "theta_rf"])
+HelicityAngles = namedtuple("HelicityAngles", ["phi_rf", "theta_rf", "mass"])
 
 
 def flat(l) -> Generator:
@@ -445,6 +445,7 @@ class Node:
         return HelicityAngles(
             -minus_phi_rf,
             -minus_theta_rf,
+            self.mass(momenta),
         )
 
     def rotate_to(
