@@ -317,7 +317,7 @@ class Node:
         """
         if tol is None:
             tol = cfg.gamma_tolerance
-        if cfg.check_gate(self.momentum(momenta)) and not cb.allclose(
+        if cfg.check_gate(akm.gamma(self.momentum(momenta))) and not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
             rtol=tol,
@@ -474,7 +474,7 @@ class Node:
 
         if tol is None:
             tol = cfg.gamma_tolerance
-        if cfg.check_gate(self.momentum(momenta)) and not cb.allclose(
+        if cfg.check_gate(akm.gamma(self.momentum(momenta))) and not cb.allclose(
             akm.gamma(self.momentum(momenta)),
             cb.ones_like(akm.gamma(self.momentum(momenta))),
             rtol=tol,
