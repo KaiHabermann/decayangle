@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "decayangle-rs"
 description = "Rust-accelerated backend for the decayangle package"
-version = "1.1.4"
+version = "1.1.5"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
